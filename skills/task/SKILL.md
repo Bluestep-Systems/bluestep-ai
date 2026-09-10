@@ -19,7 +19,8 @@ parts of the repo, **STOP and suggest `/plan` instead.**
    request; read only the functions around the hits with offset and limit. Over about 300 lines,
    never read a whole file. If a code-intelligence tool is available (go to definition, find
    references), prefer it to grep-then-read. For a broad "where does X happen" question across
-   many files, delegate to the `explorer` subagent so the file bulk never enters this context.
+   many files, delegate to a read-only search subagent if the tool has one (in Claude Code,
+   `Explore`), so the file bulk never enters this context.
 
 3. **Draft the task file.** Copy `${CLAUDE_PLUGIN_ROOT}/skills/task/task.template.md` to
    `.claude/tasks/<slug>.md` (create the folder if missing; `<slug>` is short kebab-case). Fill
@@ -48,8 +49,9 @@ the task is the one numbered `<n>` in that spec's `tasks.md`. Read `requirements
 `design.md` once, scoped to what that task needs. Step 3's task file is
 `.claude/tasks/<feature>-<n>.md` and its **Done when** comes from the task line and the spec's
 Verification. When the task is done and reviewed, tick its box in `tasks.md`. If the task's reads
-would fill this session, delegate it to the `implementer` subagent with the same two arguments
-and review its summary and diff instead.
+would fill this session, delegate it to a general-purpose subagent with the same two arguments and
+the instruction to implement only that task, then review its summary and diff instead. Where the
+tool has no subagents, run it in a fresh session; this file is what makes that possible.
 
 ## Resuming
 

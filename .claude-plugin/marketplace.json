@@ -3,6 +3,6 @@
   "owner": { "name": "BlueStep Systems" },
   "description": "Local-development manifest for core-tools. Teams install core-tools through the bluestep marketplace (Bluestep-Systems/bspecs); this file exists so the repo can be added as a marketplace from a checkout while developing it.",
   "plugins": [
-    { "name": "core-tools", "source": "./", "description": "Base workflow tooling: core rule set, /harness, /task, /plan, explorer and implementer subagents, measure.py." }
+    { "name": "core-tools", "source": "./", "description": "Base workflow tooling: core rule set, /repo-setup, /task, /plan, measure.py." }
   ]
 }

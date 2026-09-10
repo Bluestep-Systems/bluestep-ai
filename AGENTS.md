@@ -1,6 +1,6 @@
 # bluestep-ai
 
-<!-- core-tools harness-template 1 -->
+<!-- core-tools repo-setup-template 1 -->
 
 > Always-on rules for AI coding agents in this repo. Cursor, Codex and most agents read `AGENTS.md`
 > natively; Claude Code reads it through the one-line `CLAUDE.md` bridge next to it. Repo rules go
@@ -14,9 +14,9 @@ copy stays the only copy.
 
 ## What this is
 
-The `core-tools` Claude Code plugin: the `core` rule set, `/task`, `/plan`, `/harness`, the
-`explorer` and `implementer` subagents, and `tools/measure.py`. It is the non-BlueStep counterpart
-to `bluestep-tools` in `Bluestep-Systems/bspecs`.
+The `core-tools` Claude Code plugin: the `core` rule set, `/repo-setup`, `/task`, `/plan`, and
+`tools/measure.py`. No subagents and no hooks. It is the non-BlueStep counterpart to
+`bluestep-tools` in `Bluestep-Systems/bspecs`.
 
 ## Commands
 

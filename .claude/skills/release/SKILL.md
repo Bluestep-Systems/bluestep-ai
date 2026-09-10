@@ -36,9 +36,11 @@ verified install, not a merge.
   the top CHANGELOG heading.
 - The installed cache path under `~/.claude/plugins/cache/bluestep/core-tools/` ends in the new
   version after an install.
-- `--debug` in a scratch repo lists the skills and agents you expect, at that version.
+- `--debug` in a scratch repo lists the skills you expect, at that version. (The plugin ships no
+  agents and no hooks, so skills are the whole surface.)
 
 <!--
-Written by /harness from what this repo actually contains. Edit it freely — /harness will never
-overwrite it, and `/harness --check` will tell you if the repo has moved on from what it says.
+Written by /repo-setup from what this repo actually contains. Edit it freely — /repo-setup will
+never overwrite it, and `/repo-setup --check` will tell you if the repo has moved on from what it
+says.
 -->

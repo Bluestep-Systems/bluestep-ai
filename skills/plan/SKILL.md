@@ -27,8 +27,9 @@ approved, implementation runs in fresh sessions with clean context.
 ## Phase 2 — design
 
 1. Read the parts of the repo the feature touches, scoped: grep for the symbols and read the
-   functions around the hits. For a wide survey, delegate to the `explorer` subagent and use its
-   summary. Do not load whole directories into this context.
+   functions around the hits. For a wide survey, delegate to a read-only search subagent if the
+   tool has one (in Claude Code, `Explore`) and use its summary; if it has none, grep and read
+   bounded ranges yourself. Either way, do not load whole directories into this context.
 2. Copy `templates/design.template.md` to `.claude/specs/<feature>/design.md` and fill it in.
    It must name the files and interfaces that change, the approach, how data moves, edge cases,
    and how to roll back.
@@ -55,6 +56,8 @@ first task as a copyable line:
 ```
 
 `/task` with a spec name and task number reads that task from `tasks.md` and runs it as one
-living document. When a task's reads would otherwise fill the main session, delegate it to the
-`implementer` subagent with the spec name and task number; it returns a summary and the main
-session reviews the diff and ticks the box.
+living document. When a task's reads would otherwise fill the main session, delegate it to a
+general-purpose subagent with the spec name, the task number, and the instruction to implement
+only that task and return a summary — then the main session reviews the diff and ticks the box.
+Where the tool has no subagents, run it in a fresh session instead; the task file is what makes
+that work.
