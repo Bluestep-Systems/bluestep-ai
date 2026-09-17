@@ -21,8 +21,8 @@ The plugin is listed in the `bluestep` marketplace. This repo also carries its o
 | `core` rule set | `lane/core.md` | Layer 1 rules for the model: how to read, when to delegate, session boundaries. One copy, here — a repo's `AGENTS.md` names it rather than copying it in, so it cannot drift per repo. |
 | Working habits | `docs/working-habits.md` | One screen of what a **person** does to keep sessions cheap. Read it once. |
 | `/repo-setup` | `skills/repo-setup/` | Audits or writes a repo's own setup: a short `AGENTS.md` that names its rule set, the `CLAUDE.md` bridge, and a skill per repo workflow. `--check` reports drift and writes nothing; without it, missing files are created and existing files are never touched. |
-| `/task` | `skills/task/` | One living document at `.claude/tasks/<slug>.md` for a small, clearly scoped change. Approval gate before any edit. |
-| `/plan` | `skills/plan/` | Requirements, design, tasks in `.claude/specs/<feature>/`, with approval between each. For work that needs design. |
+| `/task` | `skills/task/` | One living document at `.claude/tasks/<slug>.md` for a small, clearly scoped change, with an approval gate before any edit. With a spec: `/task <feature> <n>` runs one task; `/task <feature>` offers to run the rest, in a row or in parallel across disjoint file lists, routing each task to the model tier its marker names and committing per task. |
+| `/plan` | `skills/plan/` | Requirements, design, tasks in `.claude/specs/<feature>/`, with approval between each. Every task gets a `[mechanical]` / `[routine]` / `[judgment]` marker, a complete file list and a Gate command, which is what lets `/task` run them unattended. For work that needs design. |
 | `measure.py` | `tools/measure.py` | Session-cost measurement over Claude Code transcripts. |
 
 ## Not in this version

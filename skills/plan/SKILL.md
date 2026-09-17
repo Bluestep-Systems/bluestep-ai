@@ -8,7 +8,7 @@ description: Start a spec for work that needs design. Writes requirements.md, th
 A spec lives at `.claude/specs/<feature>/` as three files. Each phase needs explicit approval
 before the next. The point is a self-contained spec: it names the files and interfaces involved,
 says what is out of scope, and ends with a check that proves the whole thing works. Once it is
-approved, implementation runs in fresh sessions with clean context.
+approved, implementation runs from the spec alone, so a session can stop and a later one pick up.
 
 ## Phase 0 — setup
 
@@ -38,18 +38,36 @@ approved, implementation runs in fresh sessions with clean context.
 ## Phase 3 — tasks
 
 1. Copy `templates/tasks.template.md` to `.claude/specs/<feature>/tasks.md`.
-2. Break the work into tasks. Each task: a checkbox, the specific file paths it touches, and is
+2. Fill the **Gate** line in the header: the exact command that must pass after every task (the
+   test suite, a type check, a lint). Write `none` if the repo has no such command; then each
+   task's done-when is the only check.
+3. Break the work into tasks. Each task: a checkbox, a marker, the file paths it touches, and is
    small enough to finish in one session. Order them so a task never depends on a later one.
-3. Tag a task `[mechanical]` only when it repeats a pattern an earlier task in the same spec has
-   already proved, makes no new decisions, and adds nothing new. The first instance of any pattern
-   is never mechanical. When in doubt, leave the tag off.
-4. Fill **Verification** at the bottom: the end-to-end check for the whole feature.
-5. **STOP.** Ask for approval before any implementation.
+   **File lists must be complete.** The runner (`/task <feature> --run --parallel`) treats two
+   tasks with no shared file as safe to run at the same time, so a path left off a list is a
+   merge conflict later.
+4. Mark every task. Answer these in order; the first yes wins, so doubt rates up:
+   - **`[judgment]`** — is there a design choice left, UI behaviour, a new pattern, or anything
+     the spec did not decide?
+   - **`[routine]`** — is the shape known (a typed contract, a template, an existing example in
+     the repo) but the content new? For example: adding a field through a typed contract and its
+     fixtures.
+   - **`[mechanical]`** — does it repeat a pattern an earlier task *in this spec* has already
+     proved, with no new decision and nothing new added? The first instance of any pattern is
+     never mechanical.
+   A task with no marker is not a valid task line; the runner refuses a spec that has one.
+5. Add `after: <n>, <m>` to a task line only when it depends on an earlier task that its file
+   list does not reveal. Without the clause, a task depends only on earlier tasks whose file lists
+   overlap its own. `after:` may never point at a later task or at one that does not exist.
+6. Fill **Verification** at the bottom: the end-to-end check for the whole feature.
+7. **STOP.** Ask for approval before any implementation.
 
 ## After approval
 
-Tell the user to implement one task per session, and to start a fresh session for it. Give the
-first task as a copyable line:
+Tell the user to implement the tasks in order, one at a time. Keep going in the current session
+while its context still fits the next task; start a fresh session when it no longer does, or when
+switching to unrelated work. The spec is what makes the cold start work. Give the first task as a
+copyable line:
 
 ```
 /task <feature> 1
@@ -60,4 +78,6 @@ living document. When a task's reads would otherwise fill the main session, dele
 general-purpose subagent with the spec name, the task number, and the instruction to implement
 only that task and return a summary — then the main session reviews the diff and ticks the box.
 Where the tool has no subagents, run it in a fresh session instead; the task file is what makes
-that work.
+that work. `/task <feature>` with no task number offers the run modes instead: the remaining
+tasks in one go, in parallel where file lists are disjoint, stopping at the first `[judgment]`
+task unless told to include them.

@@ -30,11 +30,30 @@ the design section it comes from (the `agent-workflow-efficiency` design in the 
    files and returns a conclusion is the right shape. Ask it for a summary, not the file dumps.
 8. **Do not delegate a short lookup.** Under about three reads, do it inline. A subagent pays its own
    startup on every turn.
-9. **Do not fan out ordinary coding work.** One implementer per task, in its own context, when the
+9. **Do not fan out coding work by hand.** One implementer per task, in its own context, when the
     task's reads would otherwise bloat the main session. Parallel agents are for breadth-first
-    research, not for a change that touches three files.
+    research, not for a change that touches three files. The spec runner (`/task <feature>
+    --parallel`) may run several tasks at once, only across tasks whose file lists are disjoint,
+    and merges them one at a time. *verify: the first parallel runs measure whether merge and gate
+    catch what a single implementer would have caught.*
 10. **Every delegation states four things:** the objective, the output format, which tools and
     sources to use, and the boundaries (what not to touch, when to stop).
+
+## Model tiers by marker (§ 7)
+
+Every task line in a spec carries `[mechanical]`, `[routine]` or `[judgment]` (set by `/plan`).
+When `/task` delegates a task, the marker picks the tier. Tiers are roles, not vendor names; in
+Claude Code they map to haiku / sonnet / the session's model.
+
+| Marker | Tier | Why |
+| --- | --- | --- |
+| `[mechanical]` | the cheapest available model | repeats a pattern this spec already proved; no decision left |
+| `[routine]` | the mid tier | known shape, new content |
+| `[judgment]` | the strongest available model, or the main session itself | a design choice, UI behaviour or a new pattern |
+
+On a tool with no model choice, the marker still sets how much review the result gets before the
+box is ticked: mechanical, check the gate and that the diff touches only the listed files;
+routine, also read the diff; judgment, also re-read the task's done-when against the design.
 
 ## Sessions (§ 5) — a person acts, you raise it at the moment it applies
 
