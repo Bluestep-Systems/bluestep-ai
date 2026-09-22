@@ -33,7 +33,7 @@ Overwriting them would destroy the reason they exist.
 ### 1. Stop if this is not your repo type
 
 Run `ls -d U*/ 2>/dev/null` and look for a `b6p` config. A BlueStep component workspace uses
-`/project-init` from `bluestep-tools`, which writes the `b6p` rule set instead of the `core` one —
+`/b6p-setup` from `bluestep-tools`, which writes the `b6p` rule set instead of the `core` one —
 say so and stop. Doing this first costs one command and saves writing the wrong rules.
 
 ### 2. Read the repo — cheaply
