@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 — 2026-09-22
+
+**`/repo-setup` points at `/b6p-setup`.** bluestep-tools 0.37.0 folded `/b6p-init`, `/project-init` and
+`/b6p-update` into one skill, `/b6p-setup`; the "stop if this is a BlueStep workspace" step names it.
+No other change.
+
 ## 0.4.0 — 2026-09-17
 
 **Every task in a spec now carries a marker: `[mechanical]`, `[routine]` or `[judgment]`.** 0.3.0
