@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.2 — 2026-10-21
+
+**Every skill description is now a quoted string, so `/repo-setup` loads with its description again.**
+Its `description:` held an unquoted `: ` ("builds, tests and deploys: a command CI runs"), which
+YAML reads as a second key. The frontmatter failed to parse (`claude --debug` logged `Failed to
+parse YAML frontmatter`), Claude Code loaded the skill with no description, and the model was never
+offered it. `/plan` and `/task` parsed fine but are quoted too, so the next edit cannot break
+them the same way. The `SKILL.md` template `/repo-setup` writes into other repos now quotes the
+description as well, and step 5 says why. Nothing to do but update.
+
 ## 0.4.1 — 2026-09-22
 
 **`/repo-setup` points at `/b6p-setup`.** bluestep-tools 0.37.0 folded `/b6p-init`, `/project-init` and

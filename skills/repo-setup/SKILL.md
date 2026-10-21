@@ -1,6 +1,6 @@
 ---
 name: repo-setup
-description: Audit or create a repo's agent setup — the AGENTS.md rules file, the CLAUDE.md bridge, and a skill per repo workflow. Use this whenever the question is whether a repo's rules still match what it actually builds, tests and deploys: a command CI runs that the rules never mention, a command in the rules that no longer exists, rules that live only in CLAUDE.md so Cursor and Codex see nothing, or a repo with no AGENTS.md at all. Reach for it after a repo gains a test framework, a CI check, a deploy step or a new package, and when opening a repo nobody has set up for agents yet. `--check` reports drift and writes nothing; without it, missing files get created and existing files are never touched.
+description: "Audit or create a repo's agent setup — the AGENTS.md rules file, the CLAUDE.md bridge, and a skill per repo workflow. Use this whenever the question is whether a repo's rules still match what it actually builds, tests and deploys: a command CI runs that the rules never mention, a command in the rules that no longer exists, rules that live only in CLAUDE.md so Cursor and Codex see nothing, or a repo with no AGENTS.md at all. Reach for it after a repo gains a test framework, a CI check, a deploy step or a new package, and when opening a repo nobody has set up for agents yet. `--check` reports drift and writes nothing; without it, missing files get created and existing files are never touched."
 allowed-tools: Read Write Glob Grep AskUserQuestion Bash(ls:*) Bash(basename:*) Bash(mkdir:*) Bash(test:*) Bash(git:*) Bash(wc:*) Bash(head:*) Bash(sed:*) Bash(cat:*) Bash(python:*)
 ---
 
@@ -110,6 +110,9 @@ For each item sorted into "sometimes", write `.claude/skills/<kebab-name>/SKILL.
 - One workflow per skill, and a `description` that says **when** to use it — that line is the only
   part loaded every session, so it decides whether the skill is ever picked. Lead with the trigger,
   not the mechanism.
+- Keep the `description` a double-quoted string, escaping any `"` or `\` inside it with a `\`. An
+  unquoted `: ` in it (`Usage: /x`) makes the frontmatter fail to parse, and the skill then loads
+  with no description, so it is never offered.
 - Name real commands, not paraphrases. If you did not verify a command exists, leave it out.
 
 ### 6. Report, then stop

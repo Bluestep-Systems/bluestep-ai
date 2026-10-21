@@ -1,6 +1,6 @@
 ---
 name: {{SKILL_NAME}}
-description: {{WHEN_TO_USE}}
+description: "{{WHEN_TO_USE}}"
 ---
 
 # {{SKILL_TITLE}}
