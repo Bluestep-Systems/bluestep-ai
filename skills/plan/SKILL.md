@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Start a spec for work that needs design. Writes requirements.md, then design.md, then tasks.md under .claude/specs/<feature>/, with explicit approval between each. Use when the user wants to plan a feature or a change that touches several parts of a repo; for a small scoped change, use /task.
+description: "Start a spec for work that needs design. Writes requirements.md, then design.md, then tasks.md under .claude/specs/<feature>/, with explicit approval between each. Use when the user wants to plan a feature or a change that touches several parts of a repo; for a small scoped change, use /task."
 ---
 
 # /plan — requirements, design, tasks

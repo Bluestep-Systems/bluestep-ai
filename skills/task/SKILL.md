@@ -1,6 +1,6 @@
 ---
 name: task
-description: Short workflow for a small, clearly scoped change or bug fix. Keeps one living document at .claude/tasks/<slug>.md with goal, files, done-when check, decisions and state, so the next session (or another tool) can pick it up without the transcript. Also runs the tasks of an approved spec, one at a time or all remaining ones in a row (in parallel where file lists are disjoint). Use for work that does not need design; for a feature, use /plan.
+description: "Short workflow for a small, clearly scoped change or bug fix. Keeps one living document at .claude/tasks/<slug>.md with goal, files, done-when check, decisions and state, so the next session (or another tool) can pick it up without the transcript. Also runs the tasks of an approved spec, one at a time or all remaining ones in a row (in parallel where file lists are disjoint). Use for work that does not need design; for a feature, use /plan."
 ---
 
 # /task — one task, one living document
