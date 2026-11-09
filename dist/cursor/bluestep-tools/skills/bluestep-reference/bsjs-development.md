@@ -186,28 +186,36 @@ The platform calls `B.commit()` automatically when the script finishes. Only cal
 - You need a newly created entry's ID before the script ends.
 - You need post-saves to fire before subsequent reads.
 
+`commit()` is declared only on the commitable `B` types (endpoints, on-demand and scheduled
+formulas). A post-save's `B` is a `CurrentRecordB`, which has none.
+
 ```typescript
-const newEntry = record.forms.someForm.newEntry();   // someForm: a multi-entry form
-newEntry.name.set("test");
+// someForm: a multi-entry form bound by its FID (a top-level variable in declarations/index.d.ts)
+const newEntry = someForm.newEntry();
+newEntry.fields.name.val("test");
 B.commit();
-const id = newEntry.id;      // now available
+const id = newEntry.id().shortId();   // the real id only after commit; "0" before (reference/new-entry-id.md)
 ```
 
 ## Reading and writing fields
 
 ### Read
 
+Fields hang off the entry's `.fields` object (`entry` here is a form entry: a bound single-entry
+form, or one entry of a multi-entry form).
+
 ```typescript
-const value = entry.fieldName.val();                          // current value
-const exportValue = entry.statusField.selectedExportValue();  // dropdown export value
-const all = entry.tagsField.allValues();                       // multi-select
+const value = entry.fields.fieldName.val();                    // current value, or null
+const exportValue = entry.fields.statusField.optSelected()     // single-select export value
+  .map(o => o.exportValue()).orElse("");
+const all = entry.fields.tagsField.selectedExportValues();      // multi-select: list of export values
 ```
 
-`.val()` returns the field's value typed loosely (often `any`). When a field may be empty, prefer the Java-optional accessor with a default instead of null-checking the raw value:
+`.val()` returns `null` when the field is empty. When a field may be empty, prefer the Java-optional accessor with a default instead of null-checking the raw value:
 
 ```typescript
-const name = entry.nameField.opt().orElse("");   // string, never null
-const score = entry.scoreField.opt().orElse(0);
+const name = entry.fields.nameField.opt().orElse("");   // string, never null
+const score = entry.fields.scoreField.opt().orElse(0);
 ```
 
 Projects compile with `strictNullChecks` on, but not the full `strict` flag (see "TypeScript configuration & Graal compatibility"), and a value typed `any` slips past null checks anyway — so `.opt().orElse()` plus explicit annotations are the main defense against silent `null`/`undefined` bugs.
@@ -217,24 +225,25 @@ Projects compile with `strictNullChecks` on, but not the full `strict` flag (see
 Do not call `.writable()`. Field writability is configured on the platform — if the field is not configured as writable for this script type, the write will throw at runtime. Write directly:
 
 ```typescript
-entry.nameField.set("new value");
-entry.statusField.setByExportValue("active");
-entry.tagsField.add("priority");
-entry.tagsField.remove("legacy");
+entry.fields.nameField.val("new value");                    // scalar fields: val(newValue)
+entry.fields.statusField.setByExportValue("active");        // select fields: pick by export value
+entry.fields.tagsField.setByExportValue("priority");        // multi-select: check an option
+entry.fields.tagsField.setByExportValue("legacy", false);   // multi-select: uncheck an option
 ```
 
 ### Multi-entry forms
 
 ```typescript
-// record.forms.someForm is a MultiFormRecord: a list of the record's entries
-for (const entry of record.forms.someForm) {
-  entry.field.set("value");
-}
+// someForm: a multi-entry form bound by its FID — a top-level MultiFormRecord (a list of the
+// record's entries) in declarations/index.d.ts
+someForm.forEach(entry => {
+  entry.fields.field.val("value");
+});
 
-const newEntry = record.forms.someForm.newEntry();
-newEntry.name.set("new");
+const newEntry = someForm.newEntry();
+newEntry.fields.name.val("new");
 
-oldEntry.delete();
+oldEntry.entry().delete();   // oldEntry: an existing entry; not oldEntry.delete() (reference/entry-delete.md)
 ```
 
 ## Patterns by script type
@@ -244,10 +253,13 @@ wrapper and no bare `return` (`conventions/formula-patterns.md`).
 
 ### Post-Save
 
-Runs after a record is saved. Use `justCreated()` to distinguish new vs. updated records. `curEntry` is the entry being saved.
+Runs after a record is saved. Use `justCreated()` to distinguish new vs. updated records. There is
+no `curEntry` global: reach the saved entry through its form, bound by its FID, and call
+`justCreated()` on the underlying `Entry`.
 
 ```typescript
-if (curEntry.justCreated()) {
+// myForm: the saved form, bound by its FID (a top-level variable in declarations/index.d.ts)
+if (myForm.entry().justCreated()) {
   sendWelcomeEmail();
 } else {
   syncToExternal();
@@ -268,14 +280,15 @@ vs `response.out()`, and why `status()`/`contentType()` belong in try/catch (the
 `reference/endpoint-output-channel.md`; `request.method()` is a call, not a property
 (`reference/endpoint-method-call.md`).
 
+`scripts/app.ts` runs top-down when the request comes in: no `run()` wrapper, and keep every
+`const`/`let` above the code that uses it (`conventions/top-level-const-tdz.md`).
+
 ```typescript
-export function run(): void {
-  const action = B.net.request.optParameter("action").orElse("");
-  switch (action) {
-    case "list":  return listAll();
-    case "get":   return getOne();
-    default:      return badRequest();
-  }
+const action = B.net.request.optParameter("action").orElse("");
+switch (action) {
+  case "list": listAll(); break;
+  case "get":  getOne();  break;
+  default:     badRequest();
 }
 
 function listAll(): void {
@@ -316,14 +329,16 @@ Use `sendRedirect()` in endpoints — `redirect()` also exists but the platform'
 
 ### MergeReport
 
-Backend logic in `scripts/`; **frontend in `static/`** (R3). Inject content into pages via `pageContent()`:
+Backend logic in `scripts/`; **frontend in `static/`** (R3). `scripts/app.ts` runs top-down (no
+`run()` wrapper). It renders by assigning the HTML string to `B.out`, and adds extra content to the
+page through `B.net.pageContent(key)`:
 
 ```typescript
-export function run(): void {
-  pageContent("main").write(renderMain());
-  HEADER_SCRIPTS_BOTTOM().write(`<script src="${staticUrl("client.js")}"></script>`);
-  BODY().write(`<div class="footer">...</div>`);
-}
+B.net.pageContent("myReportScripts")       // key: content under a key already used is not added twice
+  .HEADER_SCRIPTS_BOTTOM()                  // where in the page it goes
+  .addContent(`<script>/* ... */</script>`)
+  .insert();
+B.out = renderMain();                       // renderMain: your own function returning the HTML
 ```
 
 ### OnDemand / Field Formula
@@ -332,25 +347,19 @@ OnDemand formulas run on the **task pod** — well-suited for heavy or long-runn
 
 **Critical latency caveat:** OnDemand has a ~5 second scheduler-queue delay before it starts, by design. This is fine for background / async work. It is the wrong tool for anything on a user's synchronous wait path — if a user is waiting for a response, an OnDemand hop adds ~5 s of irreducible latency before the work even begins. Prefer a synchronous task-pod **Endpoint** for user-facing create or update paths.
 
-**How an OnDemand is triggered:** in RelateScript, `runFormula("name")` / `System.runFormula("name")` — the **named** form — IS the trigger: calling it dispatches the named OnDemand formula to the task pod, detached from the current save transaction (and subject to the ~5 s queue delay above). Confirmed by the platform team. The call never executes the target inline/synchronously within the save, so there is nothing to "make async" on the caller's side — do not caution users about it. (The **no-arg** `runFormula()` is a different thing entirely — the synchronous field-formula form below.)
+**How an OnDemand is triggered:** in RelateScript, `runFormula("name")` / `System.runFormula("name")` — the **named** form — IS the trigger: calling it dispatches the named OnDemand formula to the task pod, detached from the current save transaction (and subject to the ~5 s queue delay above). Confirmed by the platform team. The call never executes the target inline/synchronously within the save, so there is nothing to "make async" on the caller's side — do not caution users about it.
 
-```typescript
-const result = runFormula();
-B.message.info(`Result: ${result}`);
-```
+The generated BsJs declarations have no global no-arg `runFormula()`: the only `runFormula` is the
+`FormEntry` method below, and it takes a formula id. Do not write a bare `runFormula()` in BsJs.
 
-**Two distinct uses of `runFormula` — don't conflate them (and neither is the named
-RelateScript trigger above):**
-
-- **No-arg, in a field formula** (the example above): `const result = runFormula()` returns the
-  computed value synchronously — it computes this field's own value, it dispatches nothing.
-- **Invoke ANOTHER on-demand formula with a payload** — from a `FormEntry`, `runFormula(fid)`
+**Invoke ANOTHER on-demand formula with a payload** — from a `FormEntry`, `runFormula(fid)`
   returns a **`FormulaScheduler`** builder:
 
   ```typescript
+  // myForm: a form bound by its FID (a top-level variable in declarations/index.d.ts)
   try {
-    const refusal = cur.runFormula("<formula-fid>")
-      .message(JSON.stringify({ recordId: cur.id().toString(), action: "recalc" }))
+    const refusal = myForm.runFormula("<formula-fid>")
+      .message(JSON.stringify({ recordId: myForm.id().shortId(), action: "recalc" }))
       .start();
     if (refusal) console.warn(`On-demand not scheduled: ${refusal}`);
   } catch (e) {
@@ -358,14 +367,17 @@ RelateScript trigger above):**
   }
   ```
 
-  **`runFormula(fid)` can throw.** It checks that the target OnDemand formula applies to the
-  current record (working unit, record types, must-have categories); on a mismatch it throws
-  (reported: `IllegalStateException` from the `FormulaScheduler` constructor) before `.start()`
-  runs. `.start()`'s string return only covers scheduling refusals. Wrap the whole chain in
-  try/catch: in a post-save formula an unguarded throw fails the user's save.
+  **Handle both ways it can fail.** `runFormula(fid)` checks that the target OnDemand formula
+  applies to the current record (working unit, record types, must-have categories), and on a
+  mismatch it has been reported to throw (`IllegalStateException` from the `FormulaScheduler`
+  constructor) before `.start()` runs. `.start()` can also refuse without throwing: its
+  declaration says it returns `null` when the formula is scheduled and an error message when it
+  is not — for a time in the past, a unit or category mismatch, or another configuration rule.
+  So wrap the whole chain in try/catch (in a post-save formula an unguarded throw fails the
+  user's save) and check the returned string.
 
-  `.message(str)` attaches the payload the invoked formula reads on its side as its `message`
-  variable; `.start()` enqueues it on the task pod (subject to the ~5 s scheduler delay above).
+  `.message(str)` attaches the payload; the invoked formula reads it on its side as `B.message`
+  (its `B` is an `OnDemandB`). `.start()` enqueues it on the task pod (subject to the ~5 s scheduler delay above).
   The builder also has `.schedule()` and `.expireBy()` (see `FormulaScheduler` in
   `declarations/B.d.ts`). This is the core mechanic of a trigger → async-builder multi-formula
   pipeline. How the target formula acquires the name that resolves it:
@@ -526,12 +538,13 @@ Patterns:
 
 ```typescript
 try {
-  const response = B.net.fetch(url, { timeout: 5000 });
-  if (!response.ok) {
-    console.error(`Upstream returned ${response.status}`);
-    return;
+  const response = B.net.fetch(url, { connectionTimeout: 5000, readTimeout: 5000 });
+  // code() can read 0 on success; only >= 400 means failure (gotchas/fetched-resource-code.md)
+  if (response.code() >= 400) {
+    console.error(`Upstream returned ${response.code()}: ${response.message()}`);
+  } else {
+    handleBody(B.io.fromInputStream(response));   // handleBody: your own function
   }
-  process(response.body);
 } catch (err) {
   console.error("Fetch failed");
   B.io.printStackTrace(err);   // stack trace when err is a Java throwable

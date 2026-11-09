@@ -14,17 +14,21 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 ## [plugin 0.46.3] — 2026-11-09
 
 > **The platform reference catches up with what the gateway fixed.** Every gateway claim below was
-> re-run on a test org on the newer platform release on 2026-11-09. No hook changes, but Codex asks to
+> re-run on a test org on the newer platform release on 2026-11-09; where the older release behaves
+> differently, the reference says so. No hook changes, but Codex asks to
 > re-trust the plugin's hooks after any update that changes its files: open the plugin's page and
 > **Review → trust** once.
 
 ### Fixed
 
-- **Units, records and form rows can be created** (86bbd8f67, 86bcb0jqt, 86bbwua13). The reference
-  said unit and record creation were UI hand-backs and pointed at the removed `record` / `form_entry`
-  tools. `conventions/mcp-platform-authoring.md` now gives the GraphQL path: `createUnit` (with
-  `organizationEmail`), `deleteUnit` with a dry run, `createRecord` with `fieldValues` (fills the
-  base-form entry), and `createFormRow`, which refuses a bad value by field name and saves nothing.
+- **Units, records and form rows can be created on the newer platform release** (86bbd8f67,
+  86bcb0jqt, 86bbwua13). The reference said unit and record creation were UI hand-backs and pointed at
+  the removed `record` / `form_entry` tools. A new topic file, `reference/units-records-form-rows.md`,
+  gives the GraphQL path: `createUnit` (with `organizationEmail`), `createRecord` with `parents` and
+  `fieldValues` (fills the base-form entry), and `createFormRow`, which refuses a bad value by field
+  label and saves nothing. On the older release units and records stay a UI hand-back. `deleteUnit`
+  joins the destructive list: it moves the unit's records, sub-units and users to its parent, so it is
+  dry-run first and confirmed on its own.
 - **A new base record type needs its Display and Summary fields set** (86bc6g5dn, 86bce4r4f): summary
   fields with `form` UPDATE `summaryFields`, the Display field with GraphQL `updateRelateRecordType`.
 - **Option lists** (86bc4f23z, 86bc4fgje): `sortOrder` starts at 0 and how to fix it, CREATE takes
@@ -39,14 +43,19 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   go through `set_category_requirement`. `reference/fid-alternate-identifier.md` names
   `onDemandIdentifier` instead of saying the ON_DEMAND Identifier is UI-only.
 - **`read_log` needs the `ORG_LOGS` endorsement** on the token's account, otherwise every call is
-  refused.
+  refused. The `/b6p-push` live-build check now says such a refusal is not a missing build.
+- **Findability:** the authoring page's description and manifest line now name the script-settings,
+  option-list, record-type and `read_log` quirks.
 - **Permissions and signatures** (86bcby6hu, 86bcby4aj): `form` CREATE applies `NO_ACCESS` for the
   built-in groups (Relate Licensees by its key); a signature's format type is fixed at CREATE.
-- **`bsjs-development.md` examples that failed at runtime** (86bc7y4mm, 86bcbra5u): `console` instead
-  of the RelateScript-only `log`; `newEntry()` on `record.forms.<form>` instead of `getNewEntry()`;
-  formula examples as bare top-level statements, matching `conventions/formula-patterns.md`; the
-  tsconfig section matches a pulled `draft/tsconfig.json` (`strictNullChecks`, no `strict`); and
-  `runFormula(fid)` is wrapped in try/catch, since it can throw before `.start()`.
+- **`bsjs-development.md` examples now type-check against generated declarations** (86bc7y4mm,
+  86bcbra5u): `console` instead of the RelateScript-only `log`; forms bound by their FID with
+  `newEntry()` instead of `getNewEntry()`; fields under `.fields`, written with `val(x)`; `id()` and
+  `entry().delete()`; formula, endpoint and merge-report examples as top-down code with no `run()`
+  wrapper; `B.net.fetch` checked with `code()`; no `curEntry`, no bare `runFormula()`, no `B.message`
+  outside an on-demand formula; the tsconfig section (and `gotchas/common-gotchas.md`) match a pulled
+  `draft/tsconfig.json`; and `runFormula(fid)` is wrapped in try/catch with the string `start()` returns
+  checked too.
 - **Removed tools no longer named** as current: `record`, `user`, `form_entry` (now "older release
   only" in `reference/mcp-read-multi-entry-forms.md`).
 

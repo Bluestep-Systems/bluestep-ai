@@ -1,12 +1,12 @@
 ---
-description: "The single shared procedure for a [PLATFORM] authoring/wiring op via the bundled platform-gateway MCP — connection check, org resolution, tool mapping, approval echo, execute, declaration read-back — plus the supported tool set, create-time rules for queries/views, and the verified quirks list. Load when about to add an import (query/form/field/MEFR) to a script or create a form/field/option-list/view/record-type/MEFR/script object via the gateway MCP."
+description: "The single shared procedure for a [PLATFORM] authoring/wiring op via the bundled platform-gateway MCP — connection check, org resolution, tool mapping, approval echo, execute, declaration read-back — plus the supported tool set, create-time rules for queries/views, and the verified quirks list (option lists, record types, script type/schedule/identifier/categories, read_log needing ORG_LOGS). Load when about to add an import (query/form/field/MEFR) to a script, create a form/field/option-list/view/record-type/MEFR/script object, change a script's settings, or read a script/org log via the gateway MCP. Units, records and form rows: reference/units-records-form-rows.md."
 ---
 
 # MCP `[PLATFORM]` authoring / wiring procedure
 
 This page **is** the flow. Every entry point points here and none restate it (no-duplication invariant).
 It covers **authoring / wiring only** — adding an import (query / form / field) to a script, or creating
-a form / field / option-list / view / record-type / MEFR / script object (`create_script`). It **never**
+a form / field / option-list / view / record-type / MEFR / script object (`create_script`), and changing a script's settings. Units, records and form rows are in [../reference/units-records-form-rows.md](../reference/units-records-form-rows.md). It **never**
 writes script source and **never** pushes or publishes: component **sync (pull / push / audit) stays on
 the `b6p` CLI**, permanently. See
 [../../../../docs/decisions/platform-mcp-integration.md](../../../../docs/decisions/platform-mcp-integration.md).
@@ -105,7 +105,8 @@ The `org` param is a **U-number** orgKey (`U` plus digits) or a bare number. Res
    is decided per-token by that org itself, and orgs your token is authorized for stay reachable by
    U-number even when unlisted. So if the org is **not** listed, do
    **not** conclude it's unreachable — **ask the user for its U-number** (or derive it, e.g. from
-   the `schema=U…` line of `read_log` with `scope: ORGANIZATION`), then relay. Only a `defaultHost: null` on a **listed**
+   the `schema=U…` line of `read_log` with `scope: ORGANIZATION`, which needs the `ORG_LOGS`
+   endorsement — see Read-only discovery below), then relay. Only a `defaultHost: null` on a **listed**
    tenant means genuinely unreachable — don't `invoke_org_tool`; request MCP enablement for that org from
    BlueStep, and until then fall back to the human hand-back (author in the BlueStep UI, then `b6p pull`),
    same as the 404 case in step 2.
@@ -210,8 +211,10 @@ the filter and match by name/type before concluding an object doesn't exist (det
   privilege, so "global-super" does **not** guarantee END_POINT authoring — see
   [Known authoring quirks](#known-authoring-quirks).
 - **Destructive tools** (the `script_*` wiring tools with `action: REMOVE` — `script_queries` REMOVE also drops
-  the form dependencies attached to that group — `revoke_permission`, and `set_permissions` with `mode: REMOVE` or `mode: REPLACE` — REPLACE **replaces the
-  entire** permission set of an object, dropping anything not in the list) run **only** when the task
+  the form dependencies attached to that group — `revoke_permission`, `set_permissions` with
+  `mode: REMOVE` or `mode: REPLACE` — REPLACE **replaces the entire** permission set of an object,
+  dropping anything not in the list — and the GraphQL `deleteUnit` without `dryRun`, which moves the
+  unit's records, sub-units and users to its parent) run **only** when the task
   explicitly requires them, with **extra** confirmation. Out of default scope. To add or change a permission on
   an existing object use `set_permissions` with `mode: MERGE` (or `ADD`, which leaves an existing grant as it
   is) — only on an org whose `set_permissions` takes a `mode`. On an older-release org `set_permissions`
@@ -334,8 +337,8 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
   `summaryFields` on the base form (this also gives the form its default view), and the Display field
   with the GraphQL mutation `updateRelateRecordType(inputs: [{topId, displayField: {topId: <fieldId>}}])`
   (see [GraphQL reads and writes](#graphql-reads-and-writes)) or in the record type's admin page.
-  Records of a type left without them have been reported not to open in the UI. (verified 2026-11:
-  both writes and their read-back)
+  Records of a type left without them have been reported not to open in the UI. (verified 2026-11
+  on the newer release: both writes and their read-back)
 
 > **Queries/views have create-time-only properties** (display columns, filters, sort, search criteria —
 > the DELETE guard blocks fixing them later): see
@@ -432,7 +435,8 @@ verified — the dating key at the top of this page says how to read the markers
   first item's Sort to 1 in the UI and let it renumber the rest; do not renumber item by item over
   MCP, since one change shifts every item after it. `option_list` CREATE takes item names only: set
   each item's `value`, `cssClass` and `cssStyle` with `option_list_item` afterwards. A list's
-  `description` and an item's `altIds` are accepted and not stored. (verified 2026-11)
+  `description` is accepted and not stored, and an item has no alternate ids to set. (verified
+  2026-11 on the newer release)
 - **Set `formulaId` at field CREATE** — it is what makes the field appear in the generated BSJS
   declarations. An `altIds FID=` entry is **not** `formulaId`: a field created with only altIds gets
   no `formulaId`, does not appear in declarations, and the tool warns about it. Repair: a `batch_fields`
@@ -493,30 +497,24 @@ verified — the dating key at the top of this page says how to read the markers
 - **Send a `formulaType` change together with what the new type needs.** Moving a formula to
   `SCHEDULED_QUERY` needs `schedule` in the same `update_script` call (it is refused without one, unless
   the formula already has one); moving it to `ON_DEMAND` needs `onDemandIdentifier`, unique across the
-  org. `schedule` takes a `kind` and its fields plus an optional `timeZoneId`, and reads back as sent.
-  (verified 2026-11)
-- **`update_script` with `name` does not rename.** The version goes up, but `get_script` and
-  `lookup_script_by_name` keep the old name. Rename the script in the platform UI. (verified 2026-11)
+  org. A formula moved off `ON_DEMAND` keeps its identifier, which stays taken; clear it with
+  `onDemandIdentifier: ""`. `schedule` takes a `kind` and its fields plus an optional `timeZoneId`;
+  read it back with `lookup_script_by_name`. (verified 2026-11 on the newer release)
+- **`update_script` with `name` does not rename**, although its schema says it does. The version goes
+  up, but `get_script` and `lookup_script_by_name` keep the old name. Rename the script in the platform
+  UI. (verified 2026-11 on the newer release)
 - **Must-have categories go through `set_category_requirement`**, not `update_script` (it has no
   category argument): `MUST_HAVE` adds a category, `NONE` takes it off, and `get_script` reads them
-  back as `mustHaveCategories`. (verified 2026-11)
+  back as `mustHaveCategories`. Read its schema first: it has conditions of its own on the formula's
+  record-type scope and primary form. (verified 2026-11 on the newer release)
 
 **Units & records**
 
-No gateway tool writes units, records or form rows. They go through the GraphQL mutations below
-(see [GraphQL reads and writes](#graphql-reads-and-writes)); each one needs the user's yes.
-
-- **Units: `createUnit` and `deleteUnit`.** `createUnit(inputs: [{name, displayName,
-  organizationEmail, parents: [{topId: <parent unit>}]}])` — `organizationEmail` is required. Records
-  can be created in the new unit. `deleteUnit(unitId, dryRun: true)` reports what a delete would move
-  to the parent unit (`recordCount`, `subUnitCount`, `userCount`); run it before the real delete.
-  (verified 2026-11)
-- **Records: `createRecord` with `fieldValues`.** `createRecord(inputs: [{entityType: <record type>,
-  parents: [{topId: <unit>}], displayName, fieldValues: {<fieldId>: <value>}}])` creates the record
-  and fills its base-form entry from `fieldValues`. (verified 2026-11)
-- **Form rows: `createFormRow(formId, recordId, fieldValues)`.** A value a field cannot take is
-  refused with the field's label and the formats it accepts, and no row is saved, so a corrected retry
-  does not leave a duplicate. There is no mutation that deletes a single form row. (verified 2026-11)
+- **No gateway tool writes units, records or form rows.** On the newer platform release they go
+  through GraphQL (`createUnit`, `createRecord`, `createFormRow`); on the older release units and
+  records are a UI hand-back. The mutations, the release check and the `deleteUnit` rules are in
+  [reference/units-records-form-rows.md](../reference/units-records-form-rows.md). (verified 2026-11
+  on the newer release)
 
 ### Create-time rules and completeness read-back (queries and views)
 

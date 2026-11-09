@@ -6,8 +6,10 @@ description: "Reading option-list items' export values: get_option_list returns 
 
 Start with the gateway's `get_option_list`: per item it returns `value` (the export value; the key
 is missing when the item has none), `optionStatus`, `cssClass`, `cssStyle` and `sortOrder`, and for
-the list `grouped` and `groups`. An org whose `get_option_list` does not return `value` (check one
-call) needs the GraphQL read below, where export values are `RelateListItem.value`. Run it by the
+the list `grouped` and `groups` — on the newer platform release. A missing `value` key means only
+that the item has no export value, so tell the release with `list_org_tools(org)` instead (the newer
+release serves `batch_fields` and `option_list`). On an older-release org use the GraphQL read below,
+where export values are `RelateListItem.value`. Run it by the
 route in [gql-in-a-tab.md](gql-in-a-tab.md): the gateway's `graphql_query` where the org serves it,
 a signed-in tab otherwise:
 

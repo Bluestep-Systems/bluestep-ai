@@ -137,8 +137,9 @@ aggregate too large for a browser to fetch.
 
 Schema behavior observed during a live SPA port (not independently re-verified):
 
-- **`createRecord` requires `parents`** set to the unit's Entities container (plus `entityType` —
-  the record type's topId — and `displayName`). Omitting `parents` yields an orphan that reads back
+- **`createRecord` requires `parents`** — the unit's id (the record lands in the unit's Entities
+  container) or the container itself (plus `entityType` — the record type's topId — and
+  `displayName`); details in [units-records-form-rows.md](units-records-form-rows.md). Omitting `parents` yields an orphan that reads back
   fine and then fails every form-entry write (`Entity <id> has no unit/org parent`).
 - **Read-scope arguments are caller-supplied filters, not guards** — the session's Relate
   permissions are the guard. Consequence for any row-scoped design: make the scoping axis a
