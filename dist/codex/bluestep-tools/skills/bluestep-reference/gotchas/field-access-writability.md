@@ -4,6 +4,11 @@ description: "Field access is independent grant ROWS — read and write are sepa
 
 # Field-access writability is independent grant rows, not one flag
 
+The tool names below are the newer platform release's. On an org on the older release,
+`script_forms` / `script_field_access` with `action: ADD` are `add_forms` / `add_field_access`, and
+`action: REMOVE` is `remove_forms` / `remove_field_access`; the rows behave the same. The full mapping
+is in `conventions/mcp-platform-authoring.md`, under Supported tool set.
+
 ## The three things that decide whether a script can write a field
 
 1. **Form-level row** — the per-form "Writable" checkbox on the script setup page: may the script

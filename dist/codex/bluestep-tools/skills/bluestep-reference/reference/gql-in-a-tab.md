@@ -22,7 +22,7 @@ Before reaching for GraphQL, use the gateway's own tool when one covers the read
 
 | what you need | gateway tool |
 |---|---|
-| a form, its fields and their settings | `get_form`, `describe_form`, `list_forms` (with `includeFields`), `find_forms` |
+| a form, its fields and their settings | `get_form`, `describe_form`, `list_forms` (with `includeFields`; older release: `list_forms_with_fields`), `find_forms` |
 | an option list and its items | `get_option_list`, `list_option_lists` |
 | what uses an object and what it uses, its grants | `inspector` (by `topId`, one level per call) |
 | who may do what on an object | `list_permissions` |
@@ -31,7 +31,7 @@ Before reaching for GraphQL, use the gateway's own tool when one covers the read
 | a site's id, type, names and home page | `list_sites` (with `search`), `get_site` |
 | a BsJs script's name, type and version | `get_script`, `lookup_script_by_name` |
 | a BsJs script's **draft** files | `read_script_draft` |
-| script and organization logs | `read_log` |
+| script and organization logs | `read_log` (older release: `read_script_log`, `read_organization_log`, and the two `search_*_log` tools) |
 
 No gateway tool reads these, so they go through GraphQL (the route below):
 
