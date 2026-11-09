@@ -162,8 +162,8 @@ plugin on update when it is unchanged**. Merged changes stay dormant until a ver
 2. Add the entry to that plugin's `CHANGELOG.md`
    ([bluestep-tools](plugins/bluestep-tools/CHANGELOG.md),
    [core-tools](plugins/core-tools/CHANGELOG.md),
-   [bluestep-one](plugins/bluestep-one/CHANGELOG.md); phi-guard's first release is described in its
-   README). If the release changes a **hook**, say so — Codex users must re-trust hooks after a
+   [bluestep-one](plugins/bluestep-one/CHANGELOG.md),
+   [phi-guard](plugins/phi-guard/CHANGELOG.md)). If the release changes a **hook**, say so — Codex users must re-trust hooks after a
    hook-changing update or the guardrails silently stop running.
 3. Run `npm run gen` and commit the regenerated `dist/` and marketplace manifests alongside the
    source change; `npm run test:hooks` after touching a hook. The `cross-tool-drift` CI job
