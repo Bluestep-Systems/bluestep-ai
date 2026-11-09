@@ -31,7 +31,9 @@ try {
 
 `currentUnit(...)` takes a unit id string, an `Id`, an `Entry`, a `Unit`, a `BaseRecord` or a
 `FormEntry`; `currentUnit()` with no argument reads the current one, and `resetUnit()` goes back to
-the session's.
+the session's. Per the declarations, the unit you set can also decide **where new records are
+created** through that query, `rememberSearchAndSort()` remembers it, and `clearSearchAndSort()`
+does **not** reset it — use `resetUnit()`.
 
 Related: [meetscriteria-formula-context.md](meetscriteria-formula-context.md) (a unit-scoped query
 inside a formula run).

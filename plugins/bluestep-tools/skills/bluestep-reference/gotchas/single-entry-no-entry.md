@@ -21,5 +21,5 @@ creating one. `id().isValid()` is always true once the code has run, and `create
 return "now" when there was no entry. Test a **real value** instead — a required field that is not
 blank, or a flag a formula on that form sets.
 
-(Reported 2026-10 from a post-save formula and confirmed by the platform team, who track it as a
-platform bug; retire this page when that ships.)
+(Reported 2026-10 from a post-save formula and confirmed by the platform team, who track it as
+platform bug 86bcktqzj; not re-run here. Retire this page when that bug ships.)

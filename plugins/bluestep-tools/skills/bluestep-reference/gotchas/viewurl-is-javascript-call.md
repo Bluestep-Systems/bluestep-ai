@@ -1,10 +1,11 @@
 ---
-description: "entry().viewUrl() returns javascript:submitForm('Relate','commit','<url>'), not a URL — as an href it silently ignores target='_blank' and clicking it COMMITS the enclosing form; unwrap the real URL with a regex before rendering"
+description: "In a MergeReport, entry().viewUrl() returns javascript:submitForm('Relate','commit','<url>'), not a URL — as an href it silently ignores target='_blank' and clicking it COMMITS the enclosing form; unwrap the real URL with a regex before rendering"
 ---
 
 # `entry().viewUrl()` is a `javascript:` call, not a URL
 
-`entry().viewUrl()` on a form entry does not return a navigable URL. It returns:
+In a MergeReport, `entry().viewUrl()` on a form entry does not return a navigable URL (in a formula
+it has been reported to return a plain URL — see the note below). It returns:
 
 ```text
 javascript:submitForm('Relate','commit','<real-url>')

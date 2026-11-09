@@ -96,8 +96,9 @@ provenance: [reference/ai-services.md](reference/ai-services.md).
 ### `B.time` — date/time
 
 Use `B.time` for any date/time work. Native `Date` is not supported. `B.time` carries the Java
-time classes (`ZonedDateTime`, `LocalDate`, `DateTimeFormatter`, …); it has no `now()`, `format()`
-or `parse()` of its own (`B.time.now()` throws "Unknown identifier: now").
+time classes (`ZonedDateTime`, `LocalDate`, `DateTimeFormatter`, …) plus a few helpers of its own
+(`formatDate`, `calc`, `set`, …), but no `now()`, `format()` or `parse()` (`B.time.now()` throws
+"Unknown identifier: now"; verified 2026-11).
 
 ```typescript
 const fmt = B.time.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -108,9 +109,10 @@ const parsed = B.time.LocalDate.parse("2026-05-15");   // ISO date
 
 Format with `DateTimeFormatter.ofPattern(...)` and the value's own `.format(fmt)`. The declared
 `B.time.formatDate(temporal, pattern)` works on an org on the newer platform release (verified
-2026-11), but one org threw "Unknown identifier: formatDate" for it in 2026-10 — the publish
-type-check passes either way — so prefer the formatter. When a formula seems to do nothing, read its
-**ERR script log** first: a caught runtime error like this one leaves no other trace.
+2026-11), but one org threw "Unknown identifier: formatDate" for it in 2026-10 (as reported, not
+re-run here) — the publish type-check passes either way — so prefer the formatter. More on declared
+methods that fail at runtime, and how to find the error: the "declared but missing at runtime" entry
+in [gotchas/common-gotchas.md](gotchas/common-gotchas.md).
 
 #### Dates: reading, writing, and shipping to a browser
 
