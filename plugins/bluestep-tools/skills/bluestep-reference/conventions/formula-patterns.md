@@ -19,8 +19,8 @@ Use these patterns as the baseline for every BlueStep post-save (or any) formula
 - Field read: `.val()` (direct) or `.opt().orElse(default)` (safe).
 - Field write: `.val(newValue)` for scalars (string, bool, date, number).
 - Clear a field: `.clear()`.
-- Single-select dropdown (200): `.val(exportValueString)` — `.options()` does NOT exist on these, it throws "Unknown identifier: options".
-- Multi-select checkbox (201): `.options().filter(op => ...).forEach(op => op.selected(true))`.
+- Single-select dropdown (200): set with `.setByExportValue("active")`. `.val()` takes an `OptionItem`, not a string (`.val(field.optionsByExport()["active"])`). Read with `.optSelected().map(o => o.exportValue()).orElse("")`. There is no `.options()` — it throws "Unknown identifier: options"; the option lists are `activeOptions()`, `allOptions()`, `optionsByExport()` and `optionsByName()`.
+- Multi-select checkbox (201): check one with `.setByExportValue("x")`, uncheck with `.setByExportValue("x", false)`; for a filter, `field.activeOptions().filter(op => ...).forEach(op => field.set(op.id(), true))`. No `.options()` here either.
 - Set by ID: `.set(B.util.toId(idString))`.
 
 ## HTTP + response reading

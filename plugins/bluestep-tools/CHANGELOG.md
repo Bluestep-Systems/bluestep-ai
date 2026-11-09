@@ -11,6 +11,24 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.6] — 2026-11-09
+
+> **BsJs examples that did not match the declarations.** Reference text only; no hook or skill
+> changes. Codex asks to re-trust the plugin's hooks after any update that changes its files: open
+> the plugin's page and **Review → trust** once.
+
+### Fixed
+
+- **Four BsJs examples an agent could copy and fail at runtime.** Each fix was type-checked with tsc
+  against a pulled `declarations/` tree.
+  - `bsjs-development.md`, WebSocket push: `B.io.sendMessage` takes one settings object
+    (`channels`, `data`, optional `permissions`), not `(channelId, string)`.
+  - Streaming: records are read with `forEach` on the bound query, the id is `record.id()`, and
+    fields go through `record.forms.<form>.fields`, not `record.name`.
+  - Endpoint status codes: no top-level `return` (tsc refuses it); the example uses `else`.
+  - `formula-patterns.md`: a single-select's `.val()` takes an `OptionItem`, not a string — set by
+    export value with `setByExportValue`. The multi-select line used `.options()`, which does not
+    exist on select fields; it now uses `setByExportValue` and `activeOptions()`.
 ## [plugin 0.46.5] — 2026-11-09
 
 > **The four reference asks left open after 0.46.3.** Reference text only; no hook or skill

@@ -310,13 +310,20 @@ NDJSON pattern for streaming large datasets. `stream()` **takes a callback and r
 never returns a writable (`binaryStream(...)` has the same callback shape):
 
 ```typescript
+// largeQuery: a query bound by its FID (a top-level variable in declarations/index.d.ts)
 B.net.response.contentType("application/x-ndjson");
 B.net.response.stream(out => {
-  for (const record of B.queries.largeQuery.execute()) {
-    out.write(JSON.stringify({ id: record.id, name: record.name.val() }) + "\n");
-  }
+  largeQuery.forEach(record => {
+    out.write(JSON.stringify({
+      id: record.id().shortId(),
+      name: record.forms.someForm.fields.name.val(),
+    }) + "\n");
+  });
 });
 ```
+
+A record has no field properties of its own: it reaches its fields through
+`record.forms.<form FID>.fields`, and its id is the method `record.id()`.
 
 #### Redirect
 
@@ -409,8 +416,15 @@ if (B.user) {
 ### WebSocket push
 
 ```typescript
-B.io.sendMessage(channelId, JSON.stringify({ type: "update", payload: data }));
+B.io.sendMessage({
+  channels: [channelId],
+  data: JSON.stringify({ type: "update", payload: data }),
+});
 ```
+
+`sendMessage` takes one settings object: `channels` and `data` (a string) are required;
+`permissions` (user or group keys) and `crossOrganization` are optional. The page listens with
+`bsmsg.listen({ channels: [...], onMessage: msg => ... })`.
 
 ## `info/` configuration (legacy)
 
@@ -576,6 +590,10 @@ For endpoints, prefer explicit status codes over throwing:
 if (!validInput) {
   B.net.response.status(400).contentType("application/json; charset=UTF-8");
   B.net.response.out(JSON.stringify({ error: "invalid input" }));
-  return;
+} else {
+  handleRequest();   // your own function
 }
 ```
+
+An endpoint body is top-level code, so there is no `return` to stop early (tsc refuses it): use
+`else`, or put the work in a function and `return` from that.
