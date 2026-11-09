@@ -187,7 +187,7 @@ The platform calls `B.commit()` automatically when the script finishes. Only cal
 - You need post-saves to fire before subsequent reads.
 
 ```typescript
-const newEntry = B.queries.someForm.getNewEntry();
+const newEntry = record.forms.someForm.newEntry();   // someForm: a multi-entry form
 newEntry.name.set("test");
 B.commit();
 const id = newEntry.id;      // now available
@@ -210,7 +210,7 @@ const name = entry.nameField.opt().orElse("");   // string, never null
 const score = entry.scoreField.opt().orElse(0);
 ```
 
-Because projects compile with `strict: false` (see "TypeScript configuration & Graal compatibility"), `.opt().orElse()` plus explicit annotations are the main defense against silent `null`/`undefined` bugs.
+Projects compile with `strictNullChecks` on, but not the full `strict` flag (see "TypeScript configuration & Graal compatibility"), and a value typed `any` slips past null checks anyway — so `.opt().orElse()` plus explicit annotations are the main defense against silent `null`/`undefined` bugs.
 
 ### Write
 
@@ -226,11 +226,12 @@ entry.tagsField.remove("legacy");
 ### Multi-entry forms
 
 ```typescript
-for (const entry of record.someForm.allEntries) {
+// record.forms.someForm is a MultiFormRecord: a list of the record's entries
+for (const entry of record.forms.someForm) {
   entry.field.set("value");
 }
 
-const newEntry = record.someForm.getNewEntry();
+const newEntry = record.forms.someForm.newEntry();
 newEntry.name.set("new");
 
 oldEntry.delete();
@@ -238,17 +239,18 @@ oldEntry.delete();
 
 ## Patterns by script type
 
+Formulas (post-save, OnDemand / field, scheduled) run as bare top-level statements: no `run()`
+wrapper and no bare `return` (`conventions/formula-patterns.md`).
+
 ### Post-Save
 
 Runs after a record is saved. Use `justCreated()` to distinguish new vs. updated records. `curEntry` is the entry being saved.
 
 ```typescript
-export function run(): void {
-  if (curEntry.justCreated()) {
-    sendWelcomeEmail();
-  } else {
-    syncToExternal();
-  }
+if (curEntry.justCreated()) {
+  sendWelcomeEmail();
+} else {
+  syncToExternal();
 }
 ```
 
@@ -333,10 +335,8 @@ OnDemand formulas run on the **task pod** — well-suited for heavy or long-runn
 **How an OnDemand is triggered:** in RelateScript, `runFormula("name")` / `System.runFormula("name")` — the **named** form — IS the trigger: calling it dispatches the named OnDemand formula to the task pod, detached from the current save transaction (and subject to the ~5 s queue delay above). Confirmed by the platform team. The call never executes the target inline/synchronously within the save, so there is nothing to "make async" on the caller's side — do not caution users about it. (The **no-arg** `runFormula()` is a different thing entirely — the synchronous field-formula form below.)
 
 ```typescript
-export function run(): void {
-  const result = runFormula();
-  B.message.info(`Result: ${result}`);
-}
+const result = runFormula();
+B.message.info(`Result: ${result}`);
 ```
 
 **Two distinct uses of `runFormula` — don't conflate them (and neither is the named
@@ -348,10 +348,21 @@ RelateScript trigger above):**
   returns a **`FormulaScheduler`** builder:
 
   ```typescript
-  cur.runFormula("<formula-fid>")
-    .message(JSON.stringify({ recordId: cur.id().toString(), action: "recalc" }))
-    .start();
+  try {
+    const refusal = cur.runFormula("<formula-fid>")
+      .message(JSON.stringify({ recordId: cur.id().toString(), action: "recalc" }))
+      .start();
+    if (refusal) console.warn(`On-demand not scheduled: ${refusal}`);
+  } catch (e) {
+    B.io.printStackTrace(e);   // target formula does not apply to this record
+  }
   ```
+
+  **`runFormula(fid)` can throw.** It checks that the target OnDemand formula applies to the
+  current record (working unit, record types, must-have categories); on a mismatch it throws
+  (reported: `IllegalStateException` from the `FormulaScheduler` constructor) before `.start()`
+  runs. `.start()`'s string return only covers scheduling refusals. Wrap the whole chain in
+  try/catch: in a post-save formula an unguarded throw fails the user's save.
 
   `.message(str)` attaches the payload the invoked formula reads on its side as its `message`
   variable; `.start()` enqueues it on the task pod (subject to the ~5 s scheduler delay above).
@@ -365,11 +376,9 @@ RelateScript trigger above):**
 `B.user` is null. Use stored credentials or hardcoded service identities, and guard accordingly.
 
 ```typescript
-export function run(): void {
-  if (B.user) {
-    log.warn("Scheduled script should not have a user context");
-    return;
-  }
+if (B.user) {
+  console.warn("Scheduled script should not have a user context");
+} else {
   doScheduledWork();
 }
 ```
@@ -415,16 +424,22 @@ Defines who can execute / view this component. Managed on the platform; usually 
 
 ### tsconfig and strict mode
 
-Each project root has a `tsconfig.json`. BlueStep projects run with **`strict: false`**, so the compiler will *not* catch every null/type error — compensate with `.opt().orElse()` and explicit type annotations. Typical settings:
+Each component has a `draft/tsconfig.json`. It turns on **`strictNullChecks`** and `alwaysStrict`
+but sets no `strict` key, so the other strict checks (`noImplicitAny` among them) are off and the
+compiler will *not* catch every type error — compensate with `.opt().orElse()` and explicit type
+annotations. The main settings of a pulled one:
 
 ```json
 {
+  "include": ["../declarations/index.d.ts", "scripts/**/*.ts"],
   "compilerOptions": {
+    "lib": ["ESNext"],
     "target": "ES2020",
     "module": "ESNext",
-    "strict": false,
-    "moduleResolution": "node",
-    "types": ["./declarations"]
+    "moduleResolution": "Classic",
+    "alwaysStrict": true,
+    "strictNullChecks": true,
+    "outDir": ".build"
   }
 }
 ```
@@ -505,18 +520,21 @@ TypeScript cannot guarantee that the captured variable is still non-null when th
 
 ## Error handling
 
-The platform surfaces uncaught exceptions in the script log. Patterns:
+The platform surfaces uncaught exceptions in the script log. Log with `console` (declared in
+`declarations/console.graal.d.ts`); `log` is a RelateScript global and does not exist in BsJs.
+Patterns:
 
 ```typescript
 try {
   const response = B.net.fetch(url, { timeout: 5000 });
   if (!response.ok) {
-    log.error(`Upstream returned ${response.status}`);
+    console.error(`Upstream returned ${response.status}`);
     return;
   }
   process(response.body);
 } catch (err) {
-  log.error(`Fetch failed: ${err.message}`);
+  console.error("Fetch failed");
+  B.io.printStackTrace(err);   // stack trace when err is a Java throwable
 }
 ```
 
