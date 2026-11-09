@@ -54,7 +54,7 @@
   },
   "plugins": {
     "bluestep-tools": { "id": "bluestep-tools@bluestep", "min": "0.46.0" },
-    "bluestep-one": { "id": "bluestep-one@bluestep" },
+    "bluestep-one": { "id": "bluestep-one@bluestep", "requires": ["bluestep-tools"] },
     "one-tools": {
       "id": "one-tools@bluestep-internal",
       "min": "0.13.0",
