@@ -21,7 +21,9 @@ It does not need admin rights, and it never asks for an admin password.
    to `one-tools` brings it too; without `one-tools`, you are asked about `bluestep-one` on its own
    (it is for building BlueStep One components). `one-tools` and `bluestep-one` are for Claude only.
 6. **Brings the Claude plugins up to date:** a plugin you already have that is older than the
-   version BlueStep needs now is updated, along with anything the new version needs.
+   version BlueStep needs now is updated, along with anything the new version needs. A plugin you
+   turned off stays off. A plugin that needs another one (`bluestep-one` needs `bluestep-tools`)
+   is installed only once that one is new enough.
 7. **Turns on auto-update** for the BlueStep plugin marketplaces in Claude, so your plugins keep up
    after this run. If you turned auto-update off yourself, it stays off; the summary says where to
    turn it on.
@@ -55,9 +57,9 @@ Supported now: **Windows (64-bit Intel or AMD).** macOS and Linux are coming.
    ```
 
 3. When it is your turn, the window beeps and shows a **YOUR TURN** block that says what to do.
-   They are numbered ("1 of 5"): the GitHub sign-in, the token, a yes/no for each optional plugin
-   (`bluestep-one` is asked only when you say no to `one-tools`), and a last one that says how to
-   finish. A run on a computer that is already
+   They are numbered ("1 of 4", "2 of 4", ...): the GitHub sign-in, the token, a yes/no for each
+   optional plugin (`bluestep-one` is asked only when you say no to `one-tools`), and a last one
+   that says how to finish. A run on a computer that is already
    set up asks fewer, or none.
 4. At the end, do what the last block says: **quit the app fully** (from the tray icon next to the
    clock → Quit; closing the window is not enough), open it again, open your project folder, and
@@ -125,11 +127,13 @@ Each item gets one status:
 - **would install**, **would update** — only in a dry run: what a real run would do.
 
 The `auto-update` lines say whether Claude keeps that marketplace's plugins up to date by itself.
-When this run turned it on, the line says so and names a backup copy of your
-`%USERPROFILE%\.claude\settings.json`, made before the change: the script adds
-`"autoUpdate": true` to that marketplace's entry there and changes nothing else. If it is off
-because you turned it off, the line gives the clicks to turn it on: in Claude Code, `/plugin` →
-Marketplaces → the marketplace → Enable auto-update.
+When this run turned it on, the line says so and names a backup of your
+`%USERPROFILE%\.claude\settings.json` as it was before the run: the script adds
+`"autoUpdate": true` to that marketplace's entry there. It writes the file back with two-space
+indents and keeps every other setting; only a number written in an unusual form changes how it
+looks (`1e3` comes back as `1000`). Putting the backup back undoes what the run changed in that
+file. If auto-update is off because you turned it off, the line gives the clicks to turn it on: in
+Claude Code, `/plugin` → Marketplaces → the marketplace → Enable auto-update.
 
 Claude Code runs these updates in the background, a few minutes into a session, and loads them
 the next time you start it (or run `/reload-plugins`). The Claude desktop app starts its Code
@@ -181,8 +185,9 @@ The script is pure ASCII and runs on Windows PowerShell 5.1 and PowerShell 7. Th
 download URLs and hashes it uses are in
 [`tool-versions.json`](../plugins/bluestep-tools/skills/b6p-setup/assets/tool-versions.json),
 fetched at the script's own tag. Its `plugins` part says which plugin needs which (`requires`) and
-the lowest version each must be at (`min`): raising a minimum or adding a need is a change to that
-file, not to the script. A change under `bootstrap/` or to that file needs a bump of
+the lowest version each must be at (`min`). For the plugins the script handles (`bluestep-tools`,
+`core-tools`, `one-tools`, `bluestep-one`), raising a minimum or adding a need between them is a
+change to that file, not to the script; a new plugin also needs a change to the script. A change under `bootstrap/` or to that file needs a bump of
 `bootstrap/version.json` (and the matching `$ScriptVersion` in `bootstrap.ps1`); the merge to `main`
 then tags `bootstrap-v<version>` and cuts its Release with the hashes. Why it works this way:
 [`docs/decisions/machine-bootstrap.md`](../docs/decisions/machine-bootstrap.md).

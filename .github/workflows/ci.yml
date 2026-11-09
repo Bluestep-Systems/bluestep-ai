@@ -213,11 +213,13 @@ jobs:
             }
 
             // plugins.<name>: id is <name>@<marketplace> (this repo's "bluestep" unless the entry
-            // names its own marketplace), min a version this repo has already released (for a
-            // plugin served from here), requires other entries of plugins. The bootstrap updates
-            // an installed plugin below min, and installs what requires names before the plugin.
+            // names its own marketplace), min a version not above the one this branch ships (for
+            // a plugin served from here; one from another marketplace is not checked), requires
+            // other entries of plugins. The bootstrap updates an installed plugin below min, and
+            // installs what requires names, at its min, before the plugin.
             if (isObj(data.plugins)) {
-              const own = JSON.parse(readFileSync('.claude-plugin/marketplace.json', 'utf8'));
+              const readJson = (p) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch (e) { fail(`cannot read ${p}: ${e.message}`); return null; } };
+              const own = readJson('.claude-plugin/marketplace.json') ?? {};
               for (const [name, p] of Object.entries(data.plugins)) {
                 const at = `plugins.${name}`;
                 if (!isObj(p)) { fail(`${at}: not an object`); continue; }
@@ -233,10 +235,12 @@ jobs:
                   }
                 }
                 if (mkName === 'bluestep') {
-                  const entry = (own.plugins || []).find((e) => e.name === name);
+                  const entry = (Array.isArray(own.plugins) ? own.plugins : []).find((e) => e && e.name === name);
                   if (!entry) { fail(`${at}: no plugin "${name}" in .claude-plugin/marketplace.json`); continue; }
-                  const ver = JSON.parse(readFileSync(`${entry.source}/.claude-plugin/plugin.json`, 'utf8')).version;
-                  if (okMin && cmp(p.min, ver) > 0) fail(`${at}.min: ${p.min} is above the released ${name} ${ver}`);
+                  if (typeof entry.source !== 'string') { fail(`${at}: its marketplace entry's source is not a path in this repo`); continue; }
+                  const ver = readJson(`${entry.source}/.claude-plugin/plugin.json`)?.version;
+                  // The version this branch ships; a min above it would point at nothing released.
+                  if (okMin && typeof ver === 'string' && cmp(p.min, ver) > 0) fail(`${at}.min: ${p.min} is above ${name} ${ver} in this branch`);
                 }
               }
             }

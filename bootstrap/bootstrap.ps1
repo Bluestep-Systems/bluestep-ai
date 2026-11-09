@@ -39,12 +39,14 @@
          read its repo first; if not, you are told whom to ask and the rest goes on), and
          bluestep-one (asked only when one-tools is not chosen: one-tools needs it, so it then
          comes with it). Which plugin needs which, and the lowest version each must be at, come
-         from tool-versions.json ("requires", "min"). A plugin installed below its minimum is
-         updated ("claude plugin update"), then installed again so any dependency the new
-         version adds is installed too. Last, auto-update is turned on for the bluestep
-         marketplace (and bluestep-internal, with one-tools): "autoUpdate": true on its
-         extraKnownMarketplaces entry in your ~\.claude\settings.json, after a backup copy of
-         that file. A value you set yourself, on or off, is left as it is.
+         from tool-versions.json ("requires", "min"); a plugin is installed only once what it
+         requires is at its minimum. A plugin installed below its minimum is updated ("claude
+         plugin update"), then installed again so any dependency the new version adds is
+         installed too, and turned off again if you had turned it off. Last, auto-update is
+         turned on for the bluestep marketplace (and bluestep-internal, with one-tools):
+         "autoUpdate": true on its extraKnownMarketplaces entry in your ~\.claude\settings.json.
+         The file is rewritten with two-space indents, and a backup of it as it was before the
+         run is kept next to it. A value you set yourself, on or off, is left as it is.
        - Codex: the same read-first rule for its marketplace, then "codex plugin add" for
          bluestep-tools and phi-guard if chosen (one-tools is Claude Code only). Codex asks you to
          trust each plugin's hooks once: Plugins -> the plugin -> Review -> trust.
@@ -338,7 +340,8 @@ function Invoke-BlueStepBootstrap {
         $t = $Text -replace '\.windows\.', '.'
         $m = [regex]::Match($t, '\d+(\.\d+)+')
         if (-not $m.Success) { return $null }
-        return ,([int[]]($m.Value.Split('.') | ForEach-Object { [int]$_ }))
+        # A part too long for a number (a commit hash that happens to look like one) is no version.
+        try { return ,([long[]]($m.Value.Split('.') | ForEach-Object { [long]$_ })) } catch { return $null }
     }
 
     function Compare-Version([string]$A, [string]$B) {
@@ -1507,7 +1510,8 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
             return $true
         }
         # Not registered. A user settings entry for this name decides the source: an add from any
-        # other source is refused while it exists, and this script never edits that file.
+        # other source is refused while it exists, and this script does not change its source
+        # (the only key it writes there is autoUpdate, in Set-MarketplaceAutoUpdate).
         $addSrc = $Source
         $why = 'not registered'
         $userEntry = Get-JsonProp (Get-JsonProp (Read-JsonFile (Join-Path (Get-ClaudeConfigDir) 'settings.json')) 'extraKnownMarketplaces') $Name
@@ -1528,60 +1532,90 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
     function Install-ClaudePlugin([string]$Claude, $State, [string]$Id, [bool]$Ready, [string]$Min, [string]$Why) {
         # User scope. Already installed: left alone, unless its version is below $Min (from
         # tool-versions.json); then it is updated. $Why ("needed by one-tools") goes in the
-        # detail. Returns $true when it is (or would be) installed.
+        # detail. Records in $runFlags.PluginOk whether the plugin is (or, in a dry run, would be)
+        # installed at or above $Min, which the plugins that require it check. Returns $true when
+        # it is (or would be) installed.
         $name = ($Id -split '@')[0]
         $item = 'claude-code: ' + $name
         $for = if ($Why) { "; $Why" } else { '' }
         $have = $State.Installed[$Id]
         if ($have) {
-            $note = if ($have.enabled -eq $false) { ', disabled (left as is)' } else { '' }
+            $off = ($have.enabled -eq $false)
+            $note = if ($off) { ', disabled (left as is)' } else { '' }
             $ver = [string]$have.version
-            $below = [bool]($Min -and (ConvertTo-VersionParts $ver) -and (Compare-Version $ver $Min) -lt 0)
+            $parts = ConvertTo-VersionParts $ver
+            $below = $false
+            if ($Min -and $parts) {
+                $cmp = Compare-Version $ver $Min
+                # A pre-release of the minimum (0.46.0-beta) is still below it.
+                $below = ($cmp -lt 0) -or ($cmp -eq 0 -and $ver -match '^\s*v?\d+(\.\d+)*-')
+            } elseif ($Min) {
+                $note += "; its version '$ver' could not be compared with the $Min this setup needs"
+            }
             if (-not $below) {
                 Add-Result $item 'ok' "installed ($($have.scope) scope$(if ($ver) { ', ' + $ver })$note$for)"
+                $runFlags.PluginOk[$Id] = $true
                 return $true
             }
             if ($have.scope -ne 'user') {
                 Add-Result $item 'needs IT' "$ver is installed at $($have.scope) scope, below the $Min this setup needs; ask IT to update it"
+                $runFlags.PluginOk[$Id] = $false
                 return $true
             }
-            return (Update-ClaudePlugin $Claude $State $Id $ver $Min $for)
+            $runFlags.PluginOk[$Id] = [bool](Update-ClaudePlugin $Claude $State $Id $ver $Min $for $off)
+            return $true
         }
-        if (-not $Ready) { Add-Result $item 'skipped' "its marketplace is not registered (see the marketplace item)"; return $false }
-        if ($DryRun) { Add-Result $item 'would install' "would run: claude plugin install $Id --scope user$for"; return $true }
+        if (-not $Ready) { Add-Result $item 'skipped' "its marketplace is not registered (see the marketplace item)"; $runFlags.PluginOk[$Id] = $false; return $false }
+        if ($DryRun) { Add-Result $item 'would install' "would run: claude plugin install $Id --scope user$for"; $runFlags.PluginOk[$Id] = $true; return $true }
         # No -y: it would also accept a marketplace-declared install command nobody saw.
         $r = Invoke-PluginCommand $Claude 'claude' @('plugin', 'install', $Id, '--scope', 'user') -What "Installing $name for Claude Code" -Eta 'up to a minute'
-        if ($r.ExitCode -ne 0) { Add-Result $item 'failed' "claude plugin install $Id exit $($r.ExitCode): $(Get-OutputTail $r)"; return $false }
+        if ($r.ExitCode -ne 0) { Add-Result $item 'failed' "claude plugin install $Id exit $($r.ExitCode): $(Get-OutputTail $r)"; $runFlags.PluginOk[$Id] = $false; return $false }
         Add-Result $item 'installed' "$Id (user scope$for)"
+        $runFlags.PluginOk[$Id] = $true
         return $true
     }
 
-    function Update-ClaudePlugin([string]$Claude, $State, [string]$Id, [string]$From, [string]$Min, [string]$For) {
+    function Update-ClaudePlugin([string]$Claude, $State, [string]$Id, [string]$From, [string]$Min, [string]$For, [bool]$WasDisabled) {
         # A user-scope plugin below its minimum: "claude plugin update" (it refreshes the
         # marketplace first), then "claude plugin install" again, because an update does not
         # install a dependency the new version adds and an install of an installed plugin does.
-        # Then the version is read back. Returns $true (the plugin stays installed either way).
+        # That install also turns a disabled plugin back on, so a plugin the user had disabled is
+        # disabled again. Then the version is read back. Returns $true when it reached $Min.
         $name = ($Id -split '@')[0]
         $item = 'claude-code: ' + $name
+        $kept = if ($WasDisabled) { ', kept disabled' } else { '' }
         if ($DryRun) {
-            Add-Result $item 'would update' "$From is below $Min; would run: claude plugin update $Id --scope user, then claude plugin install $Id --scope user$For"
+            $again = if ($WasDisabled) { ", then claude plugin disable $Id --scope user (it is disabled now)" } else { '' }
+            Add-Result $item 'would update' "$From is below $Min; would run: claude plugin update $Id --scope user, then claude plugin install $Id --scope user$again$For"
             return $true
         }
         $r = Invoke-PluginCommand $Claude 'claude' @('plugin', 'update', $Id, '--scope', 'user') -What "Updating $name for Claude Code ($From is below $Min)" -Eta 'up to a minute'
-        if ($r.ExitCode -ne 0) { Add-Result $item 'failed' "$From is below $Min, and claude plugin update $Id exit $($r.ExitCode): $(Get-OutputTail $r)"; return $true }
+        if ($r.ExitCode -ne 0) { Add-Result $item 'failed' "$From is below $Min, and claude plugin update $Id exit $($r.ExitCode): $(Get-OutputTail $r)"; return $false }
         $r = Invoke-PluginCommand $Claude 'claude' @('plugin', 'install', $Id, '--scope', 'user') -What "Installing what the new $name needs" -Eta 'up to a minute'
         $deps = if ($r.ExitCode -ne 0) { "; then claude plugin install $Id (for what the new version needs) exit $($r.ExitCode): $(Get-OutputTail $r)" } else { '' }
+        $stillOn = ''
+        if ($WasDisabled) {
+            $r = Invoke-PluginCommand $Claude 'claude' @('plugin', 'disable', $Id, '--scope', 'user') -What "Turning $name off again, as it was" -Eta 'a few seconds'
+            if ($r.ExitCode -ne 0) { $stillOn = "; it was disabled, the update turned it on, and claude plugin disable $Id exit $($r.ExitCode): $(Get-OutputTail $r)" }
+        }
         $now = $null
         try {
             $fresh = Get-ClaudeState $Claude
             foreach ($k in @($fresh.Installed.Keys)) { $State.Installed[$k] = $fresh.Installed[$k] }
             if ($fresh.Installed[$Id]) { $now = [string]$fresh.Installed[$Id].version }
         } catch { Write-Log "could not read the plugins back after updating ${Id}: $($_.Exception.Message)" 'warn' }
-        if (-not (ConvertTo-VersionParts $now)) { Add-Result $item 'failed' "updated from $From, but its new version could not be read back$deps"; return $true }
-        if ((Compare-Version $now $Min) -lt 0) { Add-Result $item 'failed' "claude plugin update left it at $now, still below $Min (its marketplace may not serve $Min yet)$deps"; return $true }
-        if ($deps) { Add-Result $item 'failed' "updated $From -> $now$deps"; return $true }
-        Add-Result $item 'updated' "$From -> $now (user scope$For)"
+        if (-not (ConvertTo-VersionParts $now)) { Add-Result $item 'failed' "updated from $From, but its new version could not be read back$deps$stillOn"; return $false }
+        if ((Compare-Version $now $Min) -lt 0) { Add-Result $item 'failed' "claude plugin update left it at $now, still below $Min (its marketplace may not serve $Min yet)$deps$stillOn"; return $false }
+        if ($deps) { Add-Result $item 'failed' "updated $From -> $now$deps$stillOn"; return $true }
+        if ($stillOn) { Add-Result $item 'needs you' "updated $From -> $now$stillOn; turn it off again in /plugin if you want it off"; return $true }
+        Add-Result $item 'updated' "$From -> $now (user scope$kept$For)"
         return $true
+    }
+
+    function Test-EnvOn($Value) {
+        # "1" or "true" (any case); "0", "false" and empty do not count.
+        if ($null -eq $Value) { return $false }
+        return (@('1', 'true') -contains ([string]$Value).Trim().ToLowerInvariant())
     }
 
     function Get-AutoUpdateBlockers {
@@ -1590,11 +1624,11 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         # user environment and the env block of the user settings.json. This window's own
         # environment is not read: a terminal opened from an app can inherit that app's values.
         $envBlock = Get-JsonProp (Read-JsonFile (Join-Path (Get-ClaudeConfigDir) 'settings.json')) 'env'
-        if ([Environment]::GetEnvironmentVariable('FORCE_AUTOUPDATE_PLUGINS', 'User') -or (Get-JsonProp $envBlock 'FORCE_AUTOUPDATE_PLUGINS')) { return @() }
+        if ((Test-EnvOn ([Environment]::GetEnvironmentVariable('FORCE_AUTOUPDATE_PLUGINS', 'User'))) -or (Test-EnvOn (Get-JsonProp $envBlock 'FORCE_AUTOUPDATE_PLUGINS'))) { return @() }
         $out = @()
         foreach ($n in 'DISABLE_UPDATES', 'DISABLE_AUTOUPDATER', 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC') {
-            if ([Environment]::GetEnvironmentVariable($n, 'User')) { $out += "$n (user environment)" }
-            elseif (Get-JsonProp $envBlock $n) { $out += "$n (settings.json env)" }
+            if (Test-EnvOn ([Environment]::GetEnvironmentVariable($n, 'User'))) { $out += "$n (user environment)" }
+            elseif (Test-EnvOn (Get-JsonProp $envBlock $n)) { $out += "$n (settings.json env)" }
         }
         return $out
     }
@@ -1605,19 +1639,46 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         return ($Text | ConvertFrom-Json)
     }
 
+    function ConvertTo-JsonString([string]$Text) {
+        # A JSON string literal that escapes only what JSON requires (quote, backslash, control
+        # characters). ConvertTo-Json on Windows PowerShell 5.1 also escapes & < > and ', which
+        # would turn a hook's "a && b" into "a && b" in the user's file.
+        $sb = New-Object System.Text.StringBuilder
+        [void]$sb.Append('"')
+        foreach ($ch in $Text.ToCharArray()) {
+            switch ($ch) {
+                '"' { [void]$sb.Append('\"'); continue }
+                '\' { [void]$sb.Append('\\'); continue }
+                "`n" { [void]$sb.Append('\n'); continue }
+                "`r" { [void]$sb.Append('\r'); continue }
+                "`t" { [void]$sb.Append('\t'); continue }
+                default {
+                    if ([int]$ch -lt 0x20) { [void]$sb.Append(('\u{0:x4}' -f [int]$ch)) } else { [void]$sb.Append($ch) }
+                }
+            }
+        }
+        [void]$sb.Append('"')
+        return $sb.ToString()
+    }
+
     function ConvertTo-IndentedJson($Value, [int]$Depth = 0) {
-        # Two-space JSON, the layout Claude Code writes its settings in. Windows PowerShell 5.1's
-        # ConvertTo-Json pads with long runs of spaces, which would leave settings.json hard to
-        # read; it is used here only for single values, where it escapes strings correctly.
+        # Two-space JSON, the layout Claude Code writes its settings in (Windows PowerShell 5.1's
+        # ConvertTo-Json pads with long runs of spaces). Strings keep their characters; numbers are
+        # written in their plain invariant form (so 1e3 comes back as 1000).
         $pad = '  ' * ($Depth + 1)
         $end = '  ' * $Depth
+        $inv = [Globalization.CultureInfo]::InvariantCulture
         if ($null -eq $Value) { return 'null' }
         if ($Value -is [bool]) { if ($Value) { return 'true' } else { return 'false' } }
-        if ($Value -is [datetime]) { return (ConvertTo-Json -InputObject $Value.ToString('o') -Compress) }
-        if ($Value -is [string] -or $Value -is [ValueType]) { return (ConvertTo-Json -InputObject $Value -Compress) }
+        if ($Value -is [string]) { return (ConvertTo-JsonString $Value) }
+        if ($Value -is [datetime]) { return (ConvertTo-JsonString $Value.ToString('o', $inv)) }
+        if ($Value -is [double] -or $Value -is [single]) { return $Value.ToString('R', $inv) }
+        # BigInteger (PowerShell 7, for very long integers) by name: its type may not be loaded on 5.1.
+        if ($Value -is [int] -or $Value -is [long] -or $Value -is [decimal] -or $Value.GetType().FullName -eq 'System.Numerics.BigInteger') { return $Value.ToString($null, $inv) }
+        if ($Value -is [ValueType]) { return (ConvertTo-JsonString ([string]$Value)) }
         if ($Value -is [System.Collections.IDictionary]) {
             if (-not $Value.Count) { return '{}' }
-            $parts = foreach ($k in $Value.Keys) { $pad + (ConvertTo-Json -InputObject ([string]$k) -Compress) + ': ' + (ConvertTo-IndentedJson $Value[$k] ($Depth + 1)) }
+            $parts = foreach ($k in $Value.Keys) { $pad + (ConvertTo-JsonString ([string]$k)) + ': ' + (ConvertTo-IndentedJson $Value[$k] ($Depth + 1)) }
             return "{`n" + ($parts -join ",`n") + "`n$end}"
         }
         if ($Value -is [System.Collections.IEnumerable]) {
@@ -1628,7 +1689,7 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         }
         $props = @($Value.PSObject.Properties)
         if (-not $props.Count) { return '{}' }
-        $parts = foreach ($p in $props) { $pad + (ConvertTo-Json -InputObject $p.Name -Compress) + ': ' + (ConvertTo-IndentedJson $p.Value ($Depth + 1)) }
+        $parts = foreach ($p in $props) { $pad + (ConvertTo-JsonString $p.Name) + ': ' + (ConvertTo-IndentedJson $p.Value ($Depth + 1)) }
         return "{`n" + ($parts -join ",`n") + "`n$end}"
     }
 
@@ -1637,15 +1698,21 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         # up after this run: "autoUpdate": true on its extraKnownMarketplaces entry in the user
         # settings.json, the first place Claude Code reads it from (docs: plugins/loading, "Which
         # marketplaces and plugins auto-update"). A value already set (managed settings, user
-        # settings, or the /plugin toggle, which writes known_marketplaces.json) is left as it is.
-        # The only change this script makes to settings.json, after a backup copy.
+        # settings, or the /plugin toggle, which writes known_marketplaces.json and the settings
+        # entry when there is one) is left as it is. The one key this script writes in
+        # settings.json; the backup is the file as it was when the Claude Code step began.
         $item = "claude-code: auto-update $Name"
         $click = "in Claude Code: /plugin -> Marketplaces -> $Name -> Enable auto-update"
         $blockers = @(Get-AutoUpdateBlockers)
         $off = if ($blockers.Count) { "; note: $($blockers -join ', ') turns all plugin auto-updates off (unless FORCE_AUTOUPDATE_PLUGINS=1 is set too)" } else { '' }
+        $desk = if ($agents['Claude desktop app']) { '; in the Claude desktop app it does not run (the app starts its sessions with Claude Code''s auto-updater off), so run this script again from time to time' } else { '' }
         foreach ($s in @(Get-ManagedSettingsSources)) {
             $v = Get-JsonProp (Get-JsonProp (Get-JsonProp $s.Json 'extraKnownMarketplaces') $Name) 'autoUpdate'
-            if ($null -ne $v) { Add-Result $item 'ok' "$(if ($v) { 'on' } else { 'off' }), set by managed settings ($($s.Where)); left to your organization$off"; return }
+            if ($null -ne $v) {
+                $what = if ($v -is [bool]) { if ($v) { 'on' } else { 'off' } } else { "set to $(ConvertTo-IndentedJson $v)" }
+                Add-Result $item 'ok' "$what, by managed settings ($($s.Where)); left to your organization$off$desk"
+                return
+            }
         }
         $dir = Get-ClaudeConfigDir
         $path = Join-Path $dir 'settings.json'
@@ -1654,43 +1721,47 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
             try { $settings = ConvertFrom-JsonKeepText ([IO.File]::ReadAllText($path)) }
             catch { Add-Result $item 'needs you' "$path could not be read as JSON ($($_.Exception.Message)), so it was not changed; $click"; return }
         }
-        $entry = Get-JsonProp (Get-JsonProp $settings 'extraKnownMarketplaces') $Name
+        $ekm = Get-JsonProp $settings 'extraKnownMarketplaces'
+        $entry = Get-JsonProp $ekm $Name
         $v = Get-JsonProp $entry 'autoUpdate'
-        if ($v -eq $true) { Add-Result $item 'ok' "on (your settings.json)$off"; return }
-        if ($v -eq $false) { Add-Result $item 'ok' "off, as your settings.json says (left as is); to turn it on: $click$off"; return }
+        if ($v -is [bool] -and $v) { Add-Result $item 'ok' "on (your settings.json)$off$desk"; return }
+        if ($v -is [bool]) { Add-Result $item 'ok' "off, as your settings.json says (left as is); to turn it on: $click$off"; return }
+        if ($null -ne $v) { Add-Result $item 'needs you' "autoUpdate is $(ConvertTo-IndentedJson $v) in your settings.json, not true or false; left as is; $click"; return }
         $known = Get-JsonProp (Read-JsonFile (Join-Path $dir 'plugins\known_marketplaces.json')) $Name
         $v = Get-JsonProp $known 'autoUpdate'
-        if ($v -eq $true) { Add-Result $item 'ok' "on$off"; return }
-        if ($v -eq $false) { Add-Result $item 'ok' "off, turned off in Claude Code (left as is); to turn it on: $click$off"; return }
-        if ($DryRun) { Add-Result $item 'would install' "would set `"autoUpdate`": true on extraKnownMarketplaces.$Name in $path (after a backup copy)$off"; return }
+        if ($v -is [bool] -and $v) { Add-Result $item 'ok' "on$off$desk"; return }
+        if ($v -is [bool]) { Add-Result $item 'ok' "off, turned off in Claude Code (left as is); to turn it on: $click$off"; return }
+        if ($DryRun) { Add-Result $item 'would install' "would set `"autoUpdate`": true on extraKnownMarketplaces.$Name in $path (after a backup copy)$off$desk"; return }
         # No entry yet (a marketplace added before Claude Code wrote one): it gets the source the
         # marketplace is registered from, so the declared and the registered source agree.
         $src = if ($entry) { $null } else { Get-JsonProp $known 'source' }
         if (-not $entry -and -not $src) { Add-Result $item 'needs you' "its registration could not be read, so auto-update was not turned on; $click"; return }
+        if ($entry -and -not ($entry -is [System.Management.Automation.PSCustomObject])) { Add-Result $item 'needs you' "extraKnownMarketplaces.$Name in your settings.json is not an object; left as is; $click"; return }
+        $ekmEmpty = ($null -eq $ekm) -or (($ekm -is [array]) -and -not $ekm.Count)
+        if (-not $ekmEmpty -and -not ($ekm -is [System.Management.Automation.PSCustomObject])) { Add-Result $item 'needs you' "extraKnownMarketplaces in your settings.json is not an object; left as is; $click"; return }
+        if ((Test-Path -LiteralPath $path -PathType Leaf) -and (Get-Item -LiteralPath $path).IsReadOnly) { Add-Result $item 'needs you' "$path is read-only, so it was not changed; $click"; return }
         $backup = $null
         $prior = $null      # the file before this write, put back if the write goes wrong
         $wrote = $false
         try {
-            if (Test-Path -LiteralPath $path -PathType Leaf) { $prior = [IO.File]::ReadAllText($path) }
+            if (Test-Path -LiteralPath $path -PathType Leaf) { $prior = [IO.File]::ReadAllBytes($path) }
             if ($null -eq $settings) { $settings = New-Object psobject }
-            $ekm = Get-JsonProp $settings 'extraKnownMarketplaces'
-            if ($null -eq $ekm) { $ekm = New-Object psobject; $settings | Add-Member -NotePropertyName 'extraKnownMarketplaces' -NotePropertyValue $ekm }
+            if ($ekmEmpty) { $ekm = New-Object psobject; $settings | Add-Member -NotePropertyName 'extraKnownMarketplaces' -NotePropertyValue $ekm -Force }
             if ($null -eq $entry) {
                 $entry = New-Object psobject
                 $entry | Add-Member -NotePropertyName 'source' -NotePropertyValue $src
-                $ekm | Add-Member -NotePropertyName $Name -NotePropertyValue $entry
+                $ekm | Add-Member -NotePropertyName $Name -NotePropertyValue $entry -Force
             }
             $entry | Add-Member -NotePropertyName 'autoUpdate' -NotePropertyValue $true -Force
-            # One backup per run, of the file as it was before this run changed it (two
-            # marketplaces can be turned on within the same second).
+            # One backup per run: the file as it was when the Claude Code step began, before any
+            # "claude plugin" command of this run changed it.
             $backup = $runFlags.SettingsBackup
-            if (-not $backup -and (Test-Path -LiteralPath $path -PathType Leaf)) {
+            if (-not $backup -and $null -ne $runFlags.SettingsBefore) {
                 $backup = "$path.bootstrap-$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
-                Copy-Item -LiteralPath $path -Destination $backup
+                [IO.File]::WriteAllBytes($backup, $runFlags.SettingsBefore)
                 $runFlags.SettingsBackup = $backup
-            } elseif (-not $backup) {
-                [void](New-Item -ItemType Directory -Path $dir -Force)
             }
+            if (-not (Test-Path -LiteralPath $dir)) { [void](New-Item -ItemType Directory -Path $dir -Force) }
             $json = ConvertTo-IndentedJson $settings
             $wrote = $true
             [IO.File]::WriteAllText($path, $json + "`n", (New-Object Text.UTF8Encoding($false)))
@@ -1700,14 +1771,15 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
             $why = $_.Exception.Message
             if ($wrote) {
                 try {
-                    if ($null -ne $prior) { [IO.File]::WriteAllText($path, $prior, (New-Object Text.UTF8Encoding($false))) } else { Remove-Item -LiteralPath $path -Force }
+                    if ($null -ne $prior) { [IO.File]::WriteAllBytes($path, $prior) } else { Remove-Item -LiteralPath $path -Force }
                     $why += '; the file was put back as it was'
                 } catch { $why += "; putting it back failed too$(if ($backup) { ", the copy from before this run is at $backup" })" }
             }
             Add-Result $item 'failed' "could not turn auto-update on in ${path}: $why; $click"
             return
         }
-        Add-Result $item 'installed' ("turned on: `"autoUpdate`": true in $path" + $(if ($backup) { " (backup: $backup)" } else { '' }) + "; Claude Code updates these plugins in the background, a few minutes into a session$off")
+        $bk = if ($backup) { " (backup from before this run: $backup)" } elseif ($null -eq $runFlags.SettingsBefore) { ' (there was no settings.json before this run)' } else { '' }
+        Add-Result $item 'installed' ("turned on: `"autoUpdate`": true in $path$bk; Claude Code updates these plugins in the background, a few minutes into a session$off$desk")
     }
 
     function Invoke-ClaudePlugins {
@@ -1720,23 +1792,72 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         if (-not $claude) { Say '    the claude CLI is not installed yet: reading its plugin files instead' }
         try { $state = Get-ClaudeState $claude } catch { Add-Result 'claude-code: plugins' 'failed' "could not read the plugin state: $($_.Exception.Message)"; return }
 
+        # The user settings.json before any "claude plugin" command of this run touches it: the
+        # backup Set-MarketplaceAutoUpdate writes is this, so it undoes the whole run there.
+        $runFlags.PluginOk = @{}
+        $runFlags.SettingsBefore = $null
+        $sp = Join-Path (Get-ClaudeConfigDir) 'settings.json'
+        if (Test-Path -LiteralPath $sp -PathType Leaf) { try { $runFlags.SettingsBefore = [IO.File]::ReadAllBytes($sp) } catch { Write-Log "could not read ${sp}: $($_.Exception.Message)" 'warn' } }
+
         # plugins.<name> in tool-versions.json: its id, the lowest version it must be at ("min"),
-        # and the other entries it needs ("requires"). Data, so a new minimum or a new need is a
-        # change to that file and not to this script.
+        # and the other entries it needs ("requires", installed first and checked before it).
         $spec = @{}
         if ($versions.plugins) { foreach ($p in $versions.plugins.PSObject.Properties) { if ((Get-JsonProp $p.Value 'id')) { $spec[$p.Name] = $p.Value } } }
-        $minOf = { param([string]$Key) if ($spec[$Key] -and $spec[$Key].min) { [string]$spec[$Key].min } else { '' } }
+        $done = @{}        # entries already handled in this run
         $autoUpdate = New-Object System.Collections.Generic.List[string]
 
         $ready = Confirm-ClaudeMarketplace $claude $state $MarketplaceName $RepoSlug
         if ($ready) { $autoUpdate.Add($MarketplaceName) }
-        foreach ($n in 'bluestep-tools', 'core-tools') { [void](Install-ClaudePlugin $claude $state "$n@$MarketplaceName" $ready (& $minOf $n)) }
+
+        function Get-SpecReady([string]$Key) {
+            # Whether the marketplace of plugins.<Key> is registered (or added now).
+            $mk = $spec[$Key].marketplace
+            if (-not $mk -or -not $mk.name -or [string]$mk.name -eq $MarketplaceName) { return $ready }
+            $ok = Confirm-ClaudeMarketplace $claude $state ([string]$mk.name) ([string]$mk.source)
+            if ($ok) { $autoUpdate.Add([string]$mk.name) }
+            return $ok
+        }
+
+        function Install-SpecPlugin([string]$Key, [bool]$Ready, [string]$Why) {
+            # plugins.<Key>, once what it requires is at its minimum; otherwise it is not installed
+            # (or, when it already is, the item says what it still needs).
+            $s = $spec[$Key]
+            $id = [string]$s.id
+            $item = 'claude-code: ' + ($id -split '@')[0]
+            $done[$Key] = $true
+            $unmet = @(foreach ($r in @($s.requires)) { if ($r -and $spec[[string]$r] -and -not $runFlags.PluginOk[[string]$spec[[string]$r].id]) { [string]$r } })
+            if ($unmet.Count) {
+                $need = "needs $($unmet -join ' and ') at the version this setup needs first (see that item); run this script again once it is"
+                if ($state.Installed[$id]) { Add-Result $item 'needs you' "installed, but it $need" } else { Add-Result $item 'skipped' "not installed: it $need" }
+                $runFlags.PluginOk[$id] = $false
+                return $false
+            }
+            return (Install-ClaudePlugin $claude $state $id $Ready ([string]$s.min) $Why)
+        }
+
+        function Install-Requires([string]$Key) {
+            # What plugins.<Key> requires and this run has not handled yet, installed first.
+            foreach ($r in @($spec[$Key].requires)) {
+                if (-not $r -or $done[[string]$r]) { continue }
+                $r = [string]$r
+                $done[$r] = $true
+                if (-not $spec[$r]) { Add-Result "claude-code: $r" 'failed' "tool-versions.json has no plugins.$r entry, which $Key requires"; continue }
+                Install-Requires $r
+                [void](Install-SpecPlugin $r (Get-SpecReady $r) "needed by $(($spec[$Key].id -split '@')[0])")
+            }
+        }
+
+        foreach ($n in 'bluestep-tools', 'core-tools') {
+            if ($spec[$n]) { Install-Requires $n; [void](Install-SpecPlugin $n $ready '') }
+            else { [void](Install-ClaudePlugin $claude $state "$n@$MarketplaceName" $ready '' '') }
+            $done[$n] = $true
+        }
 
         $pg = "phi-guard@$MarketplaceName"
-        if ($state.Installed[$pg]) { [void](Install-ClaudePlugin $claude $state $pg $ready (& $minOf 'phi-guard')) }
+        if ($state.Installed[$pg]) { [void](Install-ClaudePlugin $claude $state $pg $ready '' '') }
         else {
             $c = Get-OptIn 'phi-guard' 'phi-guard' (Get-PhiGuardWhat)
-            if ($c.Yes) { [void](Install-ClaudePlugin $claude $state $pg $ready (& $minOf 'phi-guard')) } else { Add-Result 'claude-code: phi-guard' 'skipped' "opt-in, not chosen ($($c.How))" }
+            if ($c.Yes) { [void](Install-ClaudePlugin $claude $state $pg $ready '' '') } else { Add-Result 'claude-code: phi-guard' 'skipped' "opt-in, not chosen ($($c.How))" }
         }
 
         # one-tools: decided here, installed last, so what it requires is in place before it.
@@ -1744,7 +1865,6 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         $ot = $spec['one-tools']
         $otGo = $null       # install (or check) one-tools at the end: @{ Ready }
         $otWants = $false   # installed or chosen: what it requires is installed as well
-        $otName = 'one-tools'
         if (-not $ot -or -not $ot.marketplace -or -not $ot.marketplace.name -or -not $ot.marketplace.source) {
             Add-Result 'claude-code: one-tools' 'skipped' 'tool-versions.json has no complete plugins.one-tools entry'
         } else {
@@ -1768,50 +1888,35 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
                 $c = Get-OptIn 'one-tools' $otName (Get-OneToolsWhat $otName ([string]$ot.accessRepo))
                 if (-not $c.Yes) { Add-Result $otItem 'skipped' "opt-in, not chosen ($($c.How))" }
                 else {
+                    # Chosen: what it requires comes too, even while access to it is still missing.
                     $otWants = $true
                     $acc = if ($ot.accessRepo) { Test-GitHubRepoAccess ([string]$ot.accessRepo) } else { [pscustomobject]@{ Ok = $true } }
                     if (-not $acc.Ok) { Add-Result $otItem 'needs you' "ask for access to $($ot.accessRepo): $($acc.Detail); then run this script again" }
-                    else {
-                        if ($mName -eq $MarketplaceName -and (Get-RepoSlug $mSrc) -eq (Get-RepoSlug $RepoSlug)) { $otReady = $ready }
-                        else {
-                            $otReady = Confirm-ClaudeMarketplace $claude $state $mName $mSrc
-                            if ($otReady) { $autoUpdate.Add($mName) }
-                        }
-                        $otGo = @{ Ready = $otReady }
-                    }
+                    else { $otGo = @{ Ready = (Get-SpecReady 'one-tools') } }
                 }
             }
         }
-
-        # What one-tools requires (bluestep-one): installed with it, without a question.
-        $required = @{}
-        if ($otWants -and $ot) { foreach ($r in @($ot.requires)) { if ($r) { $required[[string]$r] = $otName } } }
-        foreach ($r in @($required.Keys)) {
-            if ($r -eq 'bluestep-tools' -or $r -eq 'core-tools') { continue }   # installed above
-            $rs = $spec[$r]
-            if (-not $rs) { Add-Result "claude-code: $r" 'failed' "tool-versions.json has no plugins.$r entry, which $($required[$r]) requires"; continue }
-            $rReady = $ready
-            if ($rs.marketplace -and $rs.marketplace.name -and [string]$rs.marketplace.name -ne $MarketplaceName) {
-                $rReady = Confirm-ClaudeMarketplace $claude $state ([string]$rs.marketplace.name) ([string]$rs.marketplace.source)
-            }
-            $ok = Install-ClaudePlugin $claude $state ([string]$rs.id) $rReady ([string]$rs.min) "needed by $($required[$r])"
-            if ($r -eq 'bluestep-one' -and $ok) { $runFlags.BluestepOne = $true }
+        if ($otWants) {
+            Install-Requires 'one-tools'
+            Skip-Turn 'bluestep-one'
         }
 
         # bluestep-one on its own: an opt-in for building components without one-tools.
         $bo = $spec['bluestep-one']
-        if ($bo -and -not $required.ContainsKey('bluestep-one')) {
+        if ($bo -and -not $done['bluestep-one']) {
             $boId = [string]$bo.id
             $boName = ($boId -split '@')[0]
-            if ($state.Installed[$boId]) { $runFlags.BluestepOne = [bool](Install-ClaudePlugin $claude $state $boId $ready ([string]$bo.min)) }
-            else {
+            $boYes = [bool]$state.Installed[$boId]
+            if (-not $boYes) {
                 $c = Get-OptIn 'bluestep-one' $boName (Get-BluestepOneWhat $boName)
-                if ($c.Yes) { $runFlags.BluestepOne = [bool](Install-ClaudePlugin $claude $state $boId $ready ([string]$bo.min)) }
-                else { Add-Result "claude-code: $boName" 'skipped' "opt-in, not chosen ($($c.How))" }
+                $boYes = $c.Yes
+                if (-not $boYes) { Add-Result "claude-code: $boName" 'skipped' "opt-in, not chosen ($($c.How))" }
             }
+            if ($boYes) { Install-Requires 'bluestep-one'; [void](Install-SpecPlugin 'bluestep-one' $ready '') }
         }
+        if ($bo) { $runFlags.BluestepOne = [bool]$runFlags.PluginOk[[string]$bo.id] }
 
-        if ($otGo) { $runFlags.OneTools = [bool](Install-ClaudePlugin $claude $state $otId $otGo.Ready ([string]$ot.min)) }
+        if ($otGo) { $runFlags.OneTools = [bool](Install-SpecPlugin 'one-tools' $otGo.Ready '') }
 
         foreach ($m in @($autoUpdate | Select-Object -Unique)) {
             try { Set-MarketplaceAutoUpdate $m } catch { Add-Result "claude-code: auto-update $m" 'failed' $_.Exception.Message }
