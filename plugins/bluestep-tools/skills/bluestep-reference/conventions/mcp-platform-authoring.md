@@ -355,9 +355,25 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
   user it is a one-time setup step. (verified 2026-11 on the newer release)
 - `get_form` and `describe_form` take `compact: true` — only `fieldId`, `label` and `fieldType` per
   field, half the size or less. Use it when you only need to find a field.
-- `get_form` and `describe_form` do not return a field's `width`, `height` or `defaultValue`. To check
-  a default after setting it, read `defaultValue` on the field over GraphQL
-  (`remoteObject(id: <fieldId>) { ... on RelateFieldWrapper { defaultValue } }`).
+- `get_form` and `describe_form` do not return a field's `width`, `height`, format type or
+  `defaultValue`. Read them over GraphQL (route: GraphQL reads and writes, below):
+
+  ```graphql
+  { relateForm(id: "<formId>") { form { fields { topId __typename
+      ... on RelateFieldHasWidth { width }
+      ... on RelateFieldHasHeight { height }
+      ... on RelatePlainTextField { formulaId textFormatType defaultValue }
+      ... on RelatePlainTextMemoField { formulaId memoFormatType }
+      ... on RelateSingleSelectDropDownField { defaultValue } } } } }
+  ```
+
+  `width` and `height` sit on the `RelateFieldHasWidth` / `RelateFieldHasHeight` interfaces; every
+  other property needs the field's **concrete** type, which `__typename` names (a TEXT field is
+  `RelatePlainTextField`, a MEMO is `RelatePlainTextMemoField`). Before adding a fragment for a type
+  you have not used, introspect it with `__type(name: "<type>") { fields { name } }` — one `__type`
+  per query; two in one query are refused as `BadFaithIntrospection`. For one field, read
+  `remoteObject(id: <fieldId>) { ... on RelateFieldWrapper { defaultValue } }`. (verified 2026-11 on
+  the newer release)
 - Results the server builds carry no `null`s: a missing key means "no value".
 
 **Permissions**
@@ -386,7 +402,16 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
   schema with `describe_tool(org, "set_permissions")`: no `mode` property means the older tool. There, add
   or change one subject with `grant_permission` (it leaves the others as they are), take one off with
   `revoke_permission`, and keep `set_permissions` for a deliberate full replace with the current list from
-  `list_permissions`. A script's permission set is separate
+  `list_permissions`.
+
+  The older release's `form_permission` (forms only) has its own `mode`, and there **omitting it
+  means `MERGE`**: named subjects are added or changed, everyone else keeps theirs. `REPLACE` makes the
+  list exactly what you pass and must name every `deletableState: NO` entry — the built-in groups a
+  new form is seeded with — or the whole call is refused. Before the `mode` was added the tool
+  replaced the whole list, so if an org's `form_permission` schema has no `mode`, treat it as a full
+  replace. (verified 2026-11 in the older release's schema)
+
+  A script's permission set is separate
   from its wiring: for a **new** script pass `permissions` to `create_script`, then the
   `list_permissions` read-back (step 6).
 
@@ -427,6 +452,12 @@ verified — the dating key at the top of this page says how to read the markers
   solo UPDATE** if it disagrees — the same detect-and-correct shape as the declaration read-back in
   step 6. When *reading* booleans, remember an untouched one is a missing key over MCP (results
   carry no `null`s), not `false`; in BsJs code it reads as `null` — see the nullable-booleans entry in [gotchas/common-gotchas.md](../gotchas/common-gotchas.md).
+- **A read-back counts only if the reader can see the property and the value has the right shape.**
+  A reader that does not return the property (see the `get_form` bullet above for the ones that do
+  not) proves nothing, and neither does *a* value: check it is the kind of value the property holds.
+  An option-list field's default reads back as a key object
+  (`{"class":"myassn.dao.sql.SQLKey","classId":…,"u":"U…","id":"…"}`), never as a name string; a string
+  there means the default points at no option and does nothing in the UI. (verified 2026-11)
 - **An option-list field's `defaultValue` is the option's id**, not its display name. A value that
   names no item of the list is refused. (verified 2026-11)
 - **Option lists: `sortOrder` starts at 0, and CREATE takes names only.** `option_list` CREATE numbers
@@ -481,11 +512,18 @@ verified — the dating key at the top of this page says how to read the markers
 - **Pass `permissions` to `create_script`.** It takes the same permissions list as `set_permissions`.
   A script created without it lands with no permission set: the response warns that nobody else can run
   it yet, and the failure otherwise shows up later as a code bug — a MergeReport embedded in a form
-  renders nothing, an EndPoint answers with errors. Reader has been the right ceiling for a script in
-  every case so far. On an existing script add with `set_permissions` `mode: MERGE`, or with
-  `grant_permission` on an org whose `set_permissions` has no `mode`. Either way, run the
-  `list_permissions` read-back in step 6 **before** anyone tests the component. (verified 2026-11:
-  `permissions` is in the live schema)
+  renders nothing, an EndPoint answers with errors. On an existing script add with `set_permissions`
+  `mode: MERGE`, or with `grant_permission` on an org whose `set_permissions` has no `mode`. Either
+  way, run the `list_permissions` read-back in step 6 **before** anyone tests the component.
+  (verified 2026-11: `permissions` is in the live schema) Which script types need a grant (as
+  reported 2026-09, not re-run here):
+  - **MergeReport** — yes, on the report. Reader is enough.
+  - **EndPoint** — yes, on the endpoint; with "Run as Super User" off, also on the forms it uses.
+    Reader is enough with "Run as Super User" on; with it off the right level is not established, so
+    read back and test before settling on one.
+  - **Formulas** (pre-save, post-save, pre-edit, pre-delete, scheduled, on-demand) — no, neither on
+    the formula nor on the forms it reads. Never widen a form's permissions so a formula can read
+    it: that gives people access nobody asked for.
 - **`lookup_script_by_name` misses are name mismatches far more often than missing scripts.** The
   exact-name lane is **case-sensitive** and matches the script's **display name literally** — trailing
   spaces, casing, and punctuation all count — and BSJS endpoints *are* searched, so a miss is not

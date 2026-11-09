@@ -11,6 +11,34 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.5] — 2026-11-09
+
+> **The four reference asks left open after 0.46.3.** Reference text only; no hook or skill
+> changes. Codex asks to re-trust the plugin's hooks after any update that changes its files: open
+> the plugin's page and **Review → trust** once.
+
+### Fixed
+
+- **Reading field properties the MCP readers cannot see** (86bc4fgje). `get_form` and
+  `describe_form` return no width, height, format type or default. `mcp-platform-authoring.md` now
+  gives the GraphQL query that reads them (the `RelateFieldHasWidth` / `RelateFieldHasHeight`
+  interfaces, concrete types found with `__typename`, one `__type` introspection per query), and a
+  read-back rule: the reader must see the property and the value must have the right shape — an
+  option-list default reads back as a key object, never a name string. Verified on a test org.
+- **Permissions: `form_permission`'s `mode` and which scripts need a grant** (86bcby6hu). On the
+  older release `form_permission` omitted `mode` means MERGE, and REPLACE must name the seeded
+  built-in groups (read from that release's schema); with no `mode` in the schema, treat it as a
+  full replace. The `create_script` bullet no longer says Reader is the right ceiling in every case:
+  it lists MergeReport (yes), EndPoint (yes, plus its forms unless "Run as Super User" is on) and
+  formulas (no — never widen a form for a formula), marked as reported, not re-run.
+- **`isGlobalUser()` does not exist in BsJs** (86bc7y4mm). `bsjs-development.md` has a short
+  "Porting from RelateScript" section: `log` → `console`, `isGlobalUser()` → `isGlobalSuper()` or
+  `isGlobal()` (checked against the generated declarations).
+- **What `runFormula(fid)`'s applicability check means for the target** (86bcbra5u). The target's
+  record types must cover every caller's type; check its `baseUnit` (Working Unit), not `unit`, with
+  the GraphQL read shown; and `FormulaScheduler` has no dedup key, so close saves can start several
+  runs and a read-then-write upsert should collapse duplicates.
+
 ## [plugin 0.46.4] — 2026-11-09
 
 ### Changed
