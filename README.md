@@ -12,7 +12,7 @@ On Windows, start here. Open **Windows PowerShell** (normally, not as administra
 line and press Enter:
 
 ```powershell
-irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.0.0/bootstrap/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.1.0/bootstrap/bootstrap.ps1 | iex
 ```
 
 It installs, for your user only and without admin rights, the tools the plugins need (Git,

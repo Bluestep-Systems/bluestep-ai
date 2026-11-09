@@ -1,7 +1,7 @@
 # ADR: A machine bootstrap script the user runs, with pinned and hashed tools
 
 **Status:** Accepted (2026-11-05). The Windows script (`bootstrap/bootstrap.ps1`) is bootstrap
-1.0.0. The macOS and Linux script (`bootstrap/bootstrap.sh`) is planned and not written yet; the
+1.1.0 (2026-11-09: decisions 10 and 11 and the `requires` / `min` part of 3). The macOS and Linux script (`bootstrap/bootstrap.sh`) is planned and not written yet; the
 macOS and Linux parts below are the plan for it.
 
 **Date:** 2026-11-05
@@ -64,7 +64,11 @@ GUI that has no command (Cursor), and quit and reopen the app.
    the `b6p` minimum). A weekly workflow compares each pin with the latest release and opens or
    updates one issue; a Node security release is listed first. It never opens the bump PR. The file
    also holds where one-tools comes from (`plugins.one-tools`: plugin id, marketplace name and
-   source, the repo to check access on), so the scripts name none of it.
+   source, the repo to check access on), so the scripts name none of it. Since 1.1.0 each
+   `plugins.<name>` entry can carry `min` (the lowest version the plugin must be at) and `requires`
+   (other entries it needs, installed before it); CI checks that every id is `<name>@<marketplace>`,
+   that `requires` names other entries, and that a `min` for a plugin this repo serves is not above
+   its released version.
 4. **The token never touches a command line.** It is read once with hidden input from the
    terminal, checked against the gateway with a header built in the process, and only then stored.
    A refused token is never saved; when the gateway cannot be reached, the token is kept, unchecked,
@@ -116,6 +120,51 @@ GUI that has no command (Cursor), and quit and reopen the app.
    one-tools installs only after `gh api` shows the GitHub login can read its repo; otherwise the
    item says to ask for access and the rest goes on. Codex: the same read-first add, then
    `codex plugin add`. Cursor has no command for this, so the report lists the clicks.
+10. **Keep the Claude Code plugins current, not just installed (1.1.0).** A plugin installed at
+    user scope below its `min` is updated with `claude plugin update <id> --scope user`, then
+    installed again with `claude plugin install <id> --scope user`, and its version is read back:
+    `updated` (old → new) when it reached the minimum, `failed` when it did not. The second install
+    is there because an update does not install a dependency the new version declares, and an
+    install of a plugin that is already installed does (the Claude Code docs list the operations
+    that install a missing dependency; `update` is not one of them). That install also turns a
+    disabled plugin back on (measured), so a plugin the user had disabled is disabled again with
+    `claude plugin disable` and reported "kept disabled". A plugin below its minimum at managed
+    scope is left to IT (`needs IT`). `requires` orders and gates: what an entry requires is handled
+    first, and the entry is installed only when each of those is at its minimum. Installing
+    bluestep-one over bluestep-tools 0.45.0 fails on its `>=0.46.0` constraint and still leaves
+    bluestep-one listed as installed (measured), so `plugins.bluestep-one.requires` names
+    bluestep-tools and a failed or IT-blocked bluestep-tools update skips bluestep-one (an
+    installed one is reported `needs you`). bluestep-one is installed with one-tools
+    (`plugins.one-tools.requires`; one-tools declares no dependency of its own), also while the
+    user still waits for access to one-tools, and is otherwise an opt-in of its own, for building
+    components without one-tools. Both are Claude Code only. `requires` and `min` are read for the
+    plugins the script handles by name; a new plugin needs a script change too.
+11. **Turn on marketplace auto-update in the user settings (1.1.0).** For the `bluestep`
+    marketplace, and for `bluestep-internal` when one-tools is installed or chosen, the script sets
+    `"autoUpdate": true` on the marketplace's `extraKnownMarketplaces` entry in the user
+    `settings.json` (adding the entry with the registered source if it is missing), the only key it
+    writes in that file. Claude Code reads auto-update first from that entry in a settings file,
+    then from `known_marketplaces.json` (where the `/plugin` toggle writes, and in the settings
+    entry too when there is one, so the toggle still works afterwards), then from a default
+    that is off for every marketplace that is not an official one (docs: plugins/loading, "Which
+    marketplaces and plugins auto-update"). `known_marketplaces.json` is Claude Code's own state
+    file, so the script does not write it. A value already set (managed settings, user settings, or
+    the toggle) is left as it is and reported, with the clicks to turn it on; a value that is not
+    `true` or `false` is reported `needs you`. The file is read when the Claude Code step begins,
+    before any `claude plugin` command of the run changes it, and that copy becomes
+    `settings.json.bootstrap-<time>.bak` at the first write, so the backup undoes the whole run in
+    that file. The file is written by the script's own serializer (two-space indents; strings keep
+    their characters, where Windows PowerShell 5.1's `ConvertTo-Json` would turn `&&` into
+    `&&`; numbers in their plain form, so `1e3` comes back as `1000`), read back, and put
+    back as it was if the value does not read back. A read-only file is left alone (`needs you`).
+    Measured in a scratch profile: Claude Code copies the settings value into
+    `known_marketplaces.json` at startup. The pass itself runs only in an interactive session, a
+    few minutes after the first message, and `DISABLE_AUTOUPDATER`, `DISABLE_UPDATES` or
+    `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` turn it off unless `FORCE_AUTOUPDATE_PLUGINS` is set.
+    The Claude desktop app sets `DISABLE_AUTOUPDATER=1` for its Code sessions (seen in a session's
+    environment), so there the setting does not update anything; the report says so when the
+    desktop app is on the machine, notes when a user-level value turns the pass off, and the README
+    says to run the script again from time to time.
 
 Exit code (when run as a file): 0 when no item failed, also when some say "needs you" or "needs
 IT"; 1 when an item failed or the run stopped early.
@@ -146,10 +195,30 @@ version is a value in one file, checked by CI and watched weekly.
   exposure named above.
 - **The skills still hand over per-item commands** for a machine where the script is not
   available (macOS and Linux today) or for a user who prefers them.
+- **The script now writes one key of the user's `settings.json`** (decision 11) and rewrites the
+  file around it. A file that does not parse as JSON (on 5.1 that includes comments and trailing
+  commas) is left alone and reported (`needs you`); the pre-run backup and the read-back cover a
+  bad write. On PowerShell 7 before 7.5, a string that looks like a date is written back in .NET's
+  round-trip form.
+
+**Measured for 1.1.0** (scratch Claude Code and Codex profiles through `CLAUDE_CONFIG_DIR` and
+`CODEX_HOME`, `-SkipToken -NoOptIns`): bluestep-tools 0.45.0 → `updated 0.45.0 -> 0.46.0` and
+auto-update turned on; a second run changed nothing; one-tools without bluestep-one → bluestep-one
+installed, auto-update on for both marketplaces, one backup holding the file as it was before the
+run; one-tools 0.12.0 → bluestep-one installed first, then `updated 0.12.0 -> 0.13.0`;
+`-BluestepOne` alone → installed, Codex skipped. A dry run on a maintainer machine reported the
+updates as `would update` and left an `autoUpdate: false` alone. After an adversarial review:
+bluestep-tools 0.45.0 disabled → `updated ... (user scope, kept disabled)`, still disabled, and the
+backup byte-equal to the file before the run; a bluestep-tools minimum the marketplace cannot meet
+→ bluestep-tools `failed` and bluestep-one `skipped`; `extraKnownMarketplaces: null` and a hook
+holding `&&`, quotes and a non-ASCII character → entry written, hook text unchanged;
+`"autoUpdate": "true"` (a string) → `needs you`; a read-only `settings.json` → `needs you`, no
+backup left behind.
 
 **Not observed yet.** The `irm … | iex` one-liner from a published tag; the GitHub, token and
 plugin steps under PowerShell 7 (CI runs only the tool steps there); a run stopped halfway and run
-again; anything on macOS or Linux.
+again; anything on macOS or Linux; the background auto-update pass actually updating a plugin
+after the script turned it on (it needs a signed-in interactive session in the scratch profile).
 
 ## Open admin step
 

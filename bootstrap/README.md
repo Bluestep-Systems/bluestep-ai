@@ -17,8 +17,17 @@ It does not need admin rights, and it never asks for an admin password.
 4. **Saves your BlueStep platform token**, which you paste once. It is checked with BlueStep first,
    and it never shows on screen or in any log.
 5. **Installs the plugins** for each AI app it found: `bluestep-tools` and `core-tools`, and, if you
-   say yes, `phi-guard` and `one-tools`.
-6. **Shows a summary:** one line per item, and what to do next.
+   say yes, `phi-guard`, `one-tools` and `bluestep-one`. `one-tools` needs `bluestep-one`, so a yes
+   to `one-tools` brings it too; without `one-tools`, you are asked about `bluestep-one` on its own
+   (it is for building BlueStep One components). `one-tools` and `bluestep-one` are for Claude only.
+6. **Brings the Claude plugins up to date:** a plugin you already have that is older than the
+   version BlueStep needs now is updated, along with anything the new version needs. A plugin you
+   turned off stays off. A plugin that needs another one (`bluestep-one` needs `bluestep-tools`)
+   is installed only once that one is new enough.
+7. **Turns on auto-update** for the BlueStep plugin marketplaces in Claude, so your plugins keep up
+   after this run. If you turned auto-update off yourself, it stays off; the summary says where to
+   turn it on.
+8. **Shows a summary:** one line per item, and what to do next.
 
 On a test computer the first run took under ten minutes. Most of the waiting is downloads and the
 GitHub sign-in.
@@ -44,12 +53,13 @@ Supported now: **Windows (64-bit Intel or AMD).** macOS and Linux are coming.
 2. Copy this line, paste it into the window (right-click pastes), and press Enter:
 
    ```powershell
-   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.0.0/bootstrap/bootstrap.ps1 | iex
+   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.1.0/bootstrap/bootstrap.ps1 | iex
    ```
 
 3. When it is your turn, the window beeps and shows a **YOUR TURN** block that says what to do.
-   They are numbered ("1 of 4"): the GitHub sign-in, the token, a yes/no for each of the two
-   optional plugins, and a last one that says how to finish. A run on a computer that is already
+   They are numbered ("1 of 4", "2 of 4", ...): the GitHub sign-in, the token, a yes/no for each
+   optional plugin (`bluestep-one` is asked only when you say no to `one-tools`), and a last one
+   that says how to finish. A run on a computer that is already
    set up asks fewer, or none.
 4. At the end, do what the last block says: **quit the app fully** (from the tray icon next to the
    clock → Quit; closing the window is not enough), open it again, open your project folder, and
@@ -60,13 +70,13 @@ Supported now: **Windows (64-bit Intel or AMD).** macOS and Linux are coming.
 If you would rather see the script before it runs:
 
 1. Open the release page,
-   [`bootstrap-v1.0.0`](https://github.com/Bluestep-Systems/bluestep-ai/releases/tag/bootstrap-v1.0.0).
+   [`bootstrap-v1.1.0`](https://github.com/Bluestep-Systems/bluestep-ai/releases/tag/bootstrap-v1.1.0).
    Its notes list the script's SHA-256.
 2. In PowerShell, download it and compare the hash (put the hash from the release notes where it
    says `<hash>`):
 
    ```powershell
-   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.0.0/bootstrap/bootstrap.ps1 -OutFile bootstrap.ps1
+   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.1.0/bootstrap/bootstrap.ps1 -OutFile bootstrap.ps1
    if ((Get-FileHash .\bootstrap.ps1 -Algorithm SHA256).Hash -eq '<hash>') { 'hash ok' } else { 'HASH MISMATCH - do not run it' }
    ```
 
@@ -86,7 +96,7 @@ Add an option after the file name when you run the downloaded file, for example
 form, use this shape instead (a plain `| iex` cannot take options):
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.0.0/bootstrap/bootstrap.ps1))) -DryRun
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.1.0/bootstrap/bootstrap.ps1))) -DryRun
 ```
 
 | Option | What it does |
@@ -95,8 +105,9 @@ form, use this shape instead (a plain `| iex` cannot take options):
 | `-SkipToken` | Skips the GitHub sign-in and the platform token. |
 | `-SkipPlugins` | Skips the plugins (and the Claude Code CLI, which only that step needs). |
 | `-PhiGuard` | Installs `phi-guard` without asking. It stops the AI agent when it is about to write what looks like real client data into a BlueStep project. |
-| `-OneTools` | Installs `one-tools` without asking (Claude only; your GitHub account needs access to its private repo). |
-| `-NoOptIns` | Does not ask about `phi-guard` or `one-tools` and does not install them. `-PhiGuard` and `-OneTools` still win. Plugins you already have are kept. |
+| `-OneTools` | Installs `one-tools` without asking, and `bluestep-one` with it (Claude only; your GitHub account needs access to its private repo). |
+| `-BluestepOne` | Installs `bluestep-one` without asking (Claude only), for building BlueStep One components without `one-tools`. |
+| `-NoOptIns` | Does not ask about `phi-guard`, `one-tools` or `bluestep-one` and does not install them. `-PhiGuard`, `-OneTools` and `-BluestepOne` still win. Plugins you already have are kept, and still updated when they are too old. |
 
 ## Reading the summary
 
@@ -104,6 +115,8 @@ Each item gets one status:
 
 - **ok** — it was already fine. Nothing changed.
 - **installed** — this run set it up.
+- **updated** — a plugin you had was older than the version BlueStep needs now; this run updated
+  it. The line shows the old and the new version, for example `0.45.0 -> 0.46.0`.
 - **needs you** — a step only you can do. The line says what, for example: another copy of a tool
   on your computer is found first and should be removed or updated, the token was refused, or the
   clicks Cursor needs.
@@ -111,7 +124,21 @@ Each item gets one status:
   there. This is usually a company policy. Show IT the path in the line.
 - **failed** — something went wrong. The line says what. Fix it and run the script again.
 - **skipped** — you chose to skip it, or it does not apply to your computer.
-- **would install** — only in a dry run: what a real run would do.
+- **would install**, **would update** — only in a dry run: what a real run would do.
+
+The `auto-update` lines say whether Claude keeps that marketplace's plugins up to date by itself.
+When this run turned it on, the line says so and names a backup of your
+`%USERPROFILE%\.claude\settings.json` as it was before the run: the script adds
+`"autoUpdate": true` to that marketplace's entry there. It writes the file back with two-space
+indents and keeps every other setting; only a number written in an unusual form changes how it
+looks (`1e3` comes back as `1000`). Putting the backup back undoes what the run changed in that
+file. If auto-update is off because you turned it off, the line gives the clicks to turn it on: in
+Claude Code, `/plugin` → Marketplaces → the marketplace → Enable auto-update.
+
+Claude Code runs these updates in the background, a few minutes into a session, and loads them
+the next time you start it (or run `/reload-plugins`). The Claude desktop app starts its Code
+sessions with Claude Code's auto-updater turned off, and that also stops these plugin updates; run
+this script again from time to time, or update from `/plugin`.
 
 The summary also shows the path of the log file. The log is in
 `%USERPROFILE%\.bluestep\bootstrap\`, one file per run, and it never holds your token.
@@ -120,7 +147,7 @@ The summary also shows the path of the log file. The log is in
 
 It keeps what works. A second run on a ready computer takes a few seconds, asks nothing, and
 changes nothing. If a run stopped halfway, or something broke later, or there is a new version of
-the script, just run it again: it repairs what is missing.
+the script, just run it again: it repairs what is missing and updates plugins that are too old.
 
 ## Undo
 
@@ -128,8 +155,10 @@ There is no automatic undo. To remove what the script added:
 
 1. **Plugins** (Claude):
    `claude plugin uninstall bluestep-tools@bluestep`, then the same for `core-tools@bluestep`,
-   `phi-guard@bluestep` and `one-tools@bluestep-internal` if you have them. Codex:
-   `codex plugin remove` for each one. Cursor: remove them from its plugins screen.
+   `phi-guard@bluestep`, `one-tools@bluestep-internal` and `bluestep-one@bluestep` if you have
+   them. Codex: `codex plugin remove` for each one. Cursor: remove them from its plugins screen.
+   To turn auto-update off again: `/plugin` → Marketplaces → the marketplace → Disable
+   auto-update, or put back the `settings.json` backup the summary named.
 2. **The `b6p` login:** `b6p auth clear`.
 3. **The GitHub sign-in** (optional): `gh auth logout`.
 4. **The platform token** in your user environment:
@@ -155,7 +184,10 @@ Then quit and reopen your AI app.
 The script is pure ASCII and runs on Windows PowerShell 5.1 and PowerShell 7. The tool versions,
 download URLs and hashes it uses are in
 [`tool-versions.json`](../plugins/bluestep-tools/skills/b6p-setup/assets/tool-versions.json),
-fetched at the script's own tag. A change under `bootstrap/` or to that file needs a bump of
+fetched at the script's own tag. Its `plugins` part says which plugin needs which (`requires`) and
+the lowest version each must be at (`min`). For the plugins the script handles (`bluestep-tools`,
+`core-tools`, `one-tools`, `bluestep-one`), raising a minimum or adding a need between them is a
+change to that file, not to the script; a new plugin also needs a change to the script. A change under `bootstrap/` or to that file needs a bump of
 `bootstrap/version.json` (and the matching `$ScriptVersion` in `bootstrap.ps1`); the merge to `main`
 then tags `bootstrap-v<version>` and cuts its Release with the hashes. Why it works this way:
 [`docs/decisions/machine-bootstrap.md`](../docs/decisions/machine-bootstrap.md).

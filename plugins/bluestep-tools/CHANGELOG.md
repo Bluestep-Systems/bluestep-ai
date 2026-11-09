@@ -11,6 +11,19 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.4] — 2026-11-09
+
+### Changed
+
+- **`/b6p-setup` hands over bootstrap 1.1.0.** The one-liner it gives a Windows user now names
+  `bootstrap-v1.1.0`, which also updates Claude Code plugins installed below the version this setup
+  needs, installs `bluestep-one` with `one-tools` (or on its own, as an opt-in), and turns on
+  auto-update for the BlueStep marketplaces. The one-line description of the run says so.
+- **`tool-versions.json` says which plugin needs which.** Its `plugins` part gains entries for
+  `bluestep-tools` (minimum 0.46.0) and `bluestep-one` (`requires` `bluestep-tools`, which its
+  `>=0.46.0` dependency needs), and `plugins.one-tools` gains `min` (0.13.0) and `requires`
+  (`bluestep-one`). The bootstrap reads them; nothing in the plugin does.
+
 ## [plugin 0.46.3] — 2026-11-09
 
 > **The platform reference catches up with what the gateway fixed.** Every gateway claim below was
