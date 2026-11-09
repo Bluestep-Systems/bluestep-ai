@@ -8,11 +8,44 @@ To detect whether a field changed on save without storing a separate "old value"
 ## Canonical read
 
 ```typescript
+// Java.Stream is declared empty, so type the calls this page uses.
+type FormEntry = Bluestep.Relate.FormEntry;
+interface VersionStream<T> {
+  findFirst(): { orElse(other: T | null): T | null };
+  limit(n: number): { iterator(): { hasNext(): boolean; next(): T } };
+}
+const versionsOf = (e: FormEntry) => e.versionStream() as unknown as VersionStream<FormEntry>;
+
 // Previous committed version, or null on first create:
-const prev = entry.versionStream().findFirst().orElse(null);
+const prev = versionsOf(entry).findFirst().orElse(null);
 ```
 
-`versionStream()` yields the committed versions most-recent-first; `findFirst()` is the previous version (a Java `Optional`), and `.orElse(null)` collapses the empty case to `null`.
+`versionStream()` yields the committed versions most-recent-first (see the order note below);
+`findFirst()` is the previous version (a Java `Optional`), and `.orElse(null)` collapses the empty
+case to `null`.
+
+## Walking the history: order and cost
+
+- **`versionStream()` is newest first** (as reported 2026-10 on a production org, not re-run here).
+  `versions()` returns the same versions as a list, with **no documented order** — do not rely on
+  one.
+- **Each version is a separate history read** (reported at ~25–55 ms each; an entry with ~4,800
+  versions read through `versions()` took over two minutes and timed the page out). Read a bounded
+  number from the stream instead, with the `versionsOf` cast above:
+
+```typescript
+const it = versionsOf(entry).limit(50).iterator();
+while (it.hasNext()) {
+  const v = it.next();
+  // ...
+}
+```
+
+- **Some entries have no versions at all.** A multi-entry row created over the gateway and then
+  changed by three committed writes from an endpoint returned an empty `versions()` and
+  `versionStream()` (verified 2026-11; the cause was not found — no gateway tool exposes a history
+  setting). On such an entry `prev` is always `null`, so the change detection below **never fires**.
+  Before relying on it, check on the target form that a real edit leaves a version to read.
 
 ## Normalize-and-compare helper
 
@@ -51,7 +84,7 @@ A formula body is top-level code, so there is no `return` to stop early (see
 A pre-save that stamps a "modified" timestamp only when a tracked set of fields changed vs. the previous version:
 
 ```typescript
-const prev = entry.versionStream().findFirst().orElse(null);
+const prev = versionsOf(entry).findFirst().orElse(null);
 if (prev != null) {
   const tracked = ["fieldA", "fieldB", "fieldC"]; // generic FIDs
   const anyChanged = tracked.some((name) => changed(entry, prev, name));

@@ -40,7 +40,10 @@ That includes merge reports, and formulas of every non-scheduled type: `PRE_EDIT
 The binding only appears once Primary Form is set **and** the form is multi-entry:
 
 - **Formulas** — `create_script` accepts `primaryFormId` (requires an explicit
-  non-scheduled `formulaType`), so the binding is available immediately at creation.
+  non-scheduled `formulaType`), so the binding is available immediately at creation — unless the
+  formula can reach the form only through a record category: then `create_script` refuses it and
+  creates nothing (verified 2026-11). See the Primary Form bullet in
+  [conventions/formula-patterns.md](../conventions/formula-patterns.md) for the order to use.
 - **Merge reports** — `primaryFormId` is FORMULA-only; a merge report's Primary Form has to
   be set in the platform UI before its `[current entry]` binding exists. Same sequencing
   trap, one script type later.

@@ -532,6 +532,11 @@ verified — the dating key at the top of this page says how to read the markers
   name (this is the non-privilege failure mode; a `RemoteSecurityException` create rolls back clean —
   see the END_POINT bullet). Rule: on a miss, **list the folder and compare exact display names**
   before concluding the script does not exist; only then create. (verified 2026-08)
+- **`create_script` refuses a `primaryFormId` the formula reaches only through a record category**
+  ("must be a form this formula can reach …") and creates nothing (verified 2026-11). Create the
+  formula without it, add the category with `set_category_requirement`, then set `primaryFormId`
+  with `update_script` (order as reported 2026-09, not re-run here). Never stand in for a Primary
+  Form with a form-id check in code — see [formula-patterns.md](formula-patterns.md).
 - **Send a `formulaType` change together with what the new type needs.** Moving a formula to
   `SCHEDULED_QUERY` needs `schedule` in the same `update_script` call (it is refused without one, unless
   the formula already has one); moving it to `ON_DEMAND` needs `onDemandIdentifier`, unique across the

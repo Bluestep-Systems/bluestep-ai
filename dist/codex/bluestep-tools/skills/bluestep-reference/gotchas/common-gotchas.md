@@ -84,6 +84,21 @@ import lodash from 'lodash';
 
 → tsconfig and Graal compatibility: [bsjs-development](../bsjs-development.md#typescript-configuration--graal-compatibility).
 
+## Declared but missing at runtime — "Unknown identifier"
+
+A method can be in the generated declarations, pass the publish type-check, and still fail when it
+runs: `TypeError: invokeMember (<name>) on myassn.script.<Class> failed due to: Unknown identifier:
+<name>`. Seen with `B.time.formatDate` on one org (as reported 2026-10; it works on the newer
+release) and with `isSuper()`, which older declarations show in a JSDoc example. Names that were
+never declared fail the same way (`B.time.now()`, verified 2026-11).
+
+When a formula seems to do nothing, read its **ERR script log** first — a `try/catch` that swallows
+this error leaves no other trace. Over the gateway: `read_log` with `scope: SCRIPT` on the newer
+release (it needs the `ORG_LOGS` endorsement), `read_script_log` on the older one; see
+[conventions/mcp-platform-authoring.md](../conventions/mcp-platform-authoring.md). The fix is the
+plain Java or BsJs equivalent — for dates, `B.time.DateTimeFormatter.ofPattern(...)` with the value's
+`.format(fmt)`.
+
 ## Option matching across fields
 
 Option-list items can have **no export values** — a list can carry only ids and display names.
