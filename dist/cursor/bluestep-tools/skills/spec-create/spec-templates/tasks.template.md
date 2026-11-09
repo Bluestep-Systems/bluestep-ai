@@ -45,3 +45,5 @@ Once all `[CODE]` tasks above are checked, push the affected components back to 
 ## Verification
 
 How to confirm the feature works once deployed (UI flow to exercise, expected log output, query to run on the platform, etc.).
+
+If the feature gates by user, group or permission, check it with at least one non-super user who should pass and one who shouldn't (a super skips most user gates, so a super test proves nothing there). If the agent can't sign in as them, say before the publish who runs that check (the developer or the client), and don't report the feature as verified until it's done.

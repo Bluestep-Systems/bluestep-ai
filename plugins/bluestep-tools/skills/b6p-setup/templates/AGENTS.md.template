@@ -45,5 +45,7 @@ A platform rule or BsJs pattern the reference lacks, or a broken or missing skil
 
 When compacting, always preserve: the full list of files modified in this session (paths), the
 exact commands used to check or sync work (`b6p pull`/`b6p push` targets, test or build commands),
-every open decision with its reason, the current task's done-when check, and which spec or
-quick-task document is being followed. Drop verbatim tool output and superseded attempts.
+every open decision with its reason, the current task's done-when check, which spec or
+quick-task document is being followed, and the `bluestep-reference` files and `B.d.ts` docs the work
+relies on. Mark each technical fact as verified (with its source) or assumed. Drop verbatim tool
+output and superseded attempts.

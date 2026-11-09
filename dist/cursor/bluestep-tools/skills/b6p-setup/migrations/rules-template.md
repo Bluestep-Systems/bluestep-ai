@@ -20,7 +20,9 @@ template. Revisions before it differ by a few lines, so read a near match as tem
 that **already carries a marker** (template 2 or later) is diffed against the current
 `templates/AGENTS.md.template` with the project name substituted: the shipped text changed by a
 sentence or two between those numbers, and everything under a `## Project rules` heading is the
-project's own by construction. Either way, the title line and a `**Scaffolded:**` line are
+project's own by construction. The `## Compaction` paragraph also grew one sentence within
+template 4 (0.46.11) without moving the marker, so either version of that paragraph is template
+text, not a project edit. Either way, the title line and a `**Scaffolded:**` line are
 per-project header, not rules.
 
 This one command usually settles it. **Most old rules files turn out to be unmodified template

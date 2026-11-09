@@ -10,7 +10,10 @@ In **formula run context** (an on-demand or trigger formula), `meetsCriteria()` 
 **unit-scoped** RecordQuery returns `false` for records that genuinely match the query
 (verified 2026-08):
 
-- calling `query.currentUnit(record.unit().id())` + `clearSearchAndSort()` first does not help;
+- calling `query.currentUnit(record.unit().id())` + `clearSearchAndSort()` first does not help in
+  formula context (in a merge report, `currentUnit(record.unit())` did fix a lookup that missed a
+  record outside the page's unit — as reported 2026-10; see
+  [staff-query-permission-gating](../reference/staff-query-permission-gating.md));
 - passing a record object vs. an id string makes no difference — both return `false`;
 - the **same records iterate fine under the same query** when the code runs in endpoint context.
 

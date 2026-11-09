@@ -21,11 +21,14 @@ The lightweight counterpart to `/spec-create`. Instead of three files (requireme
    - Read **only** the relevant functions, using `offset`/`limit` to target the lines around each hit. Do **not** load entire files in full — component source can run to thousands of lines, and a small change rarely needs more than a few functions. As a rule of thumb, never read more than ~400 lines of a file at once; if you think you need more, narrow the grep instead.
    - For broad "where does X happen across this component" questions, delegate to the Explore agent so the file bulk never enters this conversation's context.
    - Read the component's `draft/README.md` if it isn't already in context.
+   - Read the platform docs the change depends on: the `bluestep-reference` skill's `SKILL.md` (pick the topic files whose "Load when" matches) and `bsjs-development.md` (`../bluestep-reference/bsjs-development.md`). For each platform method the change relies on, read its doc comment in the component's `declarations/B.d.ts` — a method's limits are often only there (`meetsCriteria` checks categories and units, not the query's search criteria). A pattern file alone is not enough when the change uses a platform method in a new way.
 
 3. **Draft the quick-task doc.** Copy `quick-task.template.md` to `.claude/quick-tasks/<slug>.md` (create the folder if it doesn't exist; `<slug>` is a short kebab-case name for the task). Fill in:
    - **Summary** — one line.
    - **Root cause** (bugs only) — one or two sentences; delete the section for a non-bug change.
    - **Approach** — a short checklist of the changes to make, each tagged `[PLATFORM]` (a platform authoring/wiring op — agent-executable via the shared procedure when the gateway MCP is live, else handled on the platform) or `[CODE]` (local source edit). For a `[PLATFORM]` **import** item (query/form/field), **state its scope** — "current record" (valid **only** if the component has a primary form / record type attached) or the exact named query/queries it is imported on — never a bare "add the X import," and have the paired `[CODE]` item **name which query/record it reads the field through** so the scope is verifiable against `declarations/`. See the `bluestep-reference` skill's `import-scope.md` (`../bluestep-reference/reference/import-scope.md`) for current-record-vs-named-query scoping and the every-reachable-query rule. This is the whole plan — keep it minimal.
+   - **Sources** — the reference files and `B.d.ts` docs read in step 2, so the reviewer sees what was checked before approving.
+   - **Verification** — how the change will be checked on the platform. If it gates by user, group or permission, the check includes at least one non-super user who should pass and one who shouldn't (a super skips most user gates, so a super test proves nothing there). If you can't sign in as them, name who runs that check — the developer or the client — before the publish.
 
 4. **STOP. Tell the user the doc path and ask them to approve the approach before you edit any code.**
 
@@ -33,6 +36,6 @@ The lightweight counterpart to `/spec-create`. Instead of three files (requireme
 
 6. **Wrap up / remind the user:**
    - Push via `/b6p-push <component>` — it asks how the change goes out, with **Publish (make it live) recommended by default** (still your explicit choice, never automatic). Publishing compiles and updates the live version; "save draft only" does neither.
-   - Verify behavior on the platform (no local compile to fall back on).
+   - Verify behavior on the platform (no local compile to fall back on), as the doc's **Verification** section says. A non-super check someone else runs is not done until they report back: until then, report the change as published but not verified.
    - If the change alters documented behavior, update the component's `draft/README.md` in the same change so the platform doc stays in sync.
    - The `.claude/quick-tasks/<slug>.md` doc stays in the repo as the record of the change. Propose a commit message (title + body) based on the diff — do not run `git commit` unless the user says so.

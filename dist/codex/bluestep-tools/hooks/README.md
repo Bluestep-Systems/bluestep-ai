@@ -49,6 +49,7 @@ silently.
 |---|---|---|
 | block-generated-files | *(none)* | Fires on every PreToolUse; the wrapper filters. (The `Bash`-matcher `block-tsc` hook that proved this path live was removed in 0.37.0.) |
 | canary | *(not wired)* | Claude Code-only SessionStart check; `shared/canary.sh` ships but nothing runs it on Codex |
+| compact-reminder | *(not wired)* | Claude Code-only reminder after a compaction; `shared/compact-reminder.sh` ships but nothing runs it on Codex (the Compaction section of the project's `AGENTS.md` carries the same advice) |
 | tab-guard | *(not wired)* | Guards Claude Code's own browser tools, which Codex does not have; `shared/tab-guard.sh` ships but nothing runs it on Codex |
 
 The edit guardrail is matcher-less on purpose. Codex intercepts file

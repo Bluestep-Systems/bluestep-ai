@@ -21,4 +21,6 @@ const text = B.io.fromInputStream(res, "UTF-8");  // body
 
 `followRedirects:false` makes an auth bounce show as a non-2xx code instead of a login-page 200; `enableErrorStream:true` lets you still read the body on a non-2xx. FetchParams uses `connectionTimeout`/`readTimeout` (note the names). Confirmed working on a loopback where one endpoint calls a second endpoint's `check` gate and `log` write — both succeed and the caller's session is preserved.
 
+Not for a document URL: a platform `/download/...` URL answers `303` on the normal path, so with `followRedirects:false` you read an HTML stub and never see the bytes (as reported 2026-09, not re-run here). Read a document through the object model instead — see [csv parsing](csv-parsing.md), which also covers the super-user requirement on content reads.
+
 Complements [session cookie forwarding](session-cookie-forwarding.md) (the cookie-via-raw-header trick was for httpRequester loopbacks; prefer B.net.fetch + credentials instead). Related: [endpoint output channel](endpoint-output-channel.md), [http requester](http-requester.md) (`httpRequester` is the older imperative API — `B.net.fetch` is the default for outbound HTTP, internal or external), [ai services](ai-services.md) (model access is `B.ai` — a platform facility, so it is neither a loopback nor an external call).
