@@ -1,5 +1,5 @@
 ---
-description: "Client JS that works with platform-rendered form fields (merge reports and form pages): find a field's row by its <className>Label class, not the field's own class or data-fid (absent when the field is read-only); a SIMPLE signature is a checkbox, so 'signed' = saved value OR checkbox.checked; a relationship <select> option value is 1000201___<entry short id>_<form id>, match /___(\\d+)/"
+description: "Client JS that works with platform-rendered form fields (merge reports and form pages): find a field's row by its <className>Label class (needs a CSS class set on the field), not the field's own class, which is absent when the field is read-only; a SIMPLE signature is a checkbox, so 'signed' = saved value OR checkbox.checked; a relationship <select> option value is 1000201___<entry short id>_<form id>, match /___(\\d+)/"
 ---
 
 # Client JS on platform-rendered form fields
@@ -10,17 +10,19 @@ not re-run here.
 
 ## 1. Find a field's row by its label class
 
-A CSS class set on a field goes on the field's **editable input** only. Where that input sits varies,
-and when the field is **read-only** for the viewer it is not drawn at all, so the class (and the
-input's `data-fid`) is missing. The platform also puts **`<className>Label`** on the field's label,
-which is drawn whether or not the field is editable, always in the same place.
+This needs a **CSS class set on the field** in its settings; it can differ from the field's formula
+id. That class goes on the field's **editable input** only. Where that input sits varies, and when
+the field is **read-only** for the viewer the class is not drawn at all. The platform also puts
+**`<className>Label`** on the field's label, which is drawn whether or not the field is editable,
+always in the same place. Selectors on the input itself, such as `[data-fid="…"]`, likely fail the
+same way for a read-only viewer (not checked).
 
 ```typescript
-// Hide or show a field's row: start from the label, which is always there.
-document.querySelector('.treatmentNotesLabel')?.closest('tr')?.style.setProperty('display', 'none');
+// The field's CSS class is "notesField". Hide or show its row: start from the label.
+document.querySelector('.notesFieldLabel')?.closest('tr')?.style.setProperty('display', 'none');
 
 // Reach the input itself only for a field you know is editable for this viewer.
-const input = document.querySelector<HTMLTextAreaElement>('textarea.treatmentNotes');
+const input = document.querySelector<HTMLTextAreaElement>('textarea.notesField');
 ```
 
 ## 2. A SIMPLE signature is a checkbox

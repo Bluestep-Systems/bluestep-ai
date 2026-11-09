@@ -43,8 +43,8 @@ from a signed-in tab, and compare its size and `Last-Modified` with what you pus
 saw `styles.css` and `index.html` stay at the empty versions from the day the script was created
 while `.build/script.js` refreshed. With b6p 0.8.2 on a test org (2026-11) that did not happen:
 a first and a second snapshot push each refreshed the served `styles.css` and `script.ts`, and the
-rendered page used the new styles. If the served copy is stale, report it rather than moving the
-CSS into `app.ts`.
+rendered page used the new styles. If the served copy is stale, report it with `/bspecs-feedback`
+rather than moving the CSS into `app.ts`.
 
 **Where each piece goes:**
 - Root mount (`<div id="…-root">`) and static config islands (`<script id="…-config"

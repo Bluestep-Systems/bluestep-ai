@@ -24,13 +24,16 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 - **Two silent `script_forms` ADD failures** (86bckx7gf, 86bcnpdj1). `mcp-platform-authoring.md`
   now lists a current-record form outside the script's record scope (`formsAdded: 0`, no error) and
   a multi-entry form on a Merge Report with no Primary Form (dropped, `formsAdded` counts only the
-  rest), both reproduced on a test org. Check `list_applicable_forms` first, wire a multi-entry form
-  through its MEFR, and treat a short `formsAdded` as a failure. The note that a MEFR with no
-  `groupId` is a no-op is now limited to the query-group case: as a current-record form it works.
+  rest), both reproduced on a test org (the out-of-scope case on a report with no record type yet).
+  Check `list_applicable_forms` first and treat a short `formsAdded` as a failure. For the dropped
+  multi-entry form the page gives both fixes and what each declares: its MEFR gives all the
+  record's entries, a Primary Form gives the current entry (both checked). The note that a MEFR
+  with no `groupId` is a no-op is now limited to the query-group case.
 - **Merge Report settings over GraphQL** (86bce4r5p, 86bcnpdj1). `updateScriptMergeReport` sets
   `primaryForm`, `useForEditing` and `availableFromQuery`, the "display in a pagelet" box, which a
-  new report starts without; the gateway tools can't set any of them. The editability gotcha points
-  there.
+  new report starts without (all three set and read back on a test org); the gateway tools can't
+  set any of them. The editability gotcha, `current-record-bindings.md` and
+  `merge-report-primary-form-required.md` now name the GraphQL route next to the UI.
 - **`conventions/client-form-markup.md`** (86bckx7g9): find a field's row by its `<className>Label`
   class, a SIMPLE signature is a checkbox, and a relationship option value is
   `1000201___<entry short id>_<form id>` (as reported). The row-hiding examples in

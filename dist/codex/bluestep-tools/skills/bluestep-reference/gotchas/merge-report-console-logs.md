@@ -7,14 +7,14 @@ description: "A MergeReport's console.log / console.error output is written to t
 ## What happens
 
 A BsJs MergeReport opened directly writes `console.log` to the script's **Out** log and
-`console.error` to its **Error** log, one file per day, but **only on the server (pod) that rendered
-the page** (verified 2026-11 on a test org: the line was on the serving web pod; the other web pod
-had no log file for the script that day).
+`console.error` to its **Error** log (the file name carries the date), but **only on the server (pod)
+that rendered the page** (verified 2026-11 on a test org: the line was on the serving web pod; the
+other web pod had no log file for the script that day).
 
-So "no line in the log" can mean the code ran on another pod. The log viewer behind the script
-editor's **Out Log** / **Error Log** links lists the pods across the top
-(`/shared/tailfile/tailfile.jsp?type=f&id=<script id>`, `&ext=err` for errors, `&pod=<name>` for one
-pod); open each before concluding anything.
+So "no line in the log" can mean the code ran on another pod. Open the logs from the **Out Log** /
+**Error Log** links on the script's editor or setup page: the log viewer lists the pods across the
+top, one link each. Open every pod before concluding anything. (The links' `id` is not the plain
+script id, so use the links rather than building the URL.)
 
 As reported (2026-10, not re-run here): a MergeReport **embedded as a pagelet** wrote no Out log and
 no new Error lines after a render that ran `console.log` and `console.error`. Whether that is the

@@ -299,19 +299,25 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
 > Failure modes to recognize:
 >
 > - `script_forms` ADD with the MEFR topId but **no `groupId`**, when the form is meant to come through
->   this query group → **silent no-op**: `formsAdded: 0`, no error, declarations unchanged. (Wiring a
->   MEFR as a **current-record** form, with no `groupId`, on a Merge Report works — see the next two
->   cases.)
-> - a **current-record** form outside the script's record scope (no record type yet, or a type that
->   doesn't reach the form) → **silent no-op**: `formsAdded: 0`, no error, and the script's version
->   still moves on (verified 2026-11). Before the ADD, call `list_applicable_forms`; when the form is
->   missing, widen the scope first (`script_record_types` ADD, or `set_category_requirement`). With no
->   record type in scope it says so in a `hint`.
+>   this query group → **silent no-op**: `formsAdded: 0`, no error, declarations unchanged. (A MEFR
+>   added as a **current-record** form, with no `groupId`, on a Merge Report is added — see the next
+>   two cases.)
+> - a **current-record** form outside the script's record scope → **silent no-op**: `formsAdded: 0`,
+>   no error, and the script's version still moves on (verified 2026-11 on a report with no record
+>   type yet; a record type that doesn't reach the form is as reported 2026-10, not re-run here).
+>   Before the ADD, call `list_applicable_forms`; with no record type in scope it says so in a
+>   `hint`. When the form is missing, widen the scope first with `script_record_types` ADD (verified
+>   2026-11), or with `set_category_requirement` when a category is what's missing.
 > - on a **Merge Report with no Primary Form**, a **multi-entry** current-record form passed by its
 >   form topId → **dropped**: `formsAdded` counts only the other forms in the call, no error
->   (verified 2026-11). Wire it through its MEFR (a current-record MEFR needs no `groupId` and no
->   Primary Form), or set the report's Primary Form first (see "Merge Report settings" under Known
->   authoring quirks).
+>   (verified 2026-11). Two fixes, and they declare different things (verified 2026-11, see
+>   [current-record-bindings.md](../reference/current-record-bindings.md)):
+>   - add its **MEFR** instead (no `groupId`, no Primary Form needed) → the binding is the list of
+>     **all** the record's entries (`[all entries]`);
+>   - set the report's **Primary Form** to that form first (see "Merge Report settings" under Known
+>     authoring quirks), then add the form → the binding is the **current entry** (`[current entry]`).
+>
+>   Either way `Fields` stays empty until field access is granted (`script_field_access`).
 > - After **any** `script_forms` ADD, a `formsAdded` lower than the number of forms sent is a failure:
 >   confirm with `list_form_dependencies`.
 > - a plain "List" query view's topId → **loud rejection**, verbatim:
@@ -554,9 +560,9 @@ verified — the dating key at the top of this page says how to read the markers
 - **Merge Report settings the gateway tools can't set.** `create_script` / `update_script` take
   `primaryFormId` for a FORMULA only. For a MERGE_REPORT, set these with the GraphQL mutation
   `updateScriptMergeReport(inputs: [{ topId, … }])` (route and approval as in "GraphQL reads and
-  writes" above), and read them back with `remoteObject(id:)` on `ScriptMergeReport`. `primaryForm`
-  and `availableFromQuery` were set this way and seen in the setup wizard (2026-11); `useForEditing`
-  matches the wizard checkbox of the same name but was not toggled.
+  writes" above), and read them back with `remoteObject(id:)` on `ScriptMergeReport`. All three were
+  set this way and read back (verified 2026-11); `primaryForm` and `availableFromQuery` were also
+  seen in the setup wizard, and `useForEditing` is the name of the wizard's checkbox for it.
   - `primaryForm: { topId: "<form id>" }` — the wizard's Primary Form;
   - `useForEditing: true` — "Allow this merge report to be used to edit data" (see
     [merge-report-editability-is-component-level.md](../gotchas/merge-report-editability-is-component-level.md));

@@ -1,5 +1,5 @@
 ---
-description: "Applicability lookups (lookupMergeReportScript / optApplicable*) return null/empty for a BSJS MergeReport with NO Primary Form assigned — the applicability tag alone is not sufficient; assign the target form as the report's Primary Form in the platform UI"
+description: "Applicability lookups (lookupMergeReportScript / optApplicable*) return null/empty for a BSJS MergeReport with NO Primary Form assigned — the applicability tag alone is not sufficient; assign the target form as the report's Primary Form in the platform UI or over GraphQL"
 ---
 
 # BSJS MergeReports need a Primary Form for applicability lookup
@@ -26,7 +26,9 @@ applicability match — no error, the lookup just finds nothing. The applicabili
 ## Fix
 
 Assign the target form as the MergeReport's **Primary Form** in the platform UI (the Merge Report
-edit view). Then the tag-based lookup resolves.
+edit view), or over GraphQL (`primaryForm` — see "Merge Report settings" in
+[mcp-platform-authoring.md](../conventions/mcp-platform-authoring.md)). Then the tag-based lookup
+resolves.
 
 ## Related
 
