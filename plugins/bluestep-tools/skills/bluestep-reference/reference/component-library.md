@@ -124,6 +124,9 @@ const withButton = headF({ title: 'Section Title', button: '<button>Action</butt
 const collapsible = headF({ title: 'Collapsible Section', isCollapsable: true, content: '<div>Content</div>', isOpen: true });
 ```
 
+A collapsible header drawn after an async data load (a `static/` bundle that fetches, then draws)
+never collapses — see [headf-collapse-after-async-render.md](../gotchas/headf-collapse-after-async-render.md).
+
 ### Tables
 
 **When to use**: simple data tables (use Tabulator for complex tables).

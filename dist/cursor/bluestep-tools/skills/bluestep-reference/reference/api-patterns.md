@@ -146,9 +146,21 @@ field.mergeTag(options?: string): string
 | `"L"` | Label only |
 | `"H"` | Hint/tooltip |
 | `"F"` | Editable field (input element) |
-| `"I"` | Validation image (must be used with `"F"`) |
+| `"I"` | Validation image (only when the same field's `"F"` is on the page) |
 
-⚠️ The validation-image code `"I"` should only be used in combination with the editable-field code `"F"`. Codes can be combined in one string to generate multiple tags at once (e.g. `"FI"`, `"LF"`, `"LFI"`).
+Codes can be combined in one string to generate multiple tags at once (e.g. `"FI"`, `"LF"`,
+`"LFI"`). `"I"` is the field's validation image: combine it (`"FI"`, `"IF"`, `"LFI"`) or take it in a
+separate call and place it elsewhere, for example beside a hard-coded label for that field; it still
+applies to that field. The one rule: never add a field's `"I"` unless that field's `"F"` is also
+somewhere on the page.
+
+⚠️ **Option fields render their own table.** Checkbox lists, radio lists and single boolean
+checkboxes draw their options inside a `<table>` (one `tr.cOptions` per option). A table is a block,
+so the image can't sit beside it: `"FI"` puts it on its own line below the options, `"IF"` on its
+own line above, leaving a gap in a compact layout. Select and signature fields draw no table, so the
+image sits inline as on text, memo and date fields. On checkbox, radio and boolean fields in a
+compact layout, use `"F"`, and when the image is wanted, take `"I"` separately and place it beside
+the field's heading or label. (As reported 2026-10, not re-run here.)
 
 ```typescript
 const input    = field.mergeTag("F");   // editable field
@@ -180,7 +192,7 @@ const fieldHtml2 = fieldF({
 });
 ```
 
-Best practices: always use `mergeTag()` with `fieldF`/`bsHorizFieldCol2F` (they integrate with BlueStep's validation system); combine codes (`"FI"`/`"IF"`) rather than separate calls; never use `"I"` without `"F"`.
+Best practices: always use `mergeTag()` with `fieldF`/`bsHorizFieldCol2F` (they integrate with BlueStep's validation system); combine codes (`"FI"`/`"IF"`) unless the image belongs somewhere else (option fields, above); never use a field's `"I"` without that field's `"F"` on the page.
 
 ## Safe Field Value Extraction
 
