@@ -11,6 +11,39 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.8] — 2026-11-09
+
+> **BsJs runtime rules from six reports.** Reference text only; no hook or skill changes. Codex asks
+> to re-trust the plugin's hooks after any update that changes its files: open the plugin's page and
+> **Review → trust** once. Claims re-run on a test org on 2026-11-09 say so; the rest are marked as
+> reported.
+
+### Fixed
+
+- **`B.time` example used methods that do not exist** (86bcnkqck). `bsjs-development.md` showed
+  `B.time.now()` / `format()` / `parse()`; `B.time.now()` throws "Unknown identifier: now" (verified
+  live). The example now uses `ZonedDateTime.now()`, `DateTimeFormatter.ofPattern` and
+  `LocalDate.parse`. `B.time.formatDate` works on a test org on the newer release but threw on one
+  org in 2026-10, so the page prefers the formatter, and says to read a silent formula's ERR log first.
+- **`triggerFormulas()` used as a condition** (86bc6vxcm). `api-patterns.md`'s create-vs-edit gate
+  tested a `void` call, so the edit path never ran and the formula stack fired anyway.
+
+### Added
+
+- **Four formula rules** (86bcc0f53), in `formula-patterns.md`: scope a save formula with its Primary
+  Form, never a hardcoded form-id guard (and the order when the form is reachable only through a
+  category); keep an entry's current option valid in server-side validation; narrow with `addSearch`
+  before looping; and detect a super user with `B.user !== null && B.user.isGlobalSuper()` — a super
+  has a `User` and no record (verified live).
+- **`gotchas/recordquery-session-unit.md`** (86bcqm5n5): a query runs in the session's current unit,
+  so an endpoint can read nothing after the user browsed another unit; pin it with
+  `currentUnit(baseRecord)`. Plus a `vite-merge-report-gotchas.md` entry on host-page Bootstrap
+  `.modal` / `.btn` colliding with an embedded app's class names.
+- **Version history order and cost** (86bcpz0d6), in `version-stream-previous-value.md` and findable
+  from `SKILL.md`: `versionStream()` newest first, `versions()` no documented order, bounded reads
+  with `limit(n).iterator()`, and some entries have no versions at all.
+- **`gotchas/single-entry-no-entry.md`** (86bckx7g5): touching an imported single-entry form with no
+  entry saves an empty one, `editUrl()` throws, only `viewUrl()` is safe; test a real value.
 ## [plugin 0.46.7] — 2026-11-09
 
 > **`/bspecs-feedback` no longer offers the `web` repo.** Skill text only; no hook changes. Codex

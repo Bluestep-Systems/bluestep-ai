@@ -95,20 +95,29 @@ provenance: [reference/ai-services.md](reference/ai-services.md).
 
 ### `B.time` — date/time
 
-Use `B.time` for any date/time work. Native `Date` is not supported.
+Use `B.time` for any date/time work. Native `Date` is not supported. `B.time` carries the Java
+time classes (`ZonedDateTime`, `LocalDate`, `DateTimeFormatter`, …); it has no `now()`, `format()`
+or `parse()` of its own (`B.time.now()` throws "Unknown identifier: now").
 
 ```typescript
-const now = B.time.now();
-const formatted = B.time.format(now, "yyyy-MM-dd HH:mm:ss");
-const parsed = B.time.parse("2026-05-15", "yyyy-MM-dd");
+const fmt = B.time.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+const now = B.time.ZonedDateTime.now();
+const formatted = now.format(fmt);
+const parsed = B.time.LocalDate.parse("2026-05-15");   // ISO date
 ```
+
+Format with `DateTimeFormatter.ofPattern(...)` and the value's own `.format(fmt)`. The declared
+`B.time.formatDate(temporal, pattern)` works on an org on the newer platform release (verified
+2026-11), but one org threw "Unknown identifier: formatDate" for it in 2026-10 — the publish
+type-check passes either way — so prefer the formatter. When a formula seems to do nothing, read its
+**ERR script log** first: a caught runtime error like this one leaves no other trace.
 
 #### Dates: reading, writing, and shipping to a browser
 
 Three silent-failure facts — wrong output, not an error:
 
 - **Writing a date/datetime field BY STRING accepts `M/D/YYYY h:mmAM`; an ISO 8601 string is
-  rejected by a validation regex.** The `B.time.parse("2026-05-15", …)` example above primes
+  rejected by a validation regex.** The ISO `parse("2026-05-15")` example above primes
   exactly the wrong instinct — parse formats and string-write formats are different things. The
   verified accepted form is non-padded month/day/hour, no seconds, no space before the meridiem
   (e.g. `7/30/2026 2:05PM`); padded or seconds-bearing variants are unconfirmed. Scope this

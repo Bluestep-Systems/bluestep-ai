@@ -11,6 +11,13 @@ Use these patterns as the baseline for every BlueStep post-save (or any) formula
 - No `/// <reference … />` line is needed: the editor gets the ambient types (`B`, the query/form consts, `console`) from `draft/tsconfig.json`'s `include`, and the publish build wires the component's `declarations/` in itself (see the diagnostics guidance in the `/b6p-push` skill). Many older scripts start with `/// <reference path='../../../scriptlibrary' />` — that path resolves **nowhere** today (verified live 2026-08): not in a pulled workspace (`<Unit>/scriptlibrary` does not exist), and not in the platform's own in-browser editor, which error-marks the line. Don't copy it into new formulas — a dead directive gives false confidence that type-checking is wired when it isn't. In an existing formula the line is inert: leaving it is harmless, and so is removing it.
 - Formulas run as bare top-level statements — NO IIFE, no `main()`, no `export default`.
 - No bare `return` statements — use a guard `if` block, or `throw` inside try/catch, for early exits.
+- **Scope a save formula with its Primary Form, never with a hardcoded form-id check** such as
+  `if (B.currentEntry().form().id().toString() === '<form id>')`. The check silently stops matching
+  if the form is recreated, and it rescues nothing: a save formula with no Primary Form has been
+  reported never to fire (as reported 2026-09, not re-run here). Set it with `primaryFormId` on
+  `create_script` / `update_script`. `create_script` refuses a `primaryFormId` the formula can reach
+  only through a record category, and creates nothing (verified 2026-11); the reported working order
+  is `create_script` without it → `set_category_requirement` → `update_script` with `primaryFormId`.
 
 ## Form / field access
 
@@ -23,6 +30,31 @@ Use these patterns as the baseline for every BlueStep post-save (or any) formula
 - Select fields have no `.options()` (it throws "Unknown identifier: options"). The option lists are `activeOptions()`, `allOptions()`, `optionsByExport()` and `optionsByName()`.
 - Multi-select checkbox (201): check one with `.setByExportValue("x")`, uncheck with `.setByExportValue("x", false)`; to pick by a rule, `field.activeOptions().forEach(op => { if (...) field.set(op.id(), true); })`.
 - Set by ID: `.set(B.util.toId(idString))`.
+- **An entry's current selection is always valid**, even when that option is now obsolete, disabled
+  or locked (`B.d.ts`: a selected obsolete option behaves as active; a selected locked one cannot be
+  selected or unselected). Server-side validation of a submitted option should accept the active
+  options **plus** the entry's current `optSelected()` id, and skip `set()` when the submitted id is
+  the current one. Validating against `activeOptions()` alone blocks every unrelated save on such
+  entries. A new entry gets active options only.
+
+## Queries
+
+- **Narrow with `addSearch` before looping** rather than fetching everything and skipping rows in
+  JS — some forms hold thousands of entries. On a query: `addSearch(formId, fieldFormulaId,
+  operator, value)` or `addSearch(fieldMetaData, operator, value)`; on a multi-entry form:
+  `addSearch(fieldFormulaId, operator, value)`; both chain with `addSort`. Searches add up (`&&`)
+  and stay on the query for the rest of the run, so on a query other code also reads, call
+  `clearSearchAndSort()` when you are done.
+- **A query runs in the session's current unit** — see
+  [gotchas/recordquery-session-unit.md](../gotchas/recordquery-session-unit.md) before reading a
+  query from an endpoint.
+
+## Users
+
+- `B.user` is `null` only when nobody is logged in. A global super user **is** logged in and has a
+  `User`; what a super lacks is a record (`B.optUserRecordTypeEntry` is empty). So
+  `B.user === null` does not mean "super". Detect one with `B.user !== null && B.user.isGlobalSuper()`
+  (verified 2026-11).
 
 ## HTTP + response reading
 

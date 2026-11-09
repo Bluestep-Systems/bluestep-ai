@@ -77,6 +77,16 @@ export default defineConfig({
 declare const Swal: any;
 ```
 
+## Host-page CSS collides with the app's class names
+
+- **Symptom:** embedded as a pagelet on a Manage site page, a dialog opens invisibly, or buttons
+  change colour and look disabled.
+- **Cause:** the report inherits the host page's Bootstrap 3 CSS. Bootstrap's `.modal { display:
+  none }` hides any element with class `modal`, and `.btn` recolours buttons. (As reported 2026-10,
+  not re-run here.)
+- **Fix:** prefix the app's own class names (`myapp-modal`, `myapp-btn`) so they cannot match
+  Bootstrap's.
+
 ## Don't "fix" the `build` script
 
 - **Symptom:** the `preact-ts` scaffold's `build: "tsc -b && vite build"` looks like it breaks the

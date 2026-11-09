@@ -378,8 +378,12 @@ entry.fields.completedAt.val(B.time.Instant.now().toEpochMilli());
 
 ```typescript
 if (cur.entry().justCreated()) { /* first-save path */ }
-if (!cur.entry().justCreated() && cur.entry().triggerFormulas()) { /* edit-only path */ }
+if (!cur.entry().justCreated()) { /* edit-only path */ }
 ```
+
+`triggerFormulas()` returns `void`, so never use it as a condition: the test is always false and the
+call still runs the entry's formula stack. Call it as its own statement, only when a re-run is
+wanted.
 
 ## Endpoint (Maestro) Request/Response
 

@@ -40,6 +40,9 @@ const href = m ? m[1] : raw;
 
 (Verified live 2026-08 against a page of rendered entry links.)
 
+For `viewUrl()` / `editUrl()` on an imported single-entry form that has no entry yet, see
+[single-entry-no-entry.md](single-entry-no-entry.md).
+
 ## Debugging rule
 
 When a rendered link behaves oddly — wrong tab behavior, unexpected form submits — **read the
