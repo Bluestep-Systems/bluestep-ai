@@ -21,7 +21,10 @@ The collapse logic lives in `/jslib/groupingfields.js`. Read from its source on 
   `mergeReportsLoad` event.
 - `groups.init()` does nothing in version 2.
 - Each copy of the script sets a fresh `globalThis.groups`, with nothing registered.
-- `groups.reload()` re-runs the page-load step, which registers the queued headers.
+- `groups.reload()` re-runs the page-load step, which registers the queued headers. Once that step
+  has run, `addHeader` registers a header at once instead of queuing it.
+- `addHeader(id, open)`: `true` registers the header open, `false` closed; left out, it stays open
+  only if a field inside it has a value.
 - A click reads `groups.groups[id].closed`, so a header that was never registered throws.
 
 As reported (2026-09, not re-run here): each collapsible `headF` call adds another copy of
@@ -43,18 +46,25 @@ As reported (2026-09, confirmed in the browser then, not re-run here):
 The header id is the `header_N` class on the `.groupedRow` that wraps the content.
 
 ```typescript
-const before = new Set(document.querySelectorAll('script[src="/jslib/groupingfields.js"]'));
+const SRC = 'script[src="/jslib/groupingfields.js"]';
+const before = new Set(document.querySelectorAll(SRC));
 renderPage(data); // draws the headF({ isCollapsable: true }) markup
-const added = [...document.querySelectorAll<HTMLScriptElement>('script[src="/jslib/groupingfields.js"]')]
-  .filter(s => !before.has(s));
-await Promise.all(added.map(s => new Promise(r => s.addEventListener('load', r, { once: true }))));
+const added = [...document.querySelectorAll<HTMLScriptElement>(SRC)].filter(s => !before.has(s));
+// Attach in the same run as the draw (no await before this line). Settle on error too, and
+// give up after a few seconds, so a failed load can't hang the page.
+const loaded = (s: HTMLScriptElement) => new Promise<void>(done => {
+  s.addEventListener('load', () => done(), { once: true });
+  s.addEventListener('error', () => done(), { once: true });
+  setTimeout(done, 5000);
+});
+await Promise.all(added.map(loaded));
 const g = (globalThis as any).groups;
 g.reload();
 document.querySelectorAll('.groupedRow').forEach(row => {
   const id = [...row.classList].find(c => /^header_\d+$/.test(c));
-  if (id && !g.groups[id]) g.addHeader(id, true);
+  if (id && !g.groups[id]) g.addHeader(id, openFor(id)); // openFor: the isOpen you gave headF
 });
 ```
 
-The sketch assumes the added scripts have not finished loading when it starts waiting; if they
-might have, check for that before waiting.
+The scripts must be inserted in a way that runs them: markup set with `innerHTML` never runs its
+`<script>` tags, so they never fire `load`.

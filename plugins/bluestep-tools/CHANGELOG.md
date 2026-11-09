@@ -14,7 +14,7 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 ## [plugin 0.46.9] — 2026-11-09
 
 > **MergeReport UI rules from seven reports.** Reference text plus one line in the code-review
-> agent; no hook or skill changes. Codex asks to re-trust the plugin's hooks after any update that
+> agent; no hook or workflow-skill changes. Codex asks to re-trust the plugin's hooks after any update that
 > changes its files: open the plugin's page and **Review → trust** once. The platform CSS rules and
 > the `groupingfields.js` behavior were read on a test org on 2026-11-09; the rest is marked as
 > reported.
@@ -27,26 +27,28 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   `tr.sectionRuleB td.columnHeader` header classes.
 - **Sizing `mergeTag("F")` fields** (86bcc64zu). The platform's `staticManage.css` forces
   `width: initial !important` on `.form-control` (checked on a test org), so `width: 100%` does
-  nothing; `design-system.md` now says to use `max-width: 100%; box-sizing: border-box`.
+  nothing; `design-system.md` now says to use `max-width: 100%; box-sizing: border-box` (the
+  sheet sets no `max-width` there, checked; that it fixes the overflow is as reported).
 - **`gotchas/merge-report-in-form-field-width.md`** (86bcc650y). A MergeReport in a form field
   sits in a host table that grows to the report's natural width, so it never wraps on a phone; the
   fix is `width: 0; min-width: 100%` on the report's root (as reported).
 - **`gotchas/headf-collapse-after-async-render.md`** (86bc7rabk). A collapsible `headF` drawn after
   an async load never collapses; the cause is read from `groupingfields.js` on a test org, and the
   working pattern (wait for the script loads, `groups.reload()`, then `addHeader` only for new
-  headers) is as reported. `component-library.md` points to it from the collapsible example.
+  headers, with the header's own open state) is as reported; the sketch settles on a failed load
+  too, so it can't hang. `component-library.md` points to it from the collapsible example.
 
 ### Fixed
 
 - **The `"I"` merge-tag rule was wrong** (86bcc6e22). `api-patterns.md` and the code-review agent
   said `"I"` must be used with `"F"`; it can be taken on its own and placed elsewhere, as long as
-  the same field's `"F"` is on the page. Checkbox, radio and boolean fields draw their own table,
+  the same field's `"F"` is on the page (as reported). Checkbox, radio and boolean fields draw their own table,
   so `"FI"` leaves the image on its own line; use `"F"` there and place `"I"` beside the label (as
   reported).
 - **`viewurl-is-javascript-call.md`** (86bcc3kk9) now says a Formula gets a plain URL (as reported)
   and that the unwrap must run before adding or stripping query params.
 - **`multi-entry-form-sorting.md`** (86bc9pccr) now gives the default direction: descending, so
-  `[0]` is the newest date. Seen on date first fields only.
+  the first row is the newest date (as reported; seen over GraphQL on date first fields only).
 
 ## [plugin 0.46.8] — 2026-11-09
 

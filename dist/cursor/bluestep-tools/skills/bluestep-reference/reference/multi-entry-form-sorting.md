@@ -11,10 +11,11 @@ not fix this just by existing — with no sort order configured, it falls back t
 first-column-only behavior. Building a MEFR is not itself the fix — configuring its sort is. One
 created and left unconfigured leaves the problem exactly where it was while looking addressed.
 
-The default direction is descending: `[0]` is the entry with the highest first-summary value (for
-a date, the newest), not the first one made, and a null sorts above it. This was seen on unsorted
-views whose first summary field is a date (2026-09, read over GraphQL); text and number first
-fields were not checked.
+The default direction is descending: the first row is the entry with the highest first-summary
+value (for a date, the newest), not the first one made, and a null sorts above it. As reported
+(2026-09, not re-run here): seen when reading unsorted views over GraphQL whose first summary field
+is a date; `entries[0]` in code is assumed to follow the same order; text and number first fields
+were not checked.
 
 ## Reading the "latest" entry in code
 

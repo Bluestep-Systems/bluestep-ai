@@ -152,7 +152,7 @@ Codes can be combined in one string to generate multiple tags at once (e.g. `"FI
 `"LFI"`). `"I"` is the field's validation image: combine it (`"FI"`, `"IF"`, `"LFI"`) or take it in a
 separate call and place it elsewhere, for example beside a hard-coded label for that field; it still
 applies to that field. The one rule: never add a field's `"I"` unless that field's `"F"` is also
-somewhere on the page.
+somewhere on the page. (As reported 2026-10, not re-run here.)
 
 ⚠️ **Option fields render their own table.** Checkbox lists, radio lists and single boolean
 checkboxes draw their options inside a `<table>` (one `tr.cOptions` per option). A table is a block,

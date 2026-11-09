@@ -67,7 +67,8 @@ Standard BlueStep pages (Connect/Manage) already provide their own HTML and CSS,
 
 ### Color palette (CSS variables)
 
-Always use CSS variables for colors so they stay consistent across themes.
+Always use CSS variables, or the theme helper classes in [design-system.md](design-system.md), for
+colors so they stay consistent across themes; never a literal color.
 
 Standard colors (available on all BlueStep pages):
 
