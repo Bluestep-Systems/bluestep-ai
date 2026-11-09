@@ -13,25 +13,36 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 
 ## [plugin 0.47.0] — 2026-11-09
 
-> **Shorter, plainer answers.** Users told us answers were too long, too technical, and that a
-> question at the end got lost. Two changes, one per tool family: a Claude Code output style the
-> plugin turns on, and an `## Answering` section in the shipped `AGENTS.md` (**template marker 6**:
-> every project on 5 or below detects `rules-template`, and an unmodified file is swapped without a
-> question). No hook changes.
+> **Answers that fit the reader.** Users told us answers were too long, too technical, and that a
+> question at the end got lost. Two changes: an `## Answering` section in the shipped `AGENTS.md`
+> for every tool (**template marker 6**: every project on 5 or below detects `rules-template`, and an
+> unmodified file is swapped without a question), and an opt-in Claude Code output style for people
+> who want short, plain answers. No hook changes.
 
 ### Added
 
-- **Output style `Plain answers`** (86bcx7urv), in `output-styles/plain-answers.md`, Claude Code
-  only. Lead with the result, short by default, plain words with no jargon or ids unless needed,
-  one question at a time alone on the last line (with the question tool when there is one),
-  recommend instead of listing options, unchecked claims in a last **Not verified** list, and the
-  unchecked facts listed under any draft for someone else. It sets `force-for-plugin`, so it
-  applies whenever the plugin is enabled and **replaces the style a user picked**, and
-  `keep-coding-instructions`, so Claude Code's coding instructions stay. Checked in the Claude Code
-  CLI 2.1.321 with the plugin loaded from a folder: the style replaced a user-level `Concise`
-  setting. Not yet checked in the desktop app.
-- **`## Answering` in the shipped `AGENTS.md`** (86bcx7urv): the same rules in six lines, so Cursor
-  and Codex get them too. The template is now 62 lines.
+- **`## Answering` in the shipped `AGENTS.md`** (86bcx7urv), for Claude Code, Cursor and Codex. Lead
+  with the answer and only what the user needs to act on it; match the user (code, commands, ids and
+  exact errors when they write technically or ask, plain words otherwise); decide what isn't the
+  user's to decide and ask only about what they want, platform changes, publish or draft, and what
+  can't be undone, and stop asking about the rest when the user says to decide; questions together
+  at the end; unchecked claims in a last **Not verified** list. The template is now 63 lines.
+- **Output style `Plain answers`** (86bcx7urv), in `output-styles/plain-answers.md`, Claude Code only
+  and **opt-in**: the same rules, pushed further toward short answers in everyday words with no ids
+  or tool names unless needed. `keep-coding-instructions` keeps Claude Code's coding instructions.
+  It is not forced: in the CLI 2.1.321 a forced plugin style replaced even a style the user had
+  picked on purpose.
+- **`/b6p-setup` asks how answers should read**, once per person and project, on Claude Code, when
+  neither `~/.claude/settings.json` nor `.claude/settings.local.json` sets `outputStyle`. **Short and
+  plain** writes `"outputStyle": "bluestep-tools:Plain answers"` to `.claude/settings.local.json`,
+  which is git-ignored, so it is never the team's choice; **As it does now** writes `"default"` so
+  the question is not asked again.
+- **How it was checked:** the Claude Code CLI 2.1.321 with the tester's own instructions excluded, 8
+  prompts (developer and non-developer, "decide for me" and "ask me first") × 3 setups (the old
+  template, the new one, the new one plus the style). The new section added the Not verified list
+  and end-of-answer questions and kept code, exact lines and API calls on technical prompts; alone it
+  barely changed length or wording for non-developers, and the style cut a diagnosis answer from 318
+  to 227 words without internal names. Not yet checked in the desktop app.
 
 ## [plugin 0.46.12] — 2026-11-09
 

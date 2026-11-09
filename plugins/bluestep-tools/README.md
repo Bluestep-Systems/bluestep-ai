@@ -105,9 +105,9 @@ drift.
 - **Client-data check in git** — `/b6p-setup` copies `pre-commit` and `pre-push` hooks into the project's `scripts/hooks/` (committed, so they work in every tool and for hand edits), and can turn on an optional model review of each push. How it works and what to do when it blocks: `bluestep-reference` → `conventions/client-data.md`. The check on an agent's writes as they happen is the separate, opt-in [`phi-guard`](../phi-guard/README.md) plugin.
 - **On-demand reference** — `bluestep-reference`, a BsJs/RelateScript/platform reference the agent reads one file at a time, only when a task calls for it.
 - **Feedback** — `/task-comment` (ClickUp implementation comment), `/bspecs-feedback` (propose a plugin change upstream; you get an email when it is closed).
-- **Plain answers** — on Claude Code the plugin sets its own output style, **Plain answers**: short answers that lead with the result, plain words, unchecked claims in a last "Not verified" list, and a question that needs you alone on the last line. It applies whenever the plugin is enabled and replaces the style you picked in `/output-style` or settings. The project's `AGENTS.md` carries the same rules for Cursor and Codex.
+- **Answers that fit the reader** — the project's `AGENTS.md` tells every tool to lead with the answer, match your level (technical detail when you write technically or ask for it, plain words otherwise), ask only what is yours to decide, put questions at the end, and list what it did not check. On Claude Code you can also turn on the **Plain answers** output style for shorter, plainer answers: `/b6p-setup` offers it once per project and saves the choice for you only, in `.claude/settings.local.json` (`"outputStyle": "bluestep-tools:Plain answers"`, the exact value; `/output-style` changes it in the terminal).
 
-Apart from that output style, a plugin cannot ship *always-on* context, which is why `/b6p-setup` writes the platform rules into
+Apart from an output style you pick, a plugin cannot ship *always-on* context, which is why `/b6p-setup` writes the platform rules into
 your project's own `AGENTS.md` (with the one-line `CLAUDE.md` bridge for Claude Code). Everything
 deeper is read on demand.
 
@@ -180,7 +180,7 @@ with `B6PT_TOKEN` set the plugin page shows `bluestep-gateway` connected.
 - `hooks/` — `block-generated-files.sh`, `tab-guard.sh` (Claude Code only), the session
   `canary.sh` and the after-compaction `compact-reminder.sh` (both Claude Code only), wired in
   `hooks.json`.
-- `output-styles/` — `plain-answers.md`, the Claude Code output style the plugin turns on.
+- `output-styles/` — `plain-answers.md`, the opt-in Claude Code output style `/b6p-setup` offers.
 - `.mcp.json` — bundles the `bluestep-gateway` MCP server.
 - [`CHANGELOG.md`](CHANGELOG.md) — this plugin's release history.
 
