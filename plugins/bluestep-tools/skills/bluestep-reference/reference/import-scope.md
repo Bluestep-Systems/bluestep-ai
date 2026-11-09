@@ -1,5 +1,5 @@
 ---
-description: BlueStep form/field imports are scoped — a field attaches to the current record (only with a primary form) or to specific named queries, and must be imported on every query whose record type reaches the code
+description: BlueStep form/field imports are scoped — a field attaches to the current record (only with a primary form) or to specific named queries, and must be imported on every query whose record type reaches the code; a RelateScript formula needs no per-field imports
 ---
 # Import Scope — current-record vs. named-query
 
@@ -36,5 +36,20 @@ When a task adds a form/field import, state its scope explicitly:
 - **current record?** — only if a primary form / record type is attached to the component.
 - **which query/queries?** — list every query whose `Record_<query>` reaches the code: the runtime-read one(s) **and** any used as a declared parameter/variable/return type.
 - the paired `[CODE]` names the query/record each field is read through, so scope can be verified against `declarations/`.
+
+## RelateScript formulas need no per-field imports
+
+Everything above is about BsJs, where each field needs its own field-access grant
+(`script_field_access`). A legacy **RelateScript** formula works differently: once a form is attached
+with a formula ID, the formula can read every field on that form that has a formula ID, with no
+per-field step. A field with no formula ID can't be referenced, the same as in BsJs, where it does
+not appear in the declarations (see [fid-alternate-identifier.md](fid-alternate-identifier.md)).
+(As reported 2026-10, not re-run here.)
+
+So when a change extends an existing RelateScript formula, don't plan per-field imports. Check only
+that the form is attached and that the formula's scope reaches the right records. The gateway can't
+read RelateScript source; read it through the formula's edit wizard
+([read-relatescript-source.md](../gotchas/read-relatescript-source.md)) or ask the user for the
+scope.
 
 > Placeholders here (`FID`, `<query>`, `Record_<query>`, `<queryA>`/`<queryB>`) stand in for the real formula id and query names in your component — substitute the actual names from `declarations/` when wiring.

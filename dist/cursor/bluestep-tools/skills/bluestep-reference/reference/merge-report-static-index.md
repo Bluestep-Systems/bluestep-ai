@@ -1,5 +1,5 @@
 ---
-description: BlueStep merge report with a static/ bundle — B.out (server content) and static/index.html (client markup) BOTH render but are completely disjoint (B.out is injected as a tag that runs AFTER index.html), and static/styles.css + .build/script.js load automatically. Put the mount/config/markup/CSS in static/, use B.out only for final server-rendered markup; never fetch/inline your own styles.css and never use a B.out config island as a data channel to the index.html client script.
+description: BlueStep merge report with a static/ bundle — B.out (server content) and static/index.html (client markup) BOTH render but are completely disjoint (B.out is injected as a tag that runs AFTER index.html), and static/styles.css + .build/script.js load automatically. Put the mount/config/markup/CSS in static/, use B.out only for final server-rendered markup; never fetch/inline your own styles.css and never use a B.out config island as a data channel to the index.html client script. After a publish, check the served static/ file (size, Last-Modified), not the draft.
 ---
 
 > This file describes the **CLI-compiled** `static/script.ts` path (`B.out` +
@@ -35,6 +35,16 @@ while `B.out` renders the page body. So you do **not** need to read or fetch you
 own stylesheet — `B.net.fetch("static/styles.css")` + inlining it into a `<style>`
 block in `app.ts` is pointless work. CSS stays in `static/styles.css` per
 [separate files](../conventions/separate-files.md).
+
+**Check the served file, not the draft.** After a publish, fetch the served copy,
+`/script/<report id>/static/styles.css` (and `static/index.html`, `static/.build/script.js`),
+from a signed-in tab, and compare its size and `Last-Modified` with what you pushed; the draft
+(`read_script_draft`) can hold the new file while the page serves an older one. A 2026-10 report
+saw `styles.css` and `index.html` stay at the empty versions from the day the script was created
+while `.build/script.js` refreshed. With b6p 0.8.2 on a test org (2026-11) that did not happen:
+a first and a second snapshot push each refreshed the served `styles.css` and `script.ts`, and the
+rendered page used the new styles. If the served copy is stale, report it rather than moving the
+CSS into `app.ts`.
 
 **Where each piece goes:**
 - Root mount (`<div id="…-root">`) and static config islands (`<script id="…-config"

@@ -447,8 +447,11 @@ A merge report's `<script>` is injected mid-page. Native BlueStep fields that re
 
 ```javascript
 document.addEventListener('DOMContentLoaded', function() {
-  var field = document.querySelector('[data-fid="treatmentTargetJSON"]');
-  if (field) field.closest('tr').style.display = 'none';
+  // The field has the CSS class "treatmentTargetJSON"; the platform puts
+  // "treatmentTargetJSONLabel" on its label. Start from the label: the input (and its data-fid)
+  // is not drawn when the field is read-only for the viewer. See conventions/client-form-markup.md.
+  var label = document.querySelector('.treatmentTargetJSONLabel');
+  if (label) label.closest('tr').style.display = 'none';
 });
 ```
 

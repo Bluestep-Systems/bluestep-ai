@@ -581,6 +581,8 @@ fail only at runtime:
 
 The platform surfaces uncaught exceptions in the script log. Log with `console` (declared in
 `declarations/console.graal.d.ts`); `log` is a RelateScript global and does not exist in BsJs.
+A MergeReport's console output lands only on the pod that rendered it, and may be missing for a
+pagelet embed — see [gotchas/merge-report-console-logs.md](gotchas/merge-report-console-logs.md).
 Patterns:
 
 ```typescript
