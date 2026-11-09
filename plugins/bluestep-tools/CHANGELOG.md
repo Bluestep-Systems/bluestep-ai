@@ -19,16 +19,22 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 
 ### Fixed
 
-- **Four BsJs examples an agent could copy and fail at runtime.** Each fix was type-checked with tsc
+- **BsJs examples an agent could copy and fail at runtime.** Each fix was type-checked with tsc
   against a pulled `declarations/` tree.
-  - `bsjs-development.md`, WebSocket push: `B.io.sendMessage` takes one settings object
-    (`channels`, `data`, optional `permissions`), not `(channelId, string)`.
-  - Streaming: records are read with `forEach` on the bound query, the id is `record.id()`, and
-    fields go through `record.forms.<form>.fields`, not `record.name`.
-  - Endpoint status codes: no top-level `return` (tsc refuses it); the example uses `else`.
+  - `bsjs-development.md`, queries: a `RecordQuery` has no `execute()`, and `B.queries` holds query
+    metadata, not records. The `B.queries` section, the streaming example and the unit-scoping
+    example now iterate the bound query with `forEach`, or run an unimported query with
+    `B.queries.byFID['<FID>'].query(unit?)`.
+  - Streaming: the id is `record.id()`, and fields go through `record.forms.<form>.fields` (a
+    multi-entry form is a list of entries), not `record.name`.
+  - WebSocket push: `B.io.sendMessage` takes one settings object (`channels`, `data`, optional
+    `permissions`), not `(channelId, string)`.
+  - No top-level `return` (tsc refuses it) in the endpoint status-code example,
+    `reference/new-entry-id.md` and `reference/version-stream-previous-value.md`.
   - `formula-patterns.md`: a single-select's `.val()` takes an `OptionItem`, not a string — set by
-    export value with `setByExportValue`. The multi-select line used `.options()`, which does not
-    exist on select fields; it now uses `setByExportValue` and `activeOptions()`.
+    export value with `setByExportValue` and check the `false` it returns on a miss. Select fields
+    have no `.options()`; the multi-select line uses `setByExportValue` and `activeOptions()`.
+
 ## [plugin 0.46.5] — 2026-11-09
 
 > **The four reference asks left open after 0.46.3.** Reference text only; no hook or skill

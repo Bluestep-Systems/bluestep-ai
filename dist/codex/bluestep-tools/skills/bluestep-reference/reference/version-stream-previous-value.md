@@ -33,11 +33,14 @@ function changed(cur: FormEntry, prev: FormEntry, name: string): boolean {
 On a brand-new entry there is no prior version, so `prev` is `null`. Skip the comparison entirely rather than treating "no previous" as a change:
 
 ```typescript
-if (prev == null) {
-  // First create — nothing to diff against.
-  return;
+if (prev != null) {
+  // Only compare when there is a previous version; a first create has nothing to diff against.
+  if (changed(cur, prev, "status")) { /* ... */ }
 }
 ```
+
+A formula body is top-level code, so there is no `return` to stop early (see
+`conventions/formula-patterns.md`): wrap the work in the `if`, or in a function you return from.
 
 ## Pre-save vs post-save timing caveat
 

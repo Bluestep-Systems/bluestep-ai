@@ -6,18 +6,24 @@ description: Pre-commit shortId() returns "0" (id.isValid() === false). Always c
 The B.d.ts is explicit: *"Check whether an Id is valid. New Ids with a shortId of 0 are not valid."* — i.e. `entry.id().isValid() === false` until commit assigns a real database id.
 
 ```ts
+// Inside a helper function (an endpoint body is top-level code and cannot `return`).
+
 // ❌ WRONG — id is "0" here, not the real id
-const entry = record.forms.foo.newEntry();
-entry.fields.bar.val("baz");
-const id = entry.id().shortId();   // → "0"
-B.commit();
-return id;                          // sends "0" to caller; lookup later fails
+function addFooWrong(record: Bluestep.Relate.Record): string {
+  const entry = record.forms.foo.newEntry();
+  entry.fields.bar.val("baz");
+  const id = entry.id().shortId();   // → "0"
+  B.commit();
+  return id;                          // sends "0" to caller; lookup later fails
+}
 
 // ✅ RIGHT
-const entry = record.forms.foo.newEntry();
-entry.fields.bar.val("baz");
-B.commit();
-return entry.id().shortId();        // real id, e.g. "3610234"
+function addFoo(record: Bluestep.Relate.Record): string {
+  const entry = record.forms.foo.newEntry();
+  entry.fields.bar.val("baz");
+  B.commit();
+  return entry.id().shortId();        // real id, e.g. "3610234"
+}
 ```
 
 For existing entries (looked up via `forEach` / `byId` / etc.), the id is already populated, so the order doesn't matter — but committing the field changes still needs to happen before the function returns.
