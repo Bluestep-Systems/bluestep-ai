@@ -139,11 +139,26 @@ mutation.
 
 ### 5 — Approval echo (mandatory)
 
-Print the **concrete inner call** and **wait for an explicit yes** in the main session — e.g.:
+Ask in plain words first, then show the exact call, and **wait for an explicit yes** in the main
+session. Most people who approve do not read the JSON, so the summary is what they decide on:
 
-```
-invoke_org_tool → org=U<number> (<org name>), tool=script_queries, arguments={ scriptId: "…", action: "ADD", queries: [{ queryId: "…", groupId: "allStaff" }] }
-```
+1. **What changes**, in the words of the person's own work — "add the staff lookup to the Provider
+   Dashboard report", not the tool name or ids.
+2. **Which org**, by its display name.
+3. **What can't be undone** through the tools, if anything (a delete, or a schema change with no MCP
+   inverse), or that it can be undone.
+4. **The choices that matter** that were made for them: field types, who gets access, what is left
+   out on purpose.
+
+Keep it to two or three short lines; a batch gets one line per change. Then the exact call in a code
+block under it, so it can still be checked — e.g.:
+
+> Add the staff lookup query to the Provider Dashboard report on <org name>, as `allStaff`, so the
+> report can find each user's staff record. This can be undone (remove the query again).
+>
+> ```
+> invoke_org_tool → org=U<number> (<org name>), tool=script_queries, arguments={ scriptId: "…", action: "ADD", queries: [{ queryId: "…", groupId: "allStaff" }] }
+> ```
 
 This is the **key mitigation** for losing the native per-tool approval surface: behind `invoke_org_tool`
 the harness sees one generic tool, so the echo is the only place the human sees exactly what will mutate
