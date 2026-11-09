@@ -5,7 +5,7 @@ description: Send a bspecs tooling-change request (a rule, skill, subagent, hook
 
 # /bspecs-feedback — Send a tooling-change request upstream
 
-Use this to send a change to the `bluestep-tools` plugin (or the `bluestep-one` plugin) upstream. The installed plugin files are read-only, so editing them doesn't reach the canonical repo — a lasting fix has to land there. The skill POSTs the feedback to the **BlueHQ intake endpoint**, which files a ClickUp task and a GitHub issue on the right repo (`bspecs` / `b6p-cli` / `web`) and returns their links. No GitHub/ClickUp account needed.
+Use this to send a change to the `bluestep-tools` plugin (or the `bluestep-one` plugin) upstream. The installed plugin files are read-only, so editing them doesn't reach the canonical repo — a lasting fix has to land there. The skill POSTs the feedback to the **BlueHQ intake endpoint**, which files a ClickUp task and a GitHub issue on the right repo (`bspecs` / `b6p-cli`) and returns their links. No GitHub/ClickUp account needed.
 
 The skill POSTs to this endpoint (a concrete, live URL — not a placeholder). Assign it to a shell variable so the `curl` step below can reference `$FEEDBACK_ENDPOINT_URL`:
 
@@ -25,7 +25,7 @@ The skill usually runs right after you and the user discussed the thing to chang
 - **target(s)** — one or more artifacts the feedback hits: instruction / skill / subagent / hook / settings-permission / spec template / module template / `AGENTS.md / CLAUDE.md` / CLI.
 - **file_path**, **current_text**, **description** (the submitter's authoritative account + the proposal/rationale) — see step 2.
 - **routing** — infer from context:
-  - **repo** — which repo the fix lands in: `bspecs` (the plugin, skills, hooks, reference), `b6p-cli` (the `b6p` component-sync CLI), or `web`. Default `bspecs` when unsure.
+  - **repo** — which repo the fix lands in: `bspecs` (the plugin, skills, hooks, reference) or `b6p-cli` (the `b6p` component-sync CLI). Default `bspecs` when unsure. A platform or gateway defect goes as `bspecs` too: say in the description that the fix is on the platform side, and triage routes it from there.
   - **labels** — triage hints as a short list. The endpoint keeps any label that begins with one of four allowed **prefixes** — `type:`, `area:`, `priority:`, `status:` — dropping the rest and defaulting to `status:triage` when none survive; the text after the prefix is free-form (not checked against a value list). Surviving labels surface only as a text-line on the generated GitHub issue, never as GitHub labels or ClickUp fields. Typical hints: `type:rule` / `type:bug` / `type:capability`, `area:plugin-skill` / `area:hook` / `area:reference`, `priority:p1` / `priority:p2`. Best-effort — fine to leave thin. (Full contract: the "Routing allow-list" reference in `docs/bluehq-feedback-endpoint-setup.md`.)
 
 Only when there is nothing to infer from (e.g. the user just types `/bspecs-feedback "the STOP messages are annoying"`) do you ask directly for kind(s), target(s), and a one-line description.

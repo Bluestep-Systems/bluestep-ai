@@ -157,7 +157,9 @@ This subsection records what the endpoint actually accepts for `routing`, so the
 payload examples have a single source of truth. **Nothing to create here** — it is the contract enforced
 in code, listed so it stays in sync.
 
-- **`routing.repo`** — validated against a fixed set: `bluestep-ai`, `bspecs`, `b6p-cli`, `web`.
+- **`routing.repo`** — validated against a fixed set: `bluestep-ai`, `bspecs`, `b6p-cli`. `web` was
+  dropped on 2026-11-09 (86bbwubdp): the App never filed an issue there, so `web` now falls back to
+  the default like any other unknown value, and the `web` steps in sections 1 and 2 no longer apply.
   `bspecs` is this repo's old name: plugin installs from before the rename send it (and so does
   `/bspecs-feedback` today), and the endpoint sends it to **`bluestep-ai`**. The key stays accepted
   for good. Anything else (or absent) falls back to **`bluestep-ai`**.
