@@ -376,6 +376,17 @@ The generated BsJs declarations have no global no-arg `runFormula()`: the only `
   So wrap the whole chain in try/catch (in a post-save formula an unguarded throw fails the
   user's save) and check the returned string.
 
+  What the applicability check means for the target formula:
+  - Its record types must cover **every** record type it is started from, even when it never
+    reads the calling record.
+  - Check its **Working Unit** (`baseUnit`), not `unit` — the two can differ, and the check has
+    been reported to use `baseUnit` (as reported 2026-09, not re-run here). Read both over GraphQL:
+    `remoteObject(id: "<formula id>") { ... on ScriptFormula { unit { id } baseUnit { id } includeSubUnits } }`.
+  - `FormulaScheduler` has no dedup key: every `.start()` is a separate run in its own transaction,
+    after the caller commits. Several saves close together can start several runs, so a
+    read-then-write upsert in the target can create duplicates — make it collapse duplicates it
+    finds rather than throw on them.
+
   `.message(str)` attaches the payload; the invoked formula reads it on its side as `B.message`
   (its `B` is an `OnDemandB`). `.start()` enqueues it on the task pod (subject to the ~5 s scheduler delay above).
   The builder also has `.schedule()` and `.expireBy()` (see `FormulaScheduler` in
@@ -529,6 +540,14 @@ TypeScript cannot guarantee that the captured variable is still non-null when th
 
 - `Property '<x>' does not exist on type 'never'.` inside a callback that captures a nullable `let`: 99% of the time this is this pitfall.
 - "Works the first time but breaks after refactoring to multi-step": suspect broken narrowing.
+
+## Porting from RelateScript
+
+Some RelateScript names do not exist in BsJs, and the publish transpile does not catch them — they
+fail only at runtime:
+- `log` → `console` (see Error handling below).
+- `isGlobalUser()` → `isGlobalSuper()` for a global super user, or `isGlobal()` for any global
+  account (`isGlobalReseller()` / `isGlobalNonReseller()` narrow it). All are `User` methods.
 
 ## Error handling
 
