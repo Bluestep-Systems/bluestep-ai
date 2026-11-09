@@ -165,9 +165,10 @@ function readHookWiring(plugin) {
   const config = JSON.parse(src.text);
   const wiring = [];
   for (const [event, groups] of Object.entries(config.hooks ?? {})) {
-    // SessionStart carries only hooks/canary.sh, a Claude Code-only environment check (it
-    // reports a missing JSON parser once per session). Not wired here on purpose: Cursor hooks
-    // are a different surface, and the canary's report path is Claude Code's stderr handling.
+    // SessionStart carries hooks/canary.sh, a Claude Code-only environment check (it reports a
+    // missing JSON parser once per session), and hooks/compact-reminder.sh (matcher "compact",
+    // after a Claude Code compaction). Not wired here on purpose: Cursor hooks are a different
+    // surface, and both report through Claude Code's SessionStart output handling.
     if (event === 'SessionStart') continue;
     if (event !== 'PreToolUse') {
       throw new Error(`emit-cursor: ${hooksRel}: unmapped source hook event "${event}" — give it a Cursor wiring or set crossTool false`);
@@ -289,6 +290,9 @@ const GUARDRAIL_NOTES = {
     "The project root is the hook's working directory, since Cursor sets no `CLAUDE_PROJECT_DIR`; if that is " +
     'not the project, the hook stays silent and the git `pre-commit` check is the gate',
   'canary.sh': "Claude Code-only SessionStart check; `shared/canary.sh` ships but nothing runs it on Cursor",
+  'compact-reminder.sh':
+    'Claude Code-only reminder after a compaction; `shared/compact-reminder.sh` ships but nothing runs it on ' +
+    "Cursor (the Compaction section of the project's `AGENTS.md` carries the same advice)",
   'tab-guard.sh':
     "Guards Claude Code's own browser tools, which Cursor does not have; `shared/tab-guard.sh` ships but " +
     'nothing runs it on Cursor',

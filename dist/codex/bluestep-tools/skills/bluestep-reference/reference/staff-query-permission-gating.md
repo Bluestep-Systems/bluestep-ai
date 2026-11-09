@@ -16,11 +16,37 @@ does not show it, and the GraphQL `unit` field is the owner unit, not the run un
 table in [../conventions/mcp-platform-authoring.md](../conventions/mcp-platform-authoring.md).
 (verified 2026-10)
 
+If you must reuse a query with no fixed run unit, point it at the unit of the signed-in user's own
+record before the lookup — not the page's record:
+
+```ts
+const record = u.record();          // User.record(): the user's BaseRecord, or null (a super has none)
+if (!record) return none;
+query.currentUnit(record.unit());   // run the query where that record sits
+if (!query.meetsCriteria(record.id())) return none;
+const f = query.optById(record.id());
+```
+
+In a merge report this found a non-super user whose staff record sits above the page's unit, with
+the same count a super gets (as reported 2026-10, not re-run here; not checked in endpoint context). A query with a fixed run unit is still the
+better fix when one fits. In formula run context `currentUnit` does not help — see
+[gotchas/meetscriteria-formula-context.md](../gotchas/meetscriteria-formula-context.md).
+
 **Server resolution (fail-closed), order matters:**
 1. `!B.optUser.isPresent()` → `none` (hidden).
 2. `u.isGlobalSuper()` → full (Editor) — **checked FIRST**, because super users have no BaseRecord and would otherwise fail the staff lookup. ("Super user" = BlueStep global super, not an option value.)
-3. Match user→staff: `const id = u.primaryId();` then guard `allStaffFormerAndActive.meetsCriteria(id)` (optById THROWS if criteria fails) → `const f = allStaffFormerAndActive.optById(id); if (f.isPresent()) staff = f.get();`. Not found → `none`.
+3. Match user→staff: `const id = u.primaryId();` then guard `allStaffFormerAndActive.meetsCriteria(id)` → `const f = allStaffFormerAndActive.optById(id); if (f.isPresent()) staff = f.get();`. Not found → `none`. This step only **finds** the staff record.
 4. Read label: `staff.forms.permissions.<field>.opt().map(o => o.displayName()).orElse('')`, then `switch`: `Reader Access`→reader, `Author Access`→author, `Editor Access`→editor; **`No Access` / null / anything unmatched → `none`** (fail closed).
+
+**Step 4 is the gate, not step 3.** The B.d.ts doc of `meetsCriteria` says it checks that the record
+has "compatible categories and units"; it does not say it applies the query's search criteria. The
+`optById` doc is unclear on the same point: one line says it works "before any custom searching",
+another that a record outside the query's "search scope" comes back empty. (Read from the B.d.ts of
+the current release, 2026-11; not tested.) So never let step 3 decide access on its own. That matters most
+with a security query whose only criterion is a permission option: a gate on `meetsCriteria` alone
+would let in every record that passes the category and unit check, so it fails open. Older notes
+here said `optById` throws when the criteria fail; the current doc says it returns an empty
+`Optional` and `byId` returns null. Keep the guard either way.
 
 **Test with non-super users.** A super returns at step 2 and never reaches the lookup, so a super test
 proves nothing here. Test with one non-super user whose staff record sits in the page's unit and one

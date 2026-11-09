@@ -1,5 +1,5 @@
 ---
-description: "meetsCriteria() on a UNIT-SCOPED RecordQuery returns false in formula run context (on-demand/trigger) even for records that match — gate on the record's own form entries there; reserve meetsCriteria for endpoint/request contexts"
+description: "meetsCriteria() on a UNIT-SCOPED RecordQuery returns false in formula run context (on-demand/trigger) even for records that match — gate on the record's own form entries there; reserve meetsCriteria for endpoint/request contexts, and even there never as the only gate (it checks categories and units, not search criteria)"
 ---
 
 # `meetsCriteria()` on unit-scoped queries fails in formula run context
@@ -10,7 +10,10 @@ In **formula run context** (an on-demand or trigger formula), `meetsCriteria()` 
 **unit-scoped** RecordQuery returns `false` for records that genuinely match the query
 (verified 2026-08):
 
-- calling `query.currentUnit(record.unit().id())` + `clearSearchAndSort()` first does not help;
+- calling `query.currentUnit(record.unit().id())` + `clearSearchAndSort()` first does not help in
+  formula context (in a merge report, `currentUnit(user.record().unit())` — the signed-in user's own
+  record — did fix a staff lookup that missed a record above the page's unit, as reported 2026-10; see
+  [staff-query-permission-gating](../reference/staff-query-permission-gating.md));
 - passing a record object vs. an id string makes no difference — both return `false`;
 - the **same records iterate fine under the same query** when the code runs in endpoint context.
 
@@ -31,9 +34,11 @@ corrupting **41.7% of the org's cached records** before the pattern was found.
   `try/catch` — a missing entry throws, which doubles as a guard against records still mid-creation.
 - **Reserve `meetsCriteria()` for endpoint/request contexts**, where it is proven — e.g. the
   user-to-staff match in [staff-query-permission-gating](../reference/staff-query-permission-gating.md).
+  Even there it only finds a record: per its B.d.ts doc it checks categories and units, not the
+  query's search criteria, so it is never the only gate.
 
 ## Diagnostic that proves it
 
 Log `query.meetsCriteria(recordObject)` and `query.meetsCriteria(idString)` side by side from real
 save traffic. Both come back `false` in formula context while the same query iterates those records
-normally in endpoint context — that contrast is the confirmation, and rules out a bad criteria set.
+normally in endpoint context — that contrast is the confirmation, and rules out a bad category or unit setup.

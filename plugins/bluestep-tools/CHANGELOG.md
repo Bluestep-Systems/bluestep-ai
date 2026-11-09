@@ -11,6 +11,59 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.11] — 2026-11-09
+
+> **Permission gates, document reads, legacy merge reports, and keeping track after a compaction —
+> seven reports.** Reference text, `/quick-task` and its template, the tasks template, one new
+> Claude Code hook, and a longer Compaction paragraph in the shipped `AGENTS.md` (**template marker
+> 5**: every project on 4 detects `rules-template`, and an unmodified file is swapped without a
+> question). Codex asks to re-trust the plugin's hooks after any update that changes its files:
+> open the plugin's page and **Review → trust** once. The B.d.ts docs, the endpoint GraphQL fields
+> and the Inspector URL parameters were checked on a test org on 2026-11-09; the rest is marked as
+> reported.
+
+### Added
+
+- **Compaction reminder hook** (86bcbr6mk). A new `SessionStart` hook with the matcher `compact`
+  (Claude Code only) prints one line after a compaction when the project root
+  (`CLAUDE_PROJECT_DIR`) is a B6P project: re-open the spec or quick-task doc, re-open
+  `bluestep-reference` and the B.d.ts docs before editing `draft/`, and treat a fact in the summary
+  as unverified unless it names a source. Not yet seen firing live. The `## Compaction` section of
+  the shipped `AGENTS.md` (template 5) now also keeps the reference files and B.d.ts docs relied on,
+  and marks each fact verified or assumed — the half that reaches Cursor and Codex.
+- **`conventions/public-facing-api.md`** (86bcbra5b): a design checklist for an API outside
+  consumers call, and the BlueStep half — the endpoint's `HttpLogin`, `HttpsRedirect` and Run as
+  Super User settings (the gateway can't set them; `UpdateScriptEndpointInput` carries all three,
+  checked), why `/download/` URLs don't work for a consumer, the WebP limit of `thumbnail()`, and
+  setting up the Basic Auth consumer account. Unchecked platform claims are marked as reported.
+- **Legacy RelateScript merge reports** (86bc3e6wf). `read-relatescript-source.md` now covers
+  them: the code is `<img bsid>` markers in the merge content, the marker vocabulary, the
+  `_show=DR` list and `editdetailreport1.jsp`, formula search (never a bare `;`), and the Inspector
+  URL with the parameters it needs (the parameters checked on a BsJs report). As reported otherwise.
+- **Non-super checks for permission changes** (86bcbr6m9). The quick-task doc has a Verification
+  section and the tasks template's Verification section says the same: a change that gates by user,
+  group or permission is checked with a non-super user who should pass and one who shouldn't,
+  someone is named for it before the publish, and it is not reported verified until done. The
+  doc's Status gains `published, not verified`.
+
+### Changed
+
+- **`/quick-task` reads the platform docs** (86bcbr6kt). Step 2 now reads the `bluestep-reference`
+  manifest, `bsjs-development.md` and the B.d.ts doc of each platform method the change relies on;
+  the doc's Approach gains a **Sources** line.
+- **Staff-query permission pattern** (86bcbr6kh). Step 4, the permission-field read, is now named
+  as the gate: per its B.d.ts doc `meetsCriteria` checks only categories and units, so a gate on it
+  alone fails open. The old "optById THROWS" note is replaced by what the current doc says. A query
+  with no fixed run unit can be pointed at the signed-in user's own record with
+  `currentUnit(user.record().unit())` in a merge report (as reported).
+  `meetscriteria-formula-context.md` now limits its "currentUnit does not help" line to formula
+  context and says `meetsCriteria` is never the only gate.
+- **Reading a document's content can need super user** (86bcbra6n). `csv-parsing.md` no longer says
+  "no auth ambiguity": a content read from a script threw `!isSuperUser` without the component's Run
+  as Super User setting, `/download/` URLs need a session and ignore Basic Auth, and
+  `followRedirects: false` on a download URL reads a `303` stub (as reported).
+  `internal-loopback-fetch.md` points there.
+
 ## [plugin 0.46.10] — 2026-11-09
 
 > **MergeReport wiring and client-markup rules from seven reports.** Reference text plus one line in
