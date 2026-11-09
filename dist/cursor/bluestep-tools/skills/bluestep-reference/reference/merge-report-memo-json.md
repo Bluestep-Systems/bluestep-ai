@@ -10,7 +10,7 @@ The recurring **"merge report + memo field JSON hack"** — how to build custom 
 - `draft/scripts/app.ts` (server scriptlet) — thin. Gathers anything the client needs that requires server context (current user, permission flags, reference/query data), emits it as `<script id="server-data" type="application/json">{...}</script>` plus an empty mount `<div id="...-app"></div>`, assigned to `B.out`. Wrap everything in try/catch; on failure emit a safe payload so the client still degrades cleanly.
 - `draft/static/script.ts` (client) — the engine. On boot it:
   1. Finds the memo via `document.querySelector('[data-fid="<fieldName>"]')` (it's a `<textarea>`).
-  2. **Hides the memo field's row** (`field.closest('tr')` → `display:none`) so users never see raw JSON.
+  2. **Hides the memo field's row** so users never see raw JSON — starting from the label class of a CSS class you set on the memo field (`.<className>Label` → `closest('tr')` → `display:none`; the class can differ from `<fieldName>`), which is drawn even when the memo is read-only for the viewer; the textarea is not. See [client form markup](../conventions/client-form-markup.md).
   3. Hydrates state from the live memo value (`memo.value`), falling back to server-emitted copy, else a default `{ schemaVersion, entries: [] }`.
   4. Monkey-patches `window.submitForm`: wraps the original so it writes `memo.value = JSON.stringify(state)` right before the native save runs. The platform then persists the memo normally.
   5. Renders custom UI into the mount; a single `mutate()` does state → syncToField → re-render.

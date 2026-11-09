@@ -11,6 +11,46 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.10] — 2026-11-09
+
+> **MergeReport wiring and client-markup rules from seven reports.** Reference text plus one line in
+> the `/b6p-push` live-build check; no hook or workflow-skill changes. Codex asks to re-trust the
+> plugin's hooks after any update that changes its files: open the plugin's page and **Review →
+> trust** once. The `script_forms` cases, the Merge Report settings, the served `static/` files and
+> the console-log pods were checked on a test org on 2026-11-09; the rest is marked as reported.
+
+### Added
+
+- **Two silent `script_forms` ADD failures** (86bckx7gf, 86bcnpdj1). `mcp-platform-authoring.md`
+  now lists a current-record form outside the script's record scope (`formsAdded: 0`, no error) and
+  a multi-entry form on a Merge Report with no Primary Form (dropped, `formsAdded` counts only the
+  rest), both reproduced on a test org (the out-of-scope case on a report with no record type yet).
+  Check `list_applicable_forms` first and treat a short `formsAdded` as a failure. For the dropped
+  multi-entry form the page gives both fixes and what each declares: its MEFR gives all the
+  record's entries, a Primary Form gives the current entry (both checked). The note that a MEFR
+  with no `groupId` is a no-op is now limited to the query-group case.
+- **Merge Report settings over GraphQL** (86bce4r5p, 86bcnpdj1). `updateScriptMergeReport` sets
+  `primaryForm`, `useForEditing` and `availableFromQuery`, the "display in a pagelet" box, which a
+  new report starts without (all three set and read back on a test org); the gateway tools can't
+  set any of them. The editability gotcha, `current-record-bindings.md` and
+  `merge-report-primary-form-required.md` now name the GraphQL route next to the UI.
+- **`conventions/client-form-markup.md`** (86bckx7g9): find a field's row by its `<className>Label`
+  class, a SIMPLE signature is a checkbox, and a relationship option value is
+  `1000201___<entry short id>_<form id>` (as reported). The row-hiding examples in
+  `api-patterns.md` and `merge-report-memo-json.md` now start from the label class.
+- **`gotchas/merge-report-console-logs.md`** (86bcmz11n). A MergeReport's console output lands only
+  on the pod that rendered it (checked on a test org); a pagelet embed has been reported to write
+  none. Verify by what the page renders. `bsjs-development.md` and `/b6p-push`'s live-build check
+  point to it.
+- **RelateScript formulas need no per-field imports** (86bckx7gb), in `import-scope.md`, linked
+  from `read-relatescript-source.md` (as reported).
+
+### Changed
+
+- **`merge-report-static-index.md`** (86bcmz0vr) says to check the served `static/` file, not the
+  draft, after a publish. The reported stale `styles.css` did not happen with b6p 0.8.2 on a test
+  org, so the page keeps CSS in `static/styles.css`.
+
 ## [plugin 0.46.9] — 2026-11-09
 
 > **MergeReport UI rules from seven reports.** Reference text plus one line in the code-review

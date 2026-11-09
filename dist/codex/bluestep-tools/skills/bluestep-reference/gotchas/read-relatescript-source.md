@@ -30,5 +30,7 @@ This is **non-destructive**: wizard navigation POSTs to session state only — i
 the formula. Verified live while porting a RelateScript formula to BSJS (2026-08).
 
 Relevant during RelateScript → BSJS migration work, where reading the legacy source is the first
-step. The MCP tool set itself is catalogued in
+step. When you extend a RelateScript formula instead, it needs no per-field imports — see
+"RelateScript formulas need no per-field imports" in
+[reference/import-scope.md](../reference/import-scope.md). The MCP tool set itself is catalogued in
 [conventions/mcp-platform-authoring.md](../conventions/mcp-platform-authoring.md).

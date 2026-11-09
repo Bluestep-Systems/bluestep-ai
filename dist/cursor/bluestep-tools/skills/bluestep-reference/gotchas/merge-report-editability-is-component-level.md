@@ -36,7 +36,10 @@ writability. Never infer editability from the declaration file.
   the field itself, not something the formula or the import configuration controls.
 - This is separate from the always-on rule that code must never call `.writable()`; that rule is
   about not requesting writability in code and holds for every component type. This gotcha is
-  about how a MergeReport's editability is actually turned on, which is UI-only.
+  about how a MergeReport's editability is actually turned on: in the setup UI, or over GraphQL
+  as `useForEditing` (see "Merge Report settings" in
+  [mcp-platform-authoring.md](../conventions/mcp-platform-authoring.md)); the gateway tools can't
+  set it.
 
 ## Related
 

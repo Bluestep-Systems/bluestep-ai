@@ -45,8 +45,9 @@ The binding only appears once Primary Form is set **and** the form is multi-entr
   creates nothing (verified 2026-11). See the Primary Form bullet in
   [conventions/formula-patterns.md](../conventions/formula-patterns.md) for the order to use.
 - **Merge reports** — `primaryFormId` is FORMULA-only; a merge report's Primary Form has to
-  be set in the platform UI before its `[current entry]` binding exists. Same sequencing
-  trap, one script type later.
+  be set in the platform UI, or over GraphQL (`primaryForm` — see "Merge Report settings" in
+  [mcp-platform-authoring.md](../conventions/mcp-platform-authoring.md)), before its
+  `[current entry]` binding exists. Same sequencing trap, one script type later.
 
 Either way, a component created without a Primary Form only offers `[all entries]` — silently
 binding the collection and leading to narrowing code that was never necessary.

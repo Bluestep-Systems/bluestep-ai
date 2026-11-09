@@ -298,8 +298,28 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
 >
 > Failure modes to recognize:
 >
-> - `script_forms` ADD with the MEFR topId but **no `groupId`** → **silent no-op**: `formsAdded: 0`, no error,
->   declarations unchanged.
+> - `script_forms` ADD with the MEFR topId but **no `groupId`**, when the form is meant to come through
+>   this query group → **silent no-op**: `formsAdded: 0`, no error, declarations unchanged. (A MEFR
+>   added as a **current-record** form, with no `groupId`, on a Merge Report is added — see the next
+>   two cases.)
+> - a **current-record** form outside the script's record scope → **silent no-op**: `formsAdded: 0`,
+>   no error, and the script's version still moves on (verified 2026-11 on a report with no record
+>   type yet; a record type that doesn't reach the form is as reported 2026-10, not re-run here).
+>   Before the ADD, call `list_applicable_forms`; with no record type in scope it says so in a
+>   `hint`. When the form is missing, widen the scope first with `script_record_types` ADD (verified
+>   2026-11), or with `set_category_requirement` when a category is what's missing.
+> - on a **Merge Report with no Primary Form**, a **multi-entry** current-record form passed by its
+>   form topId → **dropped**: `formsAdded` counts only the other forms in the call, no error
+>   (verified 2026-11). Two fixes, and they declare different things (verified 2026-11, see
+>   [current-record-bindings.md](../reference/current-record-bindings.md)):
+>   - add its **MEFR** instead (no `groupId`, no Primary Form needed) → the binding is the list of
+>     **all** the record's entries (`[all entries]`);
+>   - set the report's **Primary Form** to that form first (see "Merge Report settings" under Known
+>     authoring quirks), then add the form → the binding is the **current entry** (`[current entry]`).
+>
+>   Either way `Fields` stays empty until field access is granted (`script_field_access`).
+> - After **any** `script_forms` ADD, a `formsAdded` lower than the number of forms sent is a failure:
+>   confirm with `list_form_dependencies`.
 > - a plain "List" query view's topId → **loud rejection**, verbatim:
 >   `Formula Id MUST be for a form or a multi-entry form report.`
 > - the base form's own topId passed directly → **excluded from the script's typedoc** unless it is the
@@ -537,6 +557,19 @@ verified — the dating key at the top of this page says how to read the markers
   formula without it, add the category with `set_category_requirement`, then set `primaryFormId`
   with `update_script` (order as reported 2026-09, not re-run here). Never stand in for a Primary
   Form with a form-id check in code — see [formula-patterns.md](formula-patterns.md).
+- **Merge Report settings the gateway tools can't set.** `create_script` / `update_script` take
+  `primaryFormId` for a FORMULA only. For a MERGE_REPORT, set these with the GraphQL mutation
+  `updateScriptMergeReport(inputs: [{ topId, … }])` (route and approval as in "GraphQL reads and
+  writes" above), and read them back with `remoteObject(id:)` on `ScriptMergeReport`. All three were
+  set this way and read back (verified 2026-11); `primaryForm` and `availableFromQuery` were also
+  seen in the setup wizard, and `useForEditing` is the name of the wizard's checkbox for it.
+  - `primaryForm: { topId: "<form id>" }` — the wizard's Primary Form;
+  - `useForEditing: true` — "Allow this merge report to be used to edit data" (see
+    [merge-report-editability-is-component-level.md](../gotchas/merge-report-editability-is-component-level.md));
+  - `availableFromQuery: true` — "Make this report available to Connect/HQ site designers for display
+    in a pagelet" (the In Connect column of step 3). A new report starts with it off. A report meant
+    for a page or pagelet needs it; without it the report can't be placed there (as reported 2026-10,
+    not re-run here).
 - **Send a `formulaType` change together with what the new type needs.** Moving a formula to
   `SCHEDULED_QUERY` needs `schedule` in the same `update_script` call (it is refused without one, unless
   the formula already has one); moving it to `ON_DEMAND` needs `onDemandIdentifier`, unique across the
