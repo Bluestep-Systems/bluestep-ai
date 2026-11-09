@@ -638,15 +638,19 @@ fi
 rmdir "$TMPD" 2>/dev/null
 
 echo "=== compact-reminder.sh (SessionStart, compact) ==="
-cr() { # name dir expected(line|silent)
+cr() { # name dir expected(line|silent) [CLAUDE_PROJECT_DIR]
   local out rc got
-  out=$(cd "$2" && printf '{"hook_event_name":"SessionStart","source":"compact"}' | bash "$H/compact-reminder.sh" 2>&1); rc=$?
+  # CLAUDE_PROJECT_DIR is always set (empty = unset for the hook), so a run inside Claude Code
+  # cannot leak the real project folder into these cases.
+  out=$(cd "$2" && printf '{"hook_event_name":"SessionStart","source":"compact"}' | CLAUDE_PROJECT_DIR="${4:-}" bash "$H/compact-reminder.sh" 2>&1); rc=$?
   if [ "$rc" != 0 ]; then got="exit $rc"; elif [ -z "$out" ]; then got=silent; elif [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && [[ "$out" == *"bluestep-reference"* ]]; then got=line; else got="other: ${out:0:60}"; fi
   if [ "$got" = "$3" ]; then echo "  PASS  $1"; pass=$((pass+1)); else echo "  FAIL  $1 — expected $3, got $got"; fail=$((fail+1)); fi
 }
 CRD=$(mktemp -d); mkdir -p "$CRD/U123456"
 cr "U######/ folder → one stdout line, exit 0" "$CRD" line
-rmdir "$CRD/U123456"; printf '# rules\n<!-- bluestep-tools rules-template 4 -->\n' > "$CRD/AGENTS.md"
+cr "run from inside U######/ with CLAUDE_PROJECT_DIR at the root → one line" "$CRD/U123456" line "$CRD"
+cr "run from inside U######/ with no CLAUDE_PROJECT_DIR → silent (cwd is not the root)" "$CRD/U123456" silent
+rmdir "$CRD/U123456"; printf '# rules\n<!-- bluestep-tools rules-template 5 -->\n' > "$CRD/AGENTS.md"
 cr "AGENTS.md with the rules-template marker → one line" "$CRD" line
 printf '# some other project rules\n' > "$CRD/AGENTS.md"
 cr "AGENTS.md without the marker, no unit folder → silent" "$CRD" silent

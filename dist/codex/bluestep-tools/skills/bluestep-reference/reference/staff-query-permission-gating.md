@@ -16,10 +16,19 @@ does not show it, and the GraphQL `unit` field is the owner unit, not the run un
 table in [../conventions/mcp-platform-authoring.md](../conventions/mcp-platform-authoring.md).
 (verified 2026-10)
 
-If you must reuse a query with no fixed run unit, call `query.currentUnit(record.unit())` before the
-lookup, where `record` is the record the page is showing: in a merge report this found a non-super
-user whose staff record sits above the page's unit, with the same count a super gets (as reported
-2026-10, not re-run here; not checked in endpoint context). A query with a fixed run unit is still the
+If you must reuse a query with no fixed run unit, point it at the unit of the signed-in user's own
+record before the lookup — not the page's record:
+
+```ts
+const record = u.record();          // User.record(): the user's BaseRecord, or null (a super has none)
+if (!record) return none;
+query.currentUnit(record.unit());   // run the query where that record sits
+if (!query.meetsCriteria(record.id())) return none;
+const f = query.optById(record.id());
+```
+
+In a merge report this found a non-super user whose staff record sits above the page's unit, with
+the same count a super gets (as reported 2026-10, not re-run here; not checked in endpoint context). A query with a fixed run unit is still the
 better fix when one fits. In formula run context `currentUnit` does not help — see
 [gotchas/meetscriteria-formula-context.md](../gotchas/meetscriteria-formula-context.md).
 

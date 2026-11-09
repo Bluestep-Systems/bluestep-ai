@@ -2,7 +2,7 @@
 
 **Type:** <bug fix | small change>
 **Component:** <component name>
-**Status:** in progress
+**Status:** in progress <!-- in progress | published, not verified | done -->
 
 ## Summary
 
@@ -25,7 +25,7 @@
 
 <How the change is checked on the platform once published.>
 
-If the change gates by user, group or permission, check it with at least one non-super user who should pass and one who shouldn't. If the agent can't sign in as them, say before the publish who runs that check (the developer or the client), and don't report the change as verified until it's done.
+<If the change gates by user, group or permission: the non-super user who should pass, the one who shouldn't, and who runs that check (the agent, the developer or the client). Delete this paragraph otherwise.>
 
 ## Notes
 

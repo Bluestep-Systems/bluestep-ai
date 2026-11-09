@@ -74,7 +74,7 @@ has no legacy merge report), except where a line says verified.
   page.
 - **Mapping data sources.** The report's Inspector,
   `/shared/relate/inspector/inspect.jsp?_a=<relateAppId>&_id=<reportId>&_event=view&_formClass=myassn.view.web.WebView`,
-  lists every query, form and formula the report uses, one level deep, with no code to read. Without
-  `_event=view&_formClass=…` the page shows only `Unknown (GraphableHelper$1)`. (Verified 2026-11 on
-  a BsJs merge report.)
+  lists what the report depends on — its queries, forms and fields, one level deep (as reported) —
+  with no code to read. Without `_event=view&_formClass=…` the page shows only
+  `Unknown (GraphableHelper$1)` (that requirement verified 2026-11 on a BsJs merge report).
 - **Often fastest of all:** ask the user to paste the source out of the formula editor.

@@ -8,7 +8,10 @@
 #
 # Only in a B6P project: a U######/ unit folder, or an AGENTS.md carrying the bluestep-tools
 # rules-template marker. Silent anywhere else. It reads no input and always exits 0 — a reminder
-# must never block or report an error.
+# must never block or report an error. Checks run from the project root (CLAUDE_PROJECT_DIR), not
+# the hook's working folder, which can be a unit or component folder inside the project.
+
+cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
 
 if ls -d U[0-9][0-9][0-9][0-9][0-9][0-9]/ >/dev/null 2>&1 \
   || grep -qs 'bluestep-tools rules-template' AGENTS.md; then

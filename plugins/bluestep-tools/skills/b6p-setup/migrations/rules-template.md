@@ -20,9 +20,7 @@ template. Revisions before it differ by a few lines, so read a near match as tem
 that **already carries a marker** (template 2 or later) is diffed against the current
 `templates/AGENTS.md.template` with the project name substituted: the shipped text changed by a
 sentence or two between those numbers, and everything under a `## Project rules` heading is the
-project's own by construction. The `## Compaction` paragraph also grew one sentence within
-template 4 (0.46.11) without moving the marker, so either version of that paragraph is template
-text, not a project edit. Either way, the title line and a `**Scaffolded:**` line are
+project's own by construction. Either way, the title line and a `**Scaffolded:**` line are
 per-project header, not rules.
 
 This one command usually settles it. **Most old rules files turn out to be unmodified template
@@ -95,7 +93,7 @@ Write any `docs/` page a chunk moved into during the same change, so no pointer 
 
 **The rebuild renumbers the platform rules — from v1.** Template 2 shuffled most of the v1 numbers (v1 rule 1 is
 now 7, 2 is 1, 3 is 8, 4 is 2, 6 is 5, 8 is 3, 9 is 4, 10 is 6); template 3 keeps template 2's numbering and
-only corrected the sentence about which rules a hook enforces, and template 4 only adds rule 9 (client data) at the end and widens that sentence, so a swap from 2 or 3 needs none of this. A project's own quick-tasks, specs
+only corrected the sentence about which rules a hook enforces, and template 4 only adds rule 9 (client data) at the end and widens that sentence, and template 5 only extends the `## Compaction` paragraph, so a swap from 2, 3 or 4 needs none of this. A project's own quick-tasks, specs
 and decision logs often cite "Critical rule N" by the old number — after the swap every one of those
 points at the wrong rule, with no signal that anything is off. So, if
 `grep -rlin "rules\? [0-9]" docs .claude 2>/dev/null` lists at least one file, add this line right under the

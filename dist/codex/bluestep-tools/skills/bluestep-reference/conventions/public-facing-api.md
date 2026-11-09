@@ -25,7 +25,8 @@ was seen there and not re-run here.
   publish.
 - **Empty text is `null`, never `""`** (whitespace-only included). Empty collections are `[]`, never
   `null` or missing. Say both in the docs.
-- **Ids are strings.** BlueStep ids overflow 32-bit integers; tell consumers not to parse them.
+- **Ids are strings.** BlueStep ids can overflow 32-bit integers (as reported); tell consumers not to
+  parse them.
 - **Dates:** publish ISO `YYYY-MM-DD`, or document the format. Passing through what staff typed
   (`5/12/26`) pushes the guessing onto the consumer.
 - **Key spelling is contract, typos included.** Once published, a misspelled key stays. Review key
@@ -69,16 +70,17 @@ was seen there and not re-run here.
 ## 2. BlueStep: serving it from a `/b/` endpoint
 
 **Endpoint settings.** Set these on the endpoint's setup page. The gateway tools cannot read or set
-any of them, so a component rebuilt through the gateway loses them without a word; check them after
-every rebuild. The GraphQL input `UpdateScriptEndpointInput` carries all three: `basicPermissionOption`
+any of them (verified 2026-11), so a component rebuilt through the gateway loses them without a word
+(as reported); check them after every rebuild. The GraphQL input `UpdateScriptEndpointInput` carries all three: `basicPermissionOption`
 (`Error` / `Login` / `HttpLogin`), `httpOption` (`HttpAllowed` / `HttpsNotAllowed` / `HttpsRedirect`)
 and `runAsSuper` (fields and values verified 2026-11; setting them that way not tried — see
 [../reference/gql-in-a-tab.md](../reference/gql-in-a-tab.md) for the route).
 
-- `basicPermissionOption` = **`HttpLogin`** (the "Request HTTP authentication" choice; see
-  [../reference/session-cookie-forwarding.md](../reference/session-cookie-forwarding.md)). The
-  platform answers 401 with a `WWW-Authenticate: Basic` challenge before the script runs (as
-  reported). Set it **before** the first publish.
+- `basicPermissionOption` = **`HttpLogin`** (likely the setup page's "Request HTTP authentication"
+  choice, see [../reference/session-cookie-forwarding.md](../reference/session-cookie-forwarding.md);
+  the label-to-value match is not checked). The platform answers 401 with a
+  `WWW-Authenticate: Basic` challenge before the script runs. Set it **before** the first publish
+  (both as reported).
 - `httpOption` = **`HttpsRedirect`**.
 - **Run as Super User** only if the script must read document bytes: without it, every content read
   on a document throws `!isSuperUser`, whatever the document's own permissions say (as reported; see
