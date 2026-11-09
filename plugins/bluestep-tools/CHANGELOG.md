@@ -44,6 +44,24 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   barely changed length or wording for non-developers, and the style cut a diagnosis answer from 318
   to 227 words without internal names. Not yet checked in the desktop app.
 
+## [plugin 0.46.13] — 2026-11-09
+
+> **Plain-words approvals and honest type-check counts.** Reference text only; no hook or template
+> changes.
+
+### Changed
+
+- **Approvals before a platform write start in plain words** (86bcx6m4w). Step 5 of
+  `mcp-platform-authoring.md` now asks the agent to say what changes in the person's own terms, on
+  which org by name, what can't be undone, and the choices made for them — two or three short
+  lines — and to show the exact `invoke_org_tool` call under it, so it can still be checked.
+- **Two publishes that never reach `0` diagnostics** (86bcqcgpz, 86bcfyau4).
+  `b6p-push/references/type-check-diagnostics.md` no longer says every correctly pulled component
+  reports `0`. An older-layout component whose `draft/tsconfig.json` lacks the
+  `"../declarations/**/*.d.ts"` include reports every platform name as missing (add the include);
+  a component that imports a library from `files.bluestep.net` always counts that import (count it
+  out). Both as reported; the CLI fixes are b6p-cli#38 and #34.
+
 ## [plugin 0.46.12] — 2026-11-09
 
 > **Correction to 0.46.11.** Reference text and one line of `/quick-task`; no hook or template
