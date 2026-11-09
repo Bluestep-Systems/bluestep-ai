@@ -45,7 +45,7 @@ Group every finding under Critical / Warnings / Suggestions, each with file + li
 - **Server/client boundary** — server code (`scripts/app.ts`, endpoints, formulas) must not touch `document`/`window`/DOM; client code (`static/*`) must not use the `B` object or server-only APIs.
 - **`console.*` in production** — `console.log/warn/error` left in code are debug artifacts.
 - **`B.out` / output hygiene** — output must be valid HTML; no unclosed tags, raw `<script>` injection, or unescaped user data.
-- **`mergeTag` / field usage** — field names in `getFieldValue`/`setFieldValue`/`getFieldByName`/`mergeTag` should match the project's naming (verified against the live system, not this checklist) and the `mergeTag` option codes should be valid (e.g. never `"I"` without `"F"`).
+- **`mergeTag` / field usage** — field names in `getFieldValue`/`setFieldValue`/`getFieldByName`/`mergeTag` should match the project's naming (verified against the live system, not this checklist) and the `mergeTag` option codes should be valid (e.g. never a field's `"I"` unless that field's `"F"` is also on the page).
 
 ### Code quality (Warnings & Suggestions)
 

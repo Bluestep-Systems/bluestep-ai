@@ -4,12 +4,17 @@ description: "In a MergeReport, entry().viewUrl() returns javascript:submitForm(
 
 # `entry().viewUrl()` is a `javascript:` call, not a URL
 
-In a MergeReport, `entry().viewUrl()` on a form entry does not return a navigable URL (in a formula
-it has been reported to return a plain URL — see the note below). It returns:
+In a MergeReport, `entry().viewUrl()` on a form entry does not return a navigable URL. It returns:
 
 ```text
 javascript:submitForm('Relate','commit','<real-url>')
 ```
+
+The wrapper depends on the script type. From a Formula (for example the link in a post-save
+notification) the same call has been reported to return a plain relative URL,
+`/shared/relate/editdatarecord.jsp?_event=view&_id=...&_id2=...`, with no wrapper (as reported
+2026-10, not re-run here). Don't assume the wrapper everywhere, and don't wrap a Formula's URL by
+hand; the unwrap below passes a plain URL through, so it is safe in either context.
 
 A `javascript:` href **executes in the current document** instead of navigating, so rendering it
 as a link's `href`:
@@ -40,6 +45,10 @@ const href = m ? m[1] : raw;
 ```
 
 (Verified live 2026-08 against a page of rendered entry links.)
+
+**Unwrap first, then edit the URL.** Appending or stripping query params works on `?` and `&`. A
+param appended to a still-wrapped value lands outside the `submitForm(...)` call and silently does
+nothing, so run the unwrap before any other change to the URL.
 
 For `viewUrl()` / `editUrl()` on an imported single-entry form that has no entry yet, see
 [single-entry-no-entry.md](single-entry-no-entry.md).

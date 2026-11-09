@@ -67,7 +67,8 @@ Standard BlueStep pages (Connect/Manage) already provide their own HTML and CSS,
 
 ### Color palette (CSS variables)
 
-Always use CSS variables for colors so they stay consistent across themes.
+Always use CSS variables, or the theme helper classes in [design-system.md](design-system.md), for
+colors so they stay consistent across themes; never a literal color.
 
 Standard colors (available on all BlueStep pages):
 
@@ -123,6 +124,9 @@ const header = headF({ title: 'Section Title' });
 const withButton = headF({ title: 'Section Title', button: '<button>Action</button>', hint: 'Help text' });
 const collapsible = headF({ title: 'Collapsible Section', isCollapsable: true, content: '<div>Content</div>', isOpen: true });
 ```
+
+A collapsible header drawn after an async data load (a `static/` bundle that fetches, then draws)
+never collapses — see [headf-collapse-after-async-render.md](../gotchas/headf-collapse-after-async-render.md).
 
 ### Tables
 

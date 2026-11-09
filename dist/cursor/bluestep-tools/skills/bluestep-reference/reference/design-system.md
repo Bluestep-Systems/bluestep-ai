@@ -57,7 +57,50 @@ The design system includes comprehensive documentation for:
 - `--bs-secondaryColor`
 - `--bs-secondaryColorHigh`
 
-> **Note**: Custom generated colors vary based on the organization's color style selection. Always use CSS variables for colors to ensure consistency.
+> **Note**: Custom generated colors vary based on the organization's color style selection. Always use these variables or the helper classes below for colors, never a literal color.
+
+**Theme helper classes** - the platform page also ships one class per theme color and CSS
+property, named `<color>-<property>`, that sets that property to the org's color with `!important`:
+
+- colors: `primaryColor`, `primaryColorHigh`, `secondaryColor`, `secondaryColorHigh`,
+  `accent1Color`, `accent2Color`
+- properties: `color`, `background-color`, `border-color`, `text-decoration-color`, `text-shadow`
+
+```html
+<!-- a dark header band, as on a platform report table -->
+<tr class="primaryColor-background-color accent1Color-color">...</tr>
+```
+
+Never hard-code a theme or brand color: put a helper class on the element, or use `var(--bs-…)` in
+your CSS. On an element that has a helper class, set no color for that property in your CSS; the
+helpers are `!important`, so they win anyway. Spacing, font weight and non-color border properties
+stay in your CSS. (All 30 classes checked on a test org's page 2026-11; the example's use on a
+report table is as reported.)
+
+**Section header classes** - for a header that matches the platform's own (the classes exist in
+`staticManage.css`; which looks fits where is as reported 2026-10):
+
+- `sectionHeader sectionRuleB` - the big section header.
+- `table.table thead tr.sectionRuleB td.columnHeader` - the smaller header band of a table.
+
+### Sizing platform-rendered fields
+
+The platform's stylesheet (`staticManage.css`) sets
+`.form-control:not(.no-form-control) { display: inline-block !important; width: initial !important; }`
+(checked on a test org 2026-11). So `width: 100%` on an input or textarea from `mergeTag("F")`
+does nothing: the field keeps its natural width from `cols`/`size` (a `cols=60` textarea was
+reported at 465px) and overflows a narrow column. To keep it inside the column, use:
+
+```css
+.myCell textarea, .myCell input { max-width: 100%; box-sizing: border-box; }
+```
+
+`staticManage.css` sets no `max-width` on `.form-control` (checked 2026-11), so this needs no
+`!important`; that it keeps the field inside its column is as reported 2026-10. Don't fight the platform rule
+with your own `!important`.
+
+A whole MergeReport shown inside a form field has its own width trap - see
+[merge-report-in-form-field-width.md](../gotchas/merge-report-in-form-field-width.md).
 
 ### Typography
 
