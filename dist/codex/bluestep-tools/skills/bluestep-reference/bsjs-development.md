@@ -131,33 +131,35 @@ Three silent-failure facts — wrong output, not an error:
 
 Queries are defined on the platform and exposed in `declarations/index.d.ts` (platform-generated). Reference them only after pulling.
 
-```typescript
-const results = B.queries.activeClients.execute();
-for (const record of results) {
-  // ...
-}
-```
-
-That `B.queries.X` shape is what a **named-query import** produces. A **query-group import** — the query (or MEFR) wired into the script as a query group, e.g. via the MCP `script_queries` ADD with a `groupId`, or the UI's query-group import — binds a **bare global const named after the group variable** instead, not `B.queries.X`:
+A query wired into the script — e.g. via the MCP `script_queries` ADD with a `groupId`, or the UI's
+query-group import — is a **bare global const named after the group variable**, typed as a
+`RecordQuery`. Iterate it directly; there is no `execute()`:
 
 ```typescript
 // declarations/index.d.ts shows: declare const projectTracker: RecordQuery_projectTracker
-const rows = projectTracker.execute();
-for (const record of rows) {
-  // ...
-}
+projectTracker.forEach(record => {
+  // record.forms.<form FID> ...
+});
 ```
 
-The import style selects the binding, so check `declarations/index.d.ts` to see which one your script actually has — a `declare const <group>: RecordQuery_<group>` line means the bare-const shape. Identifiers come from declarations, never guessed. A query imported as a group has **no** `B.queries.<name>` entry: reaching for one returns `undefined` at runtime. (`reference/import-scope.md` covers import *scoping* — current-record vs named-query; this paragraph covers the resulting *binding shape*.)
-
-**Unit scoping:** queries are unit-scoped by default. When re-using a query across units, call `clearSearchAndSort()` to reset filters:
+`B.queries` itself holds the queries' **metadata**, not their records. To run a query that is not
+in the import config, look it up by FID and call `query()` — a fresh **read-only** run (see
+`reference/api-patterns.md`):
 
 ```typescript
-const query = B.queries.allRecords;
-query.execute();             // current unit
-query.clearSearchAndSort();
-query.unit = otherUnit;
-query.execute();             // other unit
+B.queries.byFID['<query FID>'].query().forEach(record => { /* reads only */ });
+```
+
+Check `declarations/index.d.ts` for the bindings your script actually has — identifiers come from
+declarations, never guessed. (`reference/import-scope.md` covers import *scoping* — current-record
+vs named-query; this section covers the resulting *binding shape*.)
+
+**Unit scoping:** queries run in the current unit by default. `query()` takes a unit to run
+elsewhere, and `clearSearchAndSort()` resets a query's filters before you reuse it:
+
+```typescript
+B.queries.byFID['<query FID>'].query(otherUnit).forEach(record => { /* ... */ });
+projectTracker.clearSearchAndSort();
 ```
 
 ### `B.exports` — cross-formula data
@@ -310,13 +312,21 @@ NDJSON pattern for streaming large datasets. `stream()` **takes a callback and r
 never returns a writable (`binaryStream(...)` has the same callback shape):
 
 ```typescript
+// largeQuery: a query bound by its FID (a top-level variable in declarations/index.d.ts)
 B.net.response.contentType("application/x-ndjson");
 B.net.response.stream(out => {
-  for (const record of B.queries.largeQuery.execute()) {
-    out.write(JSON.stringify({ id: record.id, name: record.name.val() }) + "\n");
-  }
+  largeQuery.forEach(record => {
+    out.write(JSON.stringify({
+      id: record.id().shortId(),
+      name: record.forms.someForm.fields.name.val(),
+    }) + "\n");
+  });
 });
 ```
+
+A record has no field properties of its own: its id is the method `record.id()`, and a
+single-entry form's fields are `record.forms.<form FID>.fields`. A multi-entry form is a list of
+entries: `record.forms.<form FID>.forEach(entry => entry.fields...)`.
 
 #### Redirect
 
@@ -409,8 +419,15 @@ if (B.user) {
 ### WebSocket push
 
 ```typescript
-B.io.sendMessage(channelId, JSON.stringify({ type: "update", payload: data }));
+B.io.sendMessage({
+  channels: [channelId],
+  data: JSON.stringify({ type: "update", payload: data }),
+});
 ```
+
+`sendMessage` takes one settings object: `channels` and `data` (a string) are required;
+`permissions` (user or group keys) and `crossOrganization` are optional. The page listens with
+`bsmsg.listen({ channels: [...], onMessage: msg => ... })`.
 
 ## `info/` configuration (legacy)
 
@@ -576,6 +593,10 @@ For endpoints, prefer explicit status codes over throwing:
 if (!validInput) {
   B.net.response.status(400).contentType("application/json; charset=UTF-8");
   B.net.response.out(JSON.stringify({ error: "invalid input" }));
-  return;
+} else {
+  handleRequest();   // your own function
 }
 ```
+
+An endpoint body is top-level code, so there is no `return` to stop early (tsc refuses it): use
+`else`, or put the work in a function and `return` from that.

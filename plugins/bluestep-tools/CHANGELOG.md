@@ -11,6 +11,30 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.6] — 2026-11-09
+
+> **BsJs examples that did not match the declarations.** Reference text only; no hook or skill
+> changes. Codex asks to re-trust the plugin's hooks after any update that changes its files: open
+> the plugin's page and **Review → trust** once.
+
+### Fixed
+
+- **BsJs examples an agent could copy and fail at runtime.** Each fix was type-checked with tsc
+  against a pulled `declarations/` tree.
+  - `bsjs-development.md`, queries: a `RecordQuery` has no `execute()`, and `B.queries` holds query
+    metadata, not records. The `B.queries` section, the streaming example and the unit-scoping
+    example now iterate the bound query with `forEach`, or run an unimported query with
+    `B.queries.byFID['<FID>'].query(unit?)`.
+  - Streaming: the id is `record.id()`, and fields go through `record.forms.<form>.fields` (a
+    multi-entry form is a list of entries), not `record.name`.
+  - WebSocket push: `B.io.sendMessage` takes one settings object (`channels`, `data`, optional
+    `permissions`), not `(channelId, string)`.
+  - No top-level `return` (tsc refuses it) in the endpoint status-code example,
+    `reference/new-entry-id.md` and `reference/version-stream-previous-value.md`.
+  - `formula-patterns.md`: a single-select's `.val()` takes an `OptionItem`, not a string — set by
+    export value with `setByExportValue` and check the `false` it returns on a miss. Select fields
+    have no `.options()`; the multi-select line uses `setByExportValue` and `activeOptions()`.
+
 ## [plugin 0.46.5] — 2026-11-09
 
 > **The four reference asks left open after 0.46.3.** Reference text only; no hook or skill
