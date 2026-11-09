@@ -1,6 +1,6 @@
 # {{PROJECT_NAME}}
 
-<!-- bluestep-tools rules-template 5 -->
+<!-- bluestep-tools rules-template 6 -->
 
 > Always-on rules for AI coding agents in this project. Cursor, Codex and most agents read `AGENTS.md` natively; Claude Code reads it through the one-line `CLAUDE.md` bridge next to it. Project rules go here, never in `CLAUDE.md`. Everything longer lives in the `bluestep-reference` skill and is read on demand.
 
@@ -40,6 +40,17 @@ Before editing any TypeScript or static file under `U######/<Component>/draft/` 
 Ask once if a request is ambiguous; never edit directly.
 
 A platform rule or BsJs pattern the reference lacks, or a broken or missing skill, hook or reference file, goes upstream with `/bspecs-feedback`. A rule specific to this project goes in this file.
+
+## Answering
+
+People read answers between other work, and many are not developers. Write so they can scan it:
+
+- Lead with the answer or the decision in one or two sentences. Paragraphs of three lines at most; facts go in bullets.
+- Plain words. No platform jargon, ids or tool names unless the user asks for them or needs them to act.
+- Anything not checked in this session (a cause, an absence, a "can't", a "done", blame on the platform or a tool) goes in a last list, "Not verified", one line each with what would check it. Never inside a paragraph.
+- A question that needs the user's answer goes alone on the last line, one at a time; on Claude Code, ask it with the question tool.
+- Under a draft for someone else (an email, a message, a ticket comment), list the facts in it you did not check.
+- After a short "ok" to a proposal with several parts, say in one line what you will do now and what not yet, before changing anything.
 
 ## Compaction
 

@@ -11,6 +11,28 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.47.0] — 2026-11-09
+
+> **Shorter, plainer answers.** Users told us answers were too long, too technical, and that a
+> question at the end got lost. Two changes, one per tool family: a Claude Code output style the
+> plugin turns on, and an `## Answering` section in the shipped `AGENTS.md` (**template marker 6**:
+> every project on 5 or below detects `rules-template`, and an unmodified file is swapped without a
+> question). No hook changes.
+
+### Added
+
+- **Output style `Plain answers`** (86bcx7urv), in `output-styles/plain-answers.md`, Claude Code
+  only. Lead with the result, short by default, plain words with no jargon or ids unless needed,
+  one question at a time alone on the last line (with the question tool when there is one),
+  recommend instead of listing options, unchecked claims in a last **Not verified** list, and the
+  unchecked facts listed under any draft for someone else. It sets `force-for-plugin`, so it
+  applies whenever the plugin is enabled and **replaces the style a user picked**, and
+  `keep-coding-instructions`, so Claude Code's coding instructions stay. Checked in the Claude Code
+  CLI 2.1.321 with the plugin loaded from a folder: the style replaced a user-level `Concise`
+  setting. Not yet checked in the desktop app.
+- **`## Answering` in the shipped `AGENTS.md`** (86bcx7urv): the same rules in six lines, so Cursor
+  and Codex get them too. The template is now 62 lines.
+
 ## [plugin 0.46.12] — 2026-11-09
 
 > **Correction to 0.46.11.** Reference text and one line of `/quick-task`; no hook or template
