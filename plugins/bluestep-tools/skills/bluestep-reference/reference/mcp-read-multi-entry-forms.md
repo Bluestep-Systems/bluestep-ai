@@ -1,5 +1,5 @@
 ---
-description: "Reading multi-entry form entries in-session — form_entry READ is broken for multi-entry (NEW_MULTI); the working paths are GraphQL (gateway tool or signed-in tab): formRows ignores limit/offset and times out on huge forms, fieldData is one-field-one-entry (batch via aliases); prefer relateQuery over a stored List query, the only paged, filterable path"
+description: "Reading multi-entry form entries in-session — form_entry READ (older release only) is broken for multi-entry (NEW_MULTI); the working paths are GraphQL (gateway tool or signed-in tab): formRows ignores limit/offset and times out on huge forms, fieldData is one-field-one-entry (batch via aliases); prefer relateQuery over a stored List query, the only paged, filterable path"
 ---
 
 # Reading multi-entry form entries
@@ -11,9 +11,10 @@ signed-in tab otherwise).
 
 ## The paths, worst to best
 
-1. **`form_entry` READ — broken for multi-entry.** On a multi-entry form it resolves to a
-   `NEW_MULTI` empty template and cannot enumerate rows (a read of existing multi-entry rows throws
-   server-side). Do not spend calls on it.
+1. **`form_entry` READ — older release only, and broken for multi-entry.** The newer release has no
+   `form_entry` tool. Where it exists, on a multi-entry form it resolves to a `NEW_MULTI` empty
+   template and cannot enumerate rows (a read of existing multi-entry rows throws server-side). Do not
+   spend calls on it.
 2. **GraphQL `formRows(id, recordId)` — works for topIds, with three sharp edges:**
    - it **ignores `limit` and `offset` entirely** — every call returns the full set;
    - each row carries a heavy **XMLEncoder `xml` blob** (parseable: a `values` map keyed by the

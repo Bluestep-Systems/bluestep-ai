@@ -14,7 +14,7 @@ The runtime docs consume FIDs everywhere — `entry.fields.<name>`, the bare que
 | --- | --- | --- |
 | **`FID=<name>` alternate identifier** — a key/value entry (key `FID`) in the object's alternate-identifier / custom-lookup list | platform UI (the object's Alt IDs / custom lookup properties), or the MCP `altIds` param | name-addressability of **formulas, merge reports, and queries**: the `__FID_<name>` full-id encoding, `B.find.mergeReport("…__FID_<name>")`, `optApplicable*("FID", "<name>")` custom-prop lookups (args = alt-id key, value), `.altIds()` walks — and observed live making `runFormula("<name>")` resolve (2026-08) |
 | **Field `formulaId`** — a dedicated "Formula ID" property on **fields** | field CREATE (or a repair UPDATE) — the `formulaId` param on the MCP `batch_fields` tool (`field` on an older-release org) | the field's **property key in the generated BSJS declarations** (`entry.fields.<name>`, `readonly <name>:` in `declarations/`) |
-| **ON_DEMAND `Identifier`** (`uniqueId`) — a required, plain single-value text field on ON_DEMAND formulas | platform UI only ("Edit Formula Options"; no MCP parameter exists) | the platform's documented key for **scheduling** the on-demand formula from other code |
+| **ON_DEMAND `Identifier`** (`uniqueId`) — a required, plain single-value text field on ON_DEMAND formulas | `onDemandIdentifier` on `create_script` / `update_script` (unique across the org, at most 100 characters), or the platform UI ("Edit Formula Options") | the platform's documented key for **scheduling** the on-demand formula from other code; the tool describes it as the string `runFormula("...")` resolves |
 
 Three consequences of "three different things":
 
@@ -34,7 +34,7 @@ Three consequences of "three different things":
   look there instead. (verified 2026-10)
 - An `altIds` entry keyed `uniqueId` does **not** set the ON_DEMAND `Identifier` — it just appends
   an unrelated alt-id while the required field stays blank (false success; same quirks list).
-  Setting the Identifier is a UI step.
+  Set it with `onDemandIdentifier`.
 - `runFormula("<name>")` resolution has been observed to work off a `FID=<name>` alt-id (a target
   with no alt-id resolved to nothing; adding `FID=<name>` made it resolve, 2026-08), while the
   platform's own UI describes the ON_DEMAND `Identifier` as the scheduling key. Until the platform

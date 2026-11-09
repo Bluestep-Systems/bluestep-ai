@@ -1,14 +1,17 @@
 ---
-description: "Reading option-list items' export values: get_option_list omits them, but GraphQL exposes RelateListItem.value — inline fragments are required on items, a GROUPED list nests the real items one level down ([{},{}] means groups, not empty items), and sortOrder is global across groups"
+description: "Reading option-list items' export values: get_option_list returns value per item; where an org's does not, GraphQL exposes RelateListItem.value — inline fragments are required on items, a GROUPED list nests the real items one level down ([{},{}] means groups, not empty items), and sortOrder is global across groups"
 ---
 
 # Reading option-list export values
 
-The gateway MCP's `get_option_list` returns only `topId`, `displayName`, `description`, and
-`sortOrder` per item — **no export value**. That does not make export values unreadable
-in-session: GraphQL exposes them as `RelateListItem.value`. Working query (run it by the route in
-[gql-in-a-tab.md](gql-in-a-tab.md): the gateway's `graphql_query` where the org serves it, a
-signed-in tab otherwise):
+Start with the gateway's `get_option_list`: per item it returns `value` (the export value; the key
+is missing when the item has none), `optionStatus`, `cssClass`, `cssStyle` and `sortOrder`, and for
+the list `grouped` and `groups` — on the newer platform release. A missing `value` key means only
+that the item has no export value, so tell the release with `list_org_tools(org)` instead (the newer
+release serves `batch_fields` and `option_list`). On an older-release org use the GraphQL read below,
+where export values are `RelateListItem.value`. Run it by the
+route in [gql-in-a-tab.md](gql-in-a-tab.md): the gateway's `graphql_query` where the org serves it,
+a signed-in tab otherwise:
 
 ```graphql
 {

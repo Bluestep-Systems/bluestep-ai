@@ -27,5 +27,4 @@ means you cannot assume either shape.)
 ## Related
 
 To build the export-value ↔ topId mapping for a list, read the items over GraphQL —
-[option-list-export-values](../reference/option-list-export-values.md) (`get_option_list` alone
-won't do it: it omits export values).
+[option-list-export-values](../reference/option-list-export-values.md) (`get_option_list` returns them on the newer platform release; on the older one, use the GraphQL read there).

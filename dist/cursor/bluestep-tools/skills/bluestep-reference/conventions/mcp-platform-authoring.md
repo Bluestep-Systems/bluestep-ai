@@ -1,12 +1,12 @@
 ---
-description: "The single shared procedure for a [PLATFORM] authoring/wiring op via the bundled platform-gateway MCP — connection check, org resolution, tool mapping, approval echo, execute, declaration read-back — plus the supported tool set, create-time rules for queries/views, and the verified quirks list. Load when about to add an import (query/form/field/MEFR) to a script or create a form/field/option-list/view/record-type/MEFR/script object via the gateway MCP."
+description: "The single shared procedure for a [PLATFORM] authoring/wiring op via the bundled platform-gateway MCP — connection check, org resolution, tool mapping, approval echo, execute, declaration read-back — plus the supported tool set, create-time rules for queries/views, and the verified quirks list (option lists, record types, script type/schedule/identifier/categories, read_log needing ORG_LOGS). Load when about to add an import (query/form/field/MEFR) to a script, create a form/field/option-list/view/record-type/MEFR/script object, change a script's settings, or read a script/org log via the gateway MCP. Units, records and form rows: reference/units-records-form-rows.md."
 ---
 
 # MCP `[PLATFORM]` authoring / wiring procedure
 
 This page **is** the flow. Every entry point points here and none restate it (no-duplication invariant).
 It covers **authoring / wiring only** — adding an import (query / form / field) to a script, or creating
-a form / field / option-list / view / record-type / MEFR / script object (`create_script`). It **never**
+a form / field / option-list / view / record-type / MEFR / script object (`create_script`), and changing a script's settings. Units, records and form rows are in [../reference/units-records-form-rows.md](../reference/units-records-form-rows.md). It **never**
 writes script source and **never** pushes or publishes: component **sync (pull / push / audit) stays on
 the `b6p` CLI**, permanently. See
 [../../../../docs/decisions/platform-mcp-integration.md](../../../../docs/decisions/platform-mcp-integration.md).
@@ -105,7 +105,8 @@ The `org` param is a **U-number** orgKey (`U` plus digits) or a bare number. Res
    is decided per-token by that org itself, and orgs your token is authorized for stay reachable by
    U-number even when unlisted. So if the org is **not** listed, do
    **not** conclude it's unreachable — **ask the user for its U-number** (or derive it, e.g. from
-   the `schema=U…` line of `read_log` with `scope: ORGANIZATION`), then relay. Only a `defaultHost: null` on a **listed**
+   the `schema=U…` line of `read_log` with `scope: ORGANIZATION`, which needs the `ORG_LOGS`
+   endorsement — see Read-only discovery below), then relay. Only a `defaultHost: null` on a **listed**
    tenant means genuinely unreachable — don't `invoke_org_tool`; request MCP enablement for that org from
    BlueStep, and until then fall back to the human hand-back (author in the BlueStep UI, then `b6p pull`),
    same as the 404 case in step 2.
@@ -210,9 +211,10 @@ the filter and match by name/type before concluding an object doesn't exist (det
   privilege, so "global-super" does **not** guarantee END_POINT authoring — see
   [Known authoring quirks](#known-authoring-quirks).
 - **Destructive tools** (the `script_*` wiring tools with `action: REMOVE` — `script_queries` REMOVE also drops
-  the form dependencies attached to that group — `record` delete, `user` deactivate,
-  `revoke_permission`, and `set_permissions` with `mode: REMOVE` or `mode: REPLACE` — REPLACE **replaces the
-  entire** permission set of an object, dropping anything not in the list) run **only** when the task
+  the form dependencies attached to that group — `revoke_permission`, `set_permissions` with
+  `mode: REMOVE` or `mode: REPLACE` — REPLACE **replaces the entire** permission set of an object,
+  dropping anything not in the list — and the GraphQL `deleteUnit` without `dryRun`, which moves the
+  unit's records, sub-units and users to its parent) run **only** when the task
   explicitly requires them, with **extra** confirmation. Out of default scope. To add or change a permission on
   an existing object use `set_permissions` with `mode: MERGE` (or `ADD`, which leaves an existing grant as it
   is) — only on an org whose `set_permissions` takes a `mode`. On an older-release org `set_permissions`
@@ -330,6 +332,13 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
   as `parentId` and `baseType: true` creates the base type together with its base form. On orgs behind
   that fix it instead produces an **orphaned category** with UI-only cleanup — so read the created type
   back (`get_record_type`) and confirm `baseType: true` and a `baseForm` exist before building on it.
+- **A new base record type has no Display field and no Summary fields — set both before anyone
+  creates records.** `record_type` takes neither. Set the summary fields with `form` UPDATE
+  `summaryFields` on the base form (this also gives the form its default view), and the Display field
+  with the GraphQL mutation `updateRelateRecordType(inputs: [{topId, displayField: {topId: <fieldId>}}])`
+  (see [GraphQL reads and writes](#graphql-reads-and-writes)) or in the record type's admin page.
+  Records of a type left without them have been reported not to open in the UI. (verified 2026-11
+  on the newer release: both writes and their read-back)
 
 > **Queries/views have create-time-only properties** (display columns, filters, sort, search criteria —
 > the DELETE guard blocks fixing them later): see
@@ -340,8 +349,15 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
   `list_available_forms`, `list_option_lists`, `list_views`, `list_record_types`, `list_folders`,
   `get_form`, `get_view`, `get_option_list`, `get_record_type`, `lookup_script_by_name`,
   `list_script_scope`, `describe_field_type`, `read_log`
+- **`read_log` needs the `ORG_LOGS` endorsement** on the account behind the `b6pt_` token. Without it
+  every call, either `scope`, answers `Reading logs through the AI tools requires the ORG_LOGS
+  endorsement.` Like ENGINEER ENDPOINT, it is granted to that account from a global account: tell the
+  user it is a one-time setup step. (verified 2026-11 on the newer release)
 - `get_form` and `describe_form` take `compact: true` — only `fieldId`, `label` and `fieldType` per
   field, half the size or less. Use it when you only need to find a field.
+- `get_form` and `describe_form` do not return a field's `width`, `height` or `defaultValue`. To check
+  a default after setting it, read `defaultValue` on the field over GraphQL
+  (`remoteObject(id: <fieldId>) { ... on RelateFieldWrapper { defaultValue } }`).
 - Results the server builds carry no `null`s: a missing key means "no value".
 
 **Permissions**
@@ -355,6 +371,10 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
   - `REPLACE` — the local list becomes exactly these entries. Read the current list with
     `list_permissions` first: an entry it reports with `deletableState: NO` (the built-in groups a new
     form is seeded with, and its "Relate Users" grant) must be named, or the whole call is refused.
+
+  `form` CREATE takes the same `permissions` list, and a `NO_ACCESS` entry for a built-in group
+  applies. Unit Admins takes the alias `UNIT_ADMINS`; name Relate Licensees by the key
+  `list_security_subjects` reports for it. Read the result back with `list_permissions`.
 
   `revoke_permission` takes one subject off and leaves the rest; it cannot take off an inherited entry
   or a `deletableState: NO` one (change that one's level with `mode: MERGE`). The "Relate Users" grant
@@ -397,7 +417,7 @@ verified — the dating key at the top of this page says how to read the markers
   UPDATEs **one property per call**, and verify via **`list_available_forms`** — the authoritative
   entry-mode reader (`get_form` does not reliably return it). On orgs still on a platform version
   predating the CREATE-time flag fix, a multi-entry form that was created single-entry and flipped
-  by UPDATE may have a broken `form_entry` data-entry path (a stuck `..._0_` entry key) — data
+  by UPDATE may have a broken data-entry path (a stuck `..._0_` entry key) — data
   entry into such a form is a UI hand-back. (verified 2026-08)
 - **Trust but verify every boolean you set — CREATE or UPDATE.** A response echo — create or
   update — is the tool's account of what it *was asked* to do, not a read of what was stored, so a
@@ -407,9 +427,16 @@ verified — the dating key at the top of this page says how to read the markers
   solo UPDATE** if it disagrees — the same detect-and-correct shape as the declaration read-back in
   step 6. When *reading* booleans, remember an untouched one is a missing key over MCP (results
   carry no `null`s), not `false`; in BsJs code it reads as `null` — see the nullable-booleans entry in [gotchas/common-gotchas.md](../gotchas/common-gotchas.md).
-- **TEXT and MEMO fields require an explicit format type on CREATE** (e.g. `textFormatType: "NONE"`)
-  — omitting it fails with a missing-type-id error (it is a serialization discriminator server-side).
-  `describe_field_type` gives the exact setting name for each type. (verified 2026-07)
+- **An option-list field's `defaultValue` is the option's id**, not its display name. A value that
+  names no item of the list is refused. (verified 2026-11)
+- **Option lists: `sortOrder` starts at 0, and CREATE takes names only.** `option_list` CREATE numbers
+  its items 0, 1, 2…, and `option_list_item` CREATE with no `sortOrder` stores 0. The platform UI reads
+  0 as "not set", so the first item can jump to the end the next time someone saves it there. Set the
+  first item's Sort to 1 in the UI and let it renumber the rest; do not renumber item by item over
+  MCP, since one change shifts every item after it. `option_list` CREATE takes item names only: set
+  each item's `value`, `cssClass` and `cssStyle` with `option_list_item` afterwards. A list's
+  `description` is accepted and not stored, and an item has no alternate ids to set. (verified
+  2026-11 on the newer release)
 - **Set `formulaId` at field CREATE** — it is what makes the field appear in the generated BSJS
   declarations. An `altIds FID=` entry is **not** `formulaId`: a field created with only altIds gets
   no `formulaId`, does not appear in declarations, and the tool warns about it. Repair: a `batch_fields`
@@ -421,13 +448,15 @@ verified — the dating key at the top of this page says how to read the markers
 - **`altIds` is not a general field-setter.** It writes key/value alternate-id entries and nothing
   else: a plausible-looking key (e.g. `uniqueId`) "succeeds" by appending an alt-id entry while the
   platform field it resembles stays unset — a success response proves no specific platform field
-  was set. Concrete case: an ON_DEMAND formula's required **Identifier** (`uniqueId`) has no
-  `create_script`/`update_script` parameter and cannot be set via altIds — setting it is a UI step.
-  (For the FID-specific case see the `formulaId` bullet above.) (verified 2026-08)
+  was set. Concrete case: an altIds entry keyed `uniqueId` does not set an ON_DEMAND formula's
+  required **Identifier** — `onDemandIdentifier` on `create_script` / `update_script` does.
+  (For the FID-specific case see the `formulaId` bullet above.) (verified 2026-11)
 - **A SIGNATURE field with `signatureFormatType: SIMPLE` renders BLANK unless its Right Label is
   set** — and the `batch_fields`/`form` tools do not require it, so an MCP-created signature silently
   doesn't render until a Right Label is added in the UI. Workaround: **always pass `rightLabel`**
-  when creating SIMPLE signature fields via MCP. (verified 2026-07)
+  when creating SIMPLE signature fields via MCP. (verified 2026-07) A signature's
+  `signatureFormatType` (SIMPLE or SECURE) is fixed at CREATE: an UPDATE that changes it is refused,
+  so pick it then, or create a new field. (verified 2026-11)
 
 **Scripts**
 
@@ -465,26 +494,27 @@ verified — the dating key at the top of this page says how to read the markers
   name (this is the non-privilege failure mode; a `RemoteSecurityException` create rolls back clean —
   see the END_POINT bullet). Rule: on a miss, **list the folder and compare exact display names**
   before concluding the script does not exist; only then create. (verified 2026-08)
-- **`update_script` `formulaType` changes are not self-contained.** The call echoes the new
-  formulaType back, but no parameter exists for the companion configuration the target type
-  requires (schedule timing for `SCHEDULED_*`, the required Identifier for `ON_DEMAND`), so the
-  switch can land the formula in a non-functional state with no warning. When the MCP change rides a
-  batch, prefer completing the companion config in the UI right after; otherwise treat a formulaType
-  change on an existing formula as a UI hand-back for the whole change. (verified 2026-08)
+- **Send a `formulaType` change together with what the new type needs.** Moving a formula to
+  `SCHEDULED_QUERY` needs `schedule` in the same `update_script` call (it is refused without one, unless
+  the formula already has one); moving it to `ON_DEMAND` needs `onDemandIdentifier`, unique across the
+  org. A formula moved off `ON_DEMAND` keeps its identifier, which stays taken; clear it with
+  `onDemandIdentifier: ""`. `schedule` takes a `kind` and its fields plus an optional `timeZoneId`;
+  read it back with `lookup_script_by_name`. (verified 2026-11 on the newer release)
+- **`update_script` with `name` does not rename**, although its schema says it does. The version goes
+  up, but `get_script` and `lookup_script_by_name` keep the old name. Rename the script in the platform
+  UI. (verified 2026-11 on the newer release)
+- **Must-have categories go through `set_category_requirement`**, not `update_script` (it has no
+  category argument): `MUST_HAVE` adds a category, `NONE` takes it off, and `get_script` reads them
+  back as `mustHaveCategories`. Read its schema first: it has conditions of its own on the formula's
+  record-type scope and primary form. (verified 2026-11 on the newer release)
 
 **Units & records**
 
-- **Unit creation is a UI hand-back.** There is no dedicated unit tool; the only other path is the
-  GraphQL `createUnit` mutation, and units it creates are structurally incomplete — the unit reads
-  back fine but its Entities container is not linked, so any later record placement into it fails.
-  `deleteRemoteObject` on such a unit also fails (opaque `INTERNAL`), so cleanup is UI-only. Create
-  units in the platform UI; if one was already created, report it to the user for manual UI
-  deletion. (verified 2026-08)
-- **MCP cannot seed a record.** Both creation paths fail: the `record` tool CREATE returns
-  `Cannot create an Entity w/o any form entries.` (it has no way to pass initial base-form field
-  data), and the GraphQL `createRecord` mutation fails with an opaque `INTERNAL`. Mint records in the
-  platform UI (or an app/SPA session); once a record exists, `form_entry` CREATE/UPDATE work
-  against it. `record` UPDATE and DELETE exist — the gap is CREATE only. (verified 2026-08)
+- **No gateway tool writes units, records or form rows.** On the newer platform release they go
+  through GraphQL (`createUnit`, `createRecord`, `createFormRow`); on the older release units and
+  records are a UI hand-back. The mutations, the release check and the `deleteUnit` rules are in
+  [reference/units-records-form-rows.md](../reference/units-records-form-rows.md). (verified 2026-11
+  on the newer release)
 
 ### Create-time rules and completeness read-back (queries and views)
 

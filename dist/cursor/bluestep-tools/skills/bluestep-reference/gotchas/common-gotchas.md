@@ -80,7 +80,7 @@ import lodash from 'lodash';
 
 ## TypeScript & Graal limits
 
-`tsconfig.json` runs with `"strict": false`, so the compiler will not catch every null/type error — lean on `.opt().orElse()` and explicit annotations. Server-side runs on GraalVM (not Node), so avoid the newest ECMAScript proposals; test before relying on a new language feature.
+`tsconfig.json` turns on `strictNullChecks` and `alwaysStrict` but sets no `strict` key, so the other strict checks (`noImplicitAny` among them) are off and the compiler will not catch every type error — lean on `.opt().orElse()` and explicit annotations. Server-side runs on GraalVM (not Node), so avoid the newest ECMAScript proposals; test before relying on a new language feature.
 
 → tsconfig and Graal compatibility: [bsjs-development](../bsjs-development.md#typescript-configuration--graal-compatibility).
 
