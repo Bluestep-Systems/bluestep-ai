@@ -212,11 +212,39 @@ jobs:
               }
             }
 
+            // plugins.<name>: id is <name>@<marketplace> (this repo's "bluestep" unless the entry
+            // names its own marketplace), min a version this repo has already released (for a
+            // plugin served from here), requires other entries of plugins. The bootstrap updates
+            // an installed plugin below min, and installs what requires names before the plugin.
+            if (isObj(data.plugins)) {
+              const own = JSON.parse(readFileSync('.claude-plugin/marketplace.json', 'utf8'));
+              for (const [name, p] of Object.entries(data.plugins)) {
+                const at = `plugins.${name}`;
+                if (!isObj(p)) { fail(`${at}: not an object`); continue; }
+                onlyKeys(at, p, ['id', 'min', 'requires', 'marketplace', 'accessRepo']);
+                const mkName = isObj(p.marketplace) ? p.marketplace.name : 'bluestep';
+                if (p.id !== `${name}@${mkName}`) fail(`${at}.id: ${JSON.stringify(p.id)} is not ${name}@${mkName}`);
+                const okMin = typeof p.min === 'string' && VERSION.test(p.min);
+                if (p.min !== undefined && !okMin) fail(`${at}.min: ${JSON.stringify(p.min)} is not a version`);
+                if (p.requires !== undefined) {
+                  if (!Array.isArray(p.requires) || !p.requires.every((r) => typeof r === 'string')) fail(`${at}.requires: not an array of strings`);
+                  else for (const r of p.requires) {
+                    if (r === name || !isObj(data.plugins[r])) fail(`${at}.requires: "${r}" is not another entry of plugins`);
+                  }
+                }
+                if (mkName === 'bluestep') {
+                  const entry = (own.plugins || []).find((e) => e.name === name);
+                  if (!entry) { fail(`${at}: no plugin "${name}" in .claude-plugin/marketplace.json`); continue; }
+                  const ver = JSON.parse(readFileSync(`${entry.source}/.claude-plugin/plugin.json`, 'utf8')).version;
+                  if (okMin && cmp(p.min, ver) > 0) fail(`${at}.min: ${p.min} is above the released ${name} ${ver}`);
+                }
+              }
+            }
+
             const ot = isObj(data.plugins) ? data.plugins['one-tools'] : undefined;
             if (!isObj(data.plugins)) fail('"plugins" is not an object');
             else if (!isObj(ot)) fail('plugins.one-tools: missing');
             else {
-              onlyKeys('plugins.one-tools', ot, ['id', 'marketplace', 'accessRepo']);
               const mk = isObj(ot.marketplace) ? ot.marketplace : {};
               if (!isObj(ot.marketplace)) fail('plugins.one-tools.marketplace: not an object');
               else onlyKeys('plugins.one-tools.marketplace', mk, ['name', 'source']);
@@ -827,7 +855,7 @@ jobs:
               $h = @{}
               if (-not $Log) { return $h }
               foreach ($l in [IO.File]::ReadAllLines($Log)) {
-                  $m = [regex]::Match($l, '^\S+ \S+ \[\w+\]   (?<item>[a-z0-9][a-z0-9 ]*): (?<status>ok|installed|would install|needs you|needs IT|failed|skipped) - (?<detail>.*)$')
+                  $m = [regex]::Match($l, '^\S+ \S+ \[\w+\]   (?<item>[a-z0-9][a-z0-9 ]*): (?<status>ok|installed|updated|would install|would update|needs you|needs IT|failed|skipped) -(?<detail>.*)$')
                   if ($m.Success) { $h[$m.Groups['item'].Value] = [pscustomobject]@{ Status = $m.Groups['status'].Value; Detail = $m.Groups['detail'].Value } }
               }
               return $h
