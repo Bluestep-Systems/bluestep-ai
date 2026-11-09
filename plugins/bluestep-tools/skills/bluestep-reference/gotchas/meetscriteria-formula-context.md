@@ -1,5 +1,5 @@
 ---
-description: "meetsCriteria() on a UNIT-SCOPED RecordQuery returns false in formula run context (on-demand/trigger) even for records that match — gate on the record's own form entries there; reserve meetsCriteria for endpoint/request contexts, and even there never as the only gate (it checks categories and units, not search criteria)"
+description: "meetsCriteria() on a UNIT-SCOPED RecordQuery returns false in formula run context (on-demand/trigger) even for records that match — gate on the record's own form entries there; reserve meetsCriteria for endpoint/request contexts"
 ---
 
 # `meetsCriteria()` on unit-scoped queries fails in formula run context
@@ -34,11 +34,11 @@ corrupting **41.7% of the org's cached records** before the pattern was found.
   `try/catch` — a missing entry throws, which doubles as a guard against records still mid-creation.
 - **Reserve `meetsCriteria()` for endpoint/request contexts**, where it is proven — e.g. the
   user-to-staff match in [staff-query-permission-gating](../reference/staff-query-permission-gating.md).
-  Even there it only finds a record: per its B.d.ts doc it checks categories and units, not the
-  query's search criteria, so it is never the only gate.
+  It does apply the query's search criteria, whatever its B.d.ts doc suggests (verified 2026-10 on a
+  top-level query).
 
 ## Diagnostic that proves it
 
 Log `query.meetsCriteria(recordObject)` and `query.meetsCriteria(idString)` side by side from real
 save traffic. Both come back `false` in formula context while the same query iterates those records
-normally in endpoint context — that contrast is the confirmation, and rules out a bad category or unit setup.
+normally in endpoint context — that contrast is the confirmation, and rules out a bad criteria set.

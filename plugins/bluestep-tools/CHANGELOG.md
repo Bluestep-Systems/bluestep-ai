@@ -11,6 +11,22 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.12] — 2026-11-09
+
+> **Correction to 0.46.11.** Reference text and one line of `/quick-task`; no hook or template
+> changes.
+
+### Fixed
+
+- **`meetsCriteria` does apply the query's search criteria** (86bcbr6kh). 0.46.11 said, from the
+  B.d.ts wording, that `meetsCriteria` checks only categories and units and that a gate on it alone
+  fails open. A live test on 2026-10-20 had already shown the opposite: on a top-level query in
+  formula context, `meetsCriteria` returned false and `optById` an empty `Optional` for a record that
+  failed the query's criteria. `staff-query-permission-gating.md`, `meetscriteria-formula-context.md`
+  and the manifest line now say so, and that step 4 (the permission field) still sets the access
+  level. `/quick-task` step 2 drops the wrong example and says a recorded live test beats a method's
+  doc.
+
 ## [plugin 0.46.11] — 2026-11-09
 
 > **Permission gates, document reads, legacy merge reports, and keeping track after a compaction —
