@@ -215,7 +215,8 @@ the filter and match by name/type before concluding an object doesn't exist (det
   entire** permission set of an object, dropping anything not in the list) run **only** when the task
   explicitly requires them, with **extra** confirmation. Out of default scope. To add or change a permission on
   an existing object use `set_permissions` with `mode: MERGE` (or `ADD`, which leaves an existing grant as it
-  is).
+  is) — only on an org whose `set_permissions` takes a `mode`. On an older-release org `set_permissions`
+  has no `mode` and **replaces the entire** list, so use `grant_permission` there (see Permissions below).
 - **Schema creation is not (currently) MCP-reversible.** The wiring tools (`script_*`) undo cleanly with
   `action: REMOVE`, but **schema-authoring** ops (`form` / `batch_fields` / `option_list` / `view` /
   `record_type`) do **not** — an option list created via `option_list` has no delete,
@@ -237,15 +238,25 @@ The **gateway** exposes only **4 meta-tools** in-session:
 `list_org_tools(org)` — the exact set **varies per org**, so treat this as a reference catalogue of inner
 tools, not a fixed inventory.
 
-**Older tool names are gone, with no alias.** In 2026-11 the platform merged overlapping tools: the
-`add_*` / `remove_*` wiring pairs became one `script_*` tool each with `action: ADD | REMOVE`; `field`
-became `batch_fields`; `create_option_list` / `update_option_list` became `option_list`;
-`form_permission` / `grant_permission` became `set_permissions` with a required `mode`;
-`list_forms_with_fields` became `list_forms` with `includeFields: true`; and the four script and
-organization log readers became `read_log`. An org on an older platform version may still serve the old
-names — when a call answers `TOOL_NOT_FOUND`, `list_org_tools(org)` shows which name the org serves.
-Some arguments changed with the names (for example `set_permissions` used to replace the whole set and
-took no `mode`), so read the schema before reusing an old call.
+**Two tool sets are live, one per platform release.** The newer platform release merged overlapping
+tools; an org on the older release still serves the older names and none of the newer ones. Which set an
+org serves depends on its release, not on whether it is a test or a production org, and it changes when
+the org is upgraded. **Before the first call to an org, run `list_org_tools(org)`** and use the names it
+lists; never send a newer-set argument to an older-set tool. This page writes the newer names; the table
+gives the older one for each.
+
+| Newer release | Older release | What differs |
+| --- | --- | --- |
+| `script_queries`, `script_forms`, `script_field_access`, `script_record_types` with `action: ADD \| REMOVE` | `add_queries` / `remove_queries`, `add_forms` / `remove_forms`, `add_field_access` / `remove_field_access`, `add_record_types` / `remove_record_types` | Same other arguments; the older pair has no `action` |
+| `batch_fields` (`fields`: a list) | `field` (`field`: one field, plus `fieldId` on UPDATE) | One field per call on the older tool |
+| `option_list` (`name` creates a list, `listId` updates one) | `create_option_list`, `update_option_list` | |
+| `set_permissions` with a required `mode` | `grant_permission` (one subject, keeps the rest); `form_permission` (forms only, has its own `mode`) | **The older `set_permissions` has no `mode` and replaces the whole local list** — see Permissions below |
+| `list_forms` with `includeFields: true` | `list_forms_with_fields` | The older `list_forms` has only `search` and `limit` |
+| `read_log` with `scope: SCRIPT \| ORGANIZATION` (and `query` to search) | `read_script_log`, `read_organization_log`, `search_script_log`, `search_organization_log` | |
+
+A call that answers `TOOL_NOT_FOUND` named a tool from the other set: check `list_org_tools(org)` again
+and use that set's name. When an argument matters (a `mode`, an `action`), read the tool's schema with
+`describe_tool(org, tool)` first.
 
 **Wiring / imports**
 - `script_queries`, `script_forms`, `script_field_access`, `script_record_types` — each takes
@@ -335,7 +346,8 @@ took no `mode`), so read the schema before reusing an old call.
 
 **Permissions**
 - `list_permissions`, `set_permissions`, `revoke_permission`, `list_security_subjects` (finds a group's
-  subject key). `set_permissions` works on any securable object and **requires** `mode`:
+  subject key); on the older release also `grant_permission`. On the newer release `set_permissions`
+  works on any securable object and **requires** `mode`:
   - `MERGE` — adds each named subject or changes its level; everyone else keeps theirs.
   - `ADD` — adds each named subject that has no local permission; an existing one is left as it is.
   - `REMOVE` — takes the named subjects off (`type` is required but not read). Naming an entry
@@ -346,7 +358,15 @@ took no `mode`), so read the schema before reusing an old call.
 
   `revoke_permission` takes one subject off and leaves the rest; it cannot take off an inherited entry
   or a `deletableState: NO` one (change that one's level with `mode: MERGE`). The "Relate Users" grant
-  has no alias: name it by the `securitySubjectId` that `list_permissions` reports. A script's permission set is separate
+  has no alias: name it by the `securitySubjectId` that `list_permissions` reports.
+
+  **Check for `mode` before every `set_permissions` call.** On an org on the older release,
+  `set_permissions` takes only `objectId` and `permissions` and **replaces the entire local list** with
+  what you send — a call meant to add one subject removes every other one that can be removed. Read its
+  schema with `describe_tool(org, "set_permissions")`: no `mode` property means the older tool. There, add
+  or change one subject with `grant_permission` (it leaves the others as they are), take one off with
+  `revoke_permission`, and keep `set_permissions` for a deliberate full replace with the current list from
+  `list_permissions`. A script's permission set is separate
   from its wiring: for a **new** script pass `permissions` to `create_script`, then the
   `list_permissions` read-back (step 6).
 
@@ -433,7 +453,8 @@ verified — the dating key at the top of this page says how to read the markers
   A script created without it lands with no permission set: the response warns that nobody else can run
   it yet, and the failure otherwise shows up later as a code bug — a MergeReport embedded in a form
   renders nothing, an EndPoint answers with errors. Reader has been the right ceiling for a script in
-  every case so far. On an existing script add with `set_permissions` `mode: MERGE`. Either way, run the
+  every case so far. On an existing script add with `set_permissions` `mode: MERGE`, or with
+  `grant_permission` on an org whose `set_permissions` has no `mode`. Either way, run the
   `list_permissions` read-back in step 6 **before** anyone tests the component. (verified 2026-11:
   `permissions` is in the live schema)
 - **`lookup_script_by_name` misses are name mismatches far more often than missing scripts.** The

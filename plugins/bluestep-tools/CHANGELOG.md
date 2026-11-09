@@ -11,6 +11,28 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.46.1] — 2026-11-09
+
+> **The platform reference covers both gateway tool sets.** Orgs on the newer platform release serve
+> the merged tool names; orgs on the older release still serve only the old ones. No hook changes, but
+> Codex asks to re-trust the plugin's hooks after any update that changes its files: open the plugin's
+> page and **Review → trust** once.
+
+### Fixed
+
+- **The reference said the older MCP tool names were gone** (86bcz29gf). They are not: which set an
+  org serves depends on its platform release. `conventions/mcp-platform-authoring.md` now says to run
+  `list_org_tools(org)` before the first call to an org, and has a table from each newer name to the
+  older one with what differs (`action`, one field per call, `includeFields`, `scope`).
+- **On an older-release org, `set_permissions` replaces every permission.** That tool has no `mode`,
+  so the reference's "add with `set_permissions` `mode: MERGE`" could remove the other permissions on
+  the object. The page now says to check the schema for `mode` before every `set_permissions` call and,
+  where it is missing, to add or change one subject with `grant_permission`.
+- **Older names next to the newer ones** in `reference/gql-in-a-tab.md` (`list_forms_with_fields`, the
+  log readers), the `/b6p-push` live-build check (`read_script_log`),
+  `reference/fid-alternate-identifier.md` (`field`) and `gotchas/field-access-writability.md`
+  (`add_*` / `remove_*`).
+
 ## [plugin 0.46.0] — 2026-11-05
 
 > **A hook changed**, so Codex users re-trust bluestep-tools' hooks once: open the plugin's page and
