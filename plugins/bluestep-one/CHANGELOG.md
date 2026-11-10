@@ -3,6 +3,26 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
+## [0.1.1] — 2026-11-10
+
+### Changed
+
+- **Builds that fail with "source fetch answered 404" can take up to four tries** (G-229 and
+  `build/publish.md`). The second try is no longer "always" enough, and it is not only a new
+  component's first build. An org runs at most three builds at once.
+- **P-76:** a warning's links draw inline, each in its own words (`GqlWarning.parts`,
+  `warningParts()`), and a refusal with a reason drops the closing "Please try … again." from the
+  not-saved line (`refusedLead()`).
+- **G-91:** the built-in entry screen now draws relationship fields as pickers; whether its save
+  writes the link is not checked yet.
+
+### Added
+
+- Gotchas: `B6pSaveFooter` truncates its error line; a `class` on a canvas `x-import` replaces the
+  kit's classes; a `formEntries` read filtered on a text field is slow the first time per value;
+  `updateFormRow` on a signed entry can answer success and save nothing; a "[Federation Runtime]
+  … shared singleton" console line on the first load after a publish that does no harm.
+
 ## [0.1.0] — 2026-11-05
 
 > **First release.** Build BlueStep One custom components with Claude Code. Claude Code only; the
