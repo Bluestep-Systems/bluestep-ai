@@ -489,6 +489,10 @@ function readHookWiring(plugin) {
     // after a Claude Code compaction). Not wired here on purpose: Codex hooks are a different
     // surface, and both report through Claude Code's SessionStart output handling.
     if (event === 'SessionStart') continue;
+    // PostToolUse and PostToolUseFailure carry only hooks/change-log.sh, which records platform writes for
+    // /b6p-propagate and never blocks. Claude Code only for now: on Codex the skill has the
+    // agent append the entry itself, until Codex's after-tool events are proven live.
+    if (event === 'PostToolUse' || event === 'PostToolUseFailure') continue;
     if (event !== 'PreToolUse') {
       throw new Error(`emit-codex: ${hooksRel}: unmapped source hook event "${event}" — give it a Codex wiring or set crossTool false`);
     }
@@ -630,6 +634,9 @@ const GUARDRAIL_NOTES = {
   'compact-reminder.sh':
     'Claude Code-only reminder after a compaction; `shared/compact-reminder.sh` ships but nothing runs it on ' +
     "Codex (the Compaction section of the project's `AGENTS.md` carries the same advice)",
+  'change-log.sh':
+    'Claude Code-only `PostToolUse` log of platform writes for `/b6p-propagate`; never blocks. ' +
+    '`shared/change-log.sh` ships but nothing runs it on Codex: the skill has the agent append the entry itself',
   'tab-guard.sh':
     "Guards Claude Code's own browser tools, which Codex does not have; `shared/tab-guard.sh` ships but " +
     'nothing runs it on Codex',

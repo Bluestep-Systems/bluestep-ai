@@ -11,6 +11,60 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.48.0] — 2026-11-10
+
+> **`/b6p-propagate`: move a change from one org to others.** A new skill carries a change made in
+> a source org (a sandbox, a template or config org) to its target orgs — code, config, and the
+> fields, option lists, queries or forms it needs — one target at a time, after one plan and one
+> approval per target. It is off unless a project turns it on. **A hook changed** (a new one,
+> Claude Code only), so Codex users re-trust bluestep-tools' hooks once: open the plugin's page and
+> **Review → trust**.
+
+### Added
+
+- **`/b6p-propagate`** with `enable`, `status`, `[task]` and `refresh`. It reads both orgs fresh,
+  matches objects by FID or exact name (never by id), creates what a target lacks in dependency
+  order, writes config through the gateway, publishes code with `b6p` from the target's own
+  folder, and reads everything back. Each target gets one plan that lists every call; the plan is
+  the approval. A failure stops the rollout and it resumes from the task card. Every write carries
+  the target's org and an `expectedVersion` read in the same move, and code is only pushed from a
+  folder of that org. Settings the gateway cannot read on your surface are listed per object as
+  "check by hand". Before writing to a scheduled formula it says whether the write will run it.
+  A delete in the source moves as a delete, last, with its own yes: it stops while something in
+  the target still uses the object, backs up a script's code first, and is a step for you in the
+  platform when no tool can delete that type (scripts, today). "Gone" is checked by name, since a
+  deleted script can still answer by id. A script's links to queries, forms and fields are removed
+  before it is deleted, since a deleted script keeps them and its objects then refuse to go.
+  Before copying code, it checks the source folder for edits never published there, and searches
+  the copied files for the source org's ids and host. `enable` asks one question at a time and only
+  touches the workspace's own `.gitignore`.
+- **`.bluestep/project.json`** turns the flow on in a workspace: the source org, the target orgs in
+  rollout order, the task list and what never moves. Without it nothing changes.
+- **The `change-log.sh` hook** (Claude Code, `PostToolUse` and, for a b6p push that exits 1 after going live, `PostToolUseFailure`) appends one line per platform write to
+  `.bluestep/changes.jsonl` in an enabled workspace. It is not a guardrail: it needs node, never
+  blocks and never prints. On Cursor and Codex the agent writes the same line itself, and on every
+  surface it writes one for a change you made in the platform's own screens.
+- **The close-out** (`bluestep-reference` › `conventions/close-out.md`): at the end of a task in an
+  enabled workspace, one question — does this change go to the target orgs now, later, or not at
+  all. "Later" writes the list to the task card's "Propagation list" field (or a block in the
+  description). Nothing is asked when nothing was written to the source.
+- **`gotchas/cross-org-push.md`**: b6p pushes to the org of the local `U######` folder and takes
+  only the WebDAV id from a URL, its cleanup deletes in the URL's org, and `b6p deploy` exits 0 when
+  every target fails.
+
+### Changed
+
+- **`/quick-task`, `/spec-execute`, `/task-comment`** run the close-out at their last step when the
+  workspace has `.bluestep/project.json`; `/task-comment`'s "other orgs?" question is the same
+  question and is never asked twice. The quick-task doc and the `/spec-create` requirements
+  template have a `Tracking:` line for the task link.
+- **`/b6p-push`'s `--root` fallback** looks the script up in the folder's own org and refuses a URL
+  from another org. A `Missing metadata` right after a pull now gets one more pull first: the
+  first pull of a component created minutes before can finish without storing its sync record.
+- **`conventions/mcp-platform-authoring.md`** lists `/b6p-propagate` and the close-out as entry
+  points, and accepts a plan that lists every concrete call in one org as one approval echo
+  (deletes keep their own).
+
 ## [plugin 0.47.0] — 2026-11-09
 
 > **Answers that fit the reader.** Users told us answers were too long, too technical, and that a

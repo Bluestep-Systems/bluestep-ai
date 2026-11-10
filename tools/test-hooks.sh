@@ -692,6 +692,130 @@ rm -f "$PJ/scripts/hooks/phi-check.sh"
 cn "phi-guard nudge: no git check in the project → silent" silent "$CR" "$CR/hooks/canary.sh"
 rm -rf "$CC" "$PJ"
 
+echo "=== change-log.sh (never blocks, never prints; logs writes in an enabled workspace) ==="
+# Payloads match the PostToolUse shapes measured live (org-promote spec, prove-out task 1).
+natpath() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi; }
+pl() { # kind cwd [arg...] -> one PostToolUse payload on stdout
+  "$PY" - "$@" <<'PYEOF'
+import json, sys
+kind, cwd = sys.argv[1], sys.argv[2]
+a = sys.argv[3:]
+base = {"session_id": "s-test", "cwd": cwd, "hook_event_name": "PostToolUse"}
+gw = "mcp__plugin_bluestep-tools_bluestep-gateway__invoke_org_tool"
+def text(o): return [{"type": "text", "text": json.dumps(o)}]
+if kind == "gw_read":
+    d = {"tool_name": gw, "tool_input": {"org": a[0], "tool": a[1] if len(a) > 1 else "list_record_types", "arguments": {}},
+         "tool_response": text({"data": {"items": []}})}
+elif kind == "gw_write":
+    d = {"tool_name": gw, "tool_input": {"org": a[0], "tool": "option_list", "arguments": {"name": "zz list", "items": ["x"]}},
+         "tool_response": text({"data": {"listOptions": {"topId": "1000012___9", "version": 2}}})}
+elif kind == "gw_error":
+    d = {"tool_name": gw, "tool_input": {"org": a[0], "tool": "update_script", "arguments": {"scriptId": "654015___1"}},
+         "tool_response": text({"error": "refused"})}
+elif kind == "b6p":
+    tool, cmd, pushed = a[0], a[1], a[2] == "true"
+    out = "[WARN] noise\n" + json.dumps({"pushed": pushed, "historyRecorded": pushed, "files": {"n": 1}}, indent=2)
+    if len(a) > 3: out += "\n" + a[3] + "\n"
+    d = {"tool_name": tool, "tool_input": {"command": cmd}, "tool_response": {"stdout": out, "stderr": ""}}
+elif kind == "b6p_fail":
+    # PostToolUseFailure: a non-zero exit; the output sits in `error` after an "Exit code N" line.
+    tool, cmd, pushed = a[0], a[1], a[2] == "true"
+    out = "Exit code 1\n[WARN] type check found 3 diagnostics\n" + json.dumps({"pushed": pushed, "typeCheckDiagnostics": 3})
+    d = {"tool_name": tool, "tool_input": {"command": cmd}, "error": out, "is_interrupt": False,
+         "hook_event_name": "PostToolUseFailure"}
+elif kind == "gw_view_create":
+    # Measured 2026-11-10: the view tool nests its arguments, and its response names the form first.
+    d = {"tool_name": gw, "tool_input": {"org": a[0], "tool": "view", "arguments": {"formId": "1000001__FID_probeForm",
+         "view": {"displayName": "zz probe query", "altIds": [{"key": "FID", "value": "probeQuery"}]}}},
+         "tool_response": text({"data": {"form": {"topId": "1000001__FID_probeForm"}, "view": {"topId": "1000019__FID_probeQuery", "version": 1}}})}
+    if len(a) > 1 and a[1] == "noview":
+        d["tool_response"] = text({"data": {"form": {"topId": "1000001__FID_probeForm"}, "viewName": "zz probe query"}})
+elif kind == "gw_form_create":
+    d = {"tool_name": gw, "tool_input": {"org": a[0], "tool": "form", "arguments": {"form": {"action": "CREATE",
+         "displayName": "zz probe form", "altIds": [{"key": "FID", "value": "probeForm"}], "recordTypes": ["1000003___1"]}}},
+         "tool_response": text({"data": {"recordTypes": [{"topId": "1000003___1"}], "form": {"topId": "1000001__FID_probeForm"}}})}
+elif kind == "gw_fail":
+    d = {"tool_name": gw, "tool_input": {"org": a[0], "tool": "update_script", "arguments": {"scriptId": "654015___1"}},
+         "error": "refused", "is_interrupt": False, "hook_event_name": "PostToolUseFailure"}
+elif kind == "gql":
+    d = {"tool_name": "mcp__Claude_Browser__javascript_tool",
+         "tool_input": {"action": "javascript_exec", "text": "const q = `mutation { updateScriptFormula(inputs: []) { id } }`;"},
+         "tool_response": [{"type": "text", "text": "\"ok\"\n\n(captured at origin https://example.test)"}]}
+for k, v in base.items():
+    d.setdefault(k, v)
+print(json.dumps(d))
+PYEOF
+}
+# The JS sits inside one single-quoted bash string: a stray ' in it ends the string.
+if [ "$(sed -n "/node -e '\$/,/^' 2>/p" "$H/change-log.sh" | grep -c "'")" = 2 ]; then echo "  PASS  change-log.sh has no ' inside its node script"; pass=$((pass+1))
+else echo "  FAIL  change-log.sh has a ' inside its node script (lines: $(grep -n "'" "$H/change-log.sh" | cut -d: -f1 | tr '\n' ' '); only the two that open and close it may have one)"; fail=$((fail+1)); fi
+CL=$(mktemp -d); mkdir -p "$CL/.bluestep" "$CL/sub/dir"
+printf '{"v":1,"source":{"org":"U111","name":"Src"},"targets":[{"org":"U222","name":"Tgt"}]}' > "$CL/.bluestep/project.json"
+LOG="$CL/.bluestep/changes.jsonl"
+NOCFG=$(mktemp -d)
+lines() { if [ -f "$LOG" ]; then grep -c . "$LOG"; else echo 0; fi; }
+cl() { # name expected_new_lines payload [PATH override]
+  local before after out rc
+  before=$(lines)
+  if [ -n "$4" ]; then out=$(printf '%s' "$3" | PATH="$4" "$BASH_BIN" "$H/change-log.sh" 2>&1); rc=$?
+  else out=$(printf '%s' "$3" | bash "$H/change-log.sh" 2>&1); rc=$?; fi
+  after=$(lines)
+  if [ "$rc" = 0 ] && [ -z "$out" ] && [ $((after - before)) = "$2" ]; then echo "  PASS  $1"; pass=$((pass+1))
+  else echo "  FAIL  $1 — exit $rc, $((after - before)) new line(s) (want $2), output: ${out:0:80}"; fail=$((fail+1)); fi
+}
+W_CL=$(natpath "$CL"); W_SUB=$(natpath "$CL/sub/dir"); W_NOCFG=$(natpath "$NOCFG")
+cl "no project.json above the session folder → nothing" 0 "$(pl gw_write "$W_NOCFG" U111)"
+if [ -e "$NOCFG/.bluestep" ]; then echo "  FAIL  a workspace without the flow got a .bluestep folder"; fail=$((fail+1)); fi
+cl "gateway read → nothing" 0 "$(pl gw_read "$W_CL" U111)"
+cl "graphql_query read (older release line) → nothing" 0 "$(pl gw_read "$W_CL" U111 graphql_query)"
+cl "gateway write in the source org → one line" 1 "$(pl gw_write "$W_CL" U111)"
+if tail -n 1 "$LOG" | grep -q '"objId":"1000012___9"' && tail -n 1 "$LOG" | grep -q '"role":"source"' && tail -n 1 "$LOG" | grep -q '"session":"s-test"'; then
+  echo "  PASS  the line carries the created id, the role and the session"; pass=$((pass+1))
+else echo "  FAIL  line content: $(tail -n 1 "$LOG" | cut -c1-160)"; fail=$((fail+1)); fi
+cl "view create with nested arguments → one line" 1 "$(pl gw_view_create "$W_CL" U111)"
+if tail -n 1 "$LOG" | grep -q '"op":"create","type":"view","objId":"1000019__FID_probeQuery","name":"zz probe query","fid":"probeQuery"'; then
+  echo "  PASS  the view line has the view id, not the form id, and op create"; pass=$((pass+1))
+else echo "  FAIL  view line content: $(tail -n 1 "$LOG" | cut -c1-200)"; fail=$((fail+1)); fi
+cl "view create whose response names only the form → one line" 1 "$(pl gw_view_create "$W_CL" U111 noview)"
+if tail -n 1 "$LOG" | grep -q '"type":"view","objId":null'; then
+  echo "  PASS  a view create with no view id in the response logs objId null, not the form id"; pass=$((pass+1))
+else echo "  FAIL  view-without-id line: $(tail -n 1 "$LOG" | cut -c1-200)"; fail=$((fail+1)); fi
+cl "form create with nested arguments → one line" 1 "$(pl gw_form_create "$W_CL" U111)"
+if tail -n 1 "$LOG" | grep -q '"op":"create","type":"form","objId":"1000001__FID_probeForm","name":"zz probe form","fid":"probeForm"'; then
+  echo "  PASS  the form line has the form id, its name and op create"; pass=$((pass+1))
+else echo "  FAIL  form line content: $(tail -n 1 "$LOG" | cut -c1-200)"; fail=$((fail+1)); fi
+cl "gateway write from a subfolder of the workspace → one line" 1 "$(pl gw_write "$W_SUB" 222)"
+cl "gateway write to an org not in project.json → nothing" 0 "$(pl gw_write "$W_CL" U999)"
+cl "gateway call whose body is a platform error → nothing" 0 "$(pl gw_error "$W_CL" U111)"
+cl "b6p publish via Bash (forward slashes) → one line" 1 "$(pl b6p "$W_CL" Bash 'b6p --yes --json push --file "U222/My Comp/draft/scripts/app.ts" --snapshot --message "x"' true)"
+if tail -n 1 "$LOG" | grep -q '"op":"publish"' && tail -n 1 "$LOG" | grep -q '"name":"My Comp"' && tail -n 1 "$LOG" | grep -q '"target":"Tgt"'; then
+  echo "  PASS  the b6p line names the component, the target and publish"; pass=$((pass+1))
+else echo "  FAIL  b6p line content: $(tail -n 1 "$LOG" | cut -c1-160)"; fail=$((fail+1)); fi
+cl "b6p draft push via PowerShell (backslashes) → one line" 1 "$(pl b6p "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts"' true)"
+cl "b6p publish with an EXIT= line after the JSON → one line" 1 "$(pl b6p "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts" --snapshot --message "x"; "EXIT=$LASTEXITCODE"' true 'EXIT=0')"
+cl "b6p push that says pushed:false → nothing" 0 "$(pl b6p "$W_CL" Bash 'b6p --yes --json push --file U111/Comp/draft/scripts/app.ts' false)"
+cl "a Bash call that is not a b6p push → nothing" 0 "$(pl b6p "$W_CL" Bash 'echo b6p is great' true)"
+cl "publish that exits 1 but went live (PostToolUseFailure) → one line" 1 "$(pl b6p_fail "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts" --snapshot --message "x"' true)"
+cl "push that exits 1 and says pushed:false (PostToolUseFailure) → nothing" 0 "$(pl b6p_fail "$W_CL" Bash 'b6p --yes --json push --file U111/Comp/draft/scripts/app.ts' false)"
+cl "a failed gateway call (PostToolUseFailure) → nothing" 0 "$(pl gw_fail "$W_CL" U111)"
+cl "GraphQL mutation from a browser tab → one line" 1 "$(pl gql "$W_CL")"
+cl "malformed input → nothing, exit 0" 0 'not json at all, but it says invoke_org_tool'
+if [ -x "$TOOLD/node" ] || [ -x "$TOOLD/node.exe" ]; then
+  echo "  SKIP  no node on PATH (the tool folder holds node)"
+else
+  cl "no node on PATH → nothing, exit 0, silent" 0 "$(pl gw_write "$W_CL" U111)" "$TOOLD"
+fi
+DEADNODE=$(mktemp -d); printf '#!/bin/sh\necho "node: broken" >&2\nexit 9\n' > "$DEADNODE/node"; chmod +x "$DEADNODE/node"
+cl "a node that fails to run → nothing, exit 0, silent" 0 "$(pl gw_write "$W_CL" U111)" "$DEADNODE:$PATH"
+rm -rf "$DEADNODE"
+P1=$(pl gw_write "$W_CL" U111); before=$(lines)
+printf '%s' "$P1" | bash "$H/change-log.sh" & printf '%s' "$P1" | bash "$H/change-log.sh" & wait
+after=$(lines)
+if [ $((after - before)) = 2 ] && "$PY" -c 'import json,sys; [json.loads(l) for l in open(sys.argv[1]) if l.strip()]' "$LOG" 2>/dev/null; then
+  echo "  PASS  two sessions appending at once → two whole lines"; pass=$((pass+1))
+else echo "  FAIL  concurrent appends: $((after - before)) new line(s), or a broken line"; fail=$((fail+1)); fi
+rm -rf "$CL" "$NOCFG"
+
 echo
 echo "passed=$pass failed=$fail"
 [ "$fail" = 0 ]

@@ -1,10 +1,11 @@
 # Requirements — [Feature Name]
 
 **Status:** Drafting | Approved | Superseded
+**Tracking:** <task link, or none>
 
 ## Context
 
-What problem is this solving? Who asked for it? (Link to ClickUp ticket if relevant.)
+What problem is this solving? Who asked for it?
 
 ## User stories
 

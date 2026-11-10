@@ -35,7 +35,7 @@ harmless when the underlying bug is fixed (an extra read-back, an explicit param
 follow them regardless. Only drop a UI hand-back when a **read-only** probe on the target org shows the
 behavior changed — never re-verify with a mutation.
 
-## One procedure, three entry points
+## One procedure, five entry points
 
 Steps 2–6 are identical everywhere. Only the ends differ:
 
@@ -43,6 +43,8 @@ Steps 2–6 are identical everywhere. Only the ends differ:
 | --- | --- | --- |
 | `/spec-execute` | a `[PLATFORM]`-prefixed task | mark `[x]` in `tasks.md`, STOP |
 | `/quick-task` | a small change needs a platform op | none (no checkbox) |
+| `/b6p-propagate` | a step of a propagation or refresh plan (create, wire, config) in one target org | tick that target's lines on the task card |
+| Close-out (`conventions/close-out.md`) | a task card update or a new task, reached from a task skill's last step | none |
 | Free conversation (no skill) | a plain request ("add the `allStaff` query to this component") | none |
 
 **Mark `[x]` only when spec-driven.** Conversationally there is no checkbox — do not invent one.
@@ -168,6 +170,12 @@ which org. Required at **every** entry point, conversational included.
 - A multi-op task may take **one** approval covering the batch — except destructive ops and
   no-MCP-inverse schema ops (`create_mefr`, `record_type`, …), which get individual echoes; report each
   result.
+- **A plan is an echo.** A propagation plan (`/b6p-propagate`) may take **one** approval for one
+  target org when it lists, in order, every concrete inner call that will run there (org, tool,
+  arguments, `expectedVersion`), and marks each no-MCP-inverse create as having no undo through the
+  gateway. The approval covers exactly the listed calls: a call that is not in the plan, a changed
+  argument, or a second org needs its own yes. Destructive ops (deletes, a `REPLACE` of
+  permissions) still get an individual echo.
 
 ### 6 — Execute + declaration read-back
 

@@ -98,6 +98,7 @@ drift.
 
 - **Spec-driven workflow** — `/spec-create` → `/spec-execute` → `/spec-status`, plus `/quick-task` for small changes.
 - **Platform sync** — `/b6p-pull`, `/b6p-push`, `/b6p-audit`; the agent usually runs these for you. `/b6p-push` tells you what a push will overwrite and delete on the platform before it goes.
+- **Propagation between orgs** — `/b6p-propagate` moves a change from a source org (a sandbox, a template or config org) to its target orgs — code, config and new fields, option lists, queries or forms — one target at a time, after one plan and one approval per target. Off unless the project turns it on (`/b6p-propagate enable`); on Claude Code a hook records each platform write so the move knows what to carry, and the task card shows where the change has landed.
 - **Setup** — `/b6p-setup` (machine, project and update in one run) and `/bluestep-vite-report` (scaffold an off-platform Vite/Preact merge report).
 - **Platform authoring** — the bundled `bluestep-gateway` MCP server (auto-registers once the plugin is enabled and `$B6PT_TOKEN` is set) lets the agent create and wire platform objects in-session.
 - **Subagents** — `b6p-task-implementer` (isolated task execution), `b6p-commenter` (component README), `b6p-code-review` (report-only review).
@@ -123,6 +124,7 @@ deeper is read on demand.
 | `/spec-status` | Progress across all specs in `.claude/specs/`. | A quick tally of what is in flight. |
 | `/quick-task` | A short workflow for a small, clearly scoped change or bug — one living doc, no three-phase spec. | Small fixes; escalates to `/spec-create` if the scope grows. |
 | `/b6p-pull` · `/b6p-push` · `/b6p-audit` | Bring a component down · push local edits back (publish or draft, your choice, with what it will overwrite and delete stated first) · list what differs (read-only). | Usually the agent's call, as part of its workflow. |
+| `/b6p-propagate` | Move a change from the project's source org to its target orgs (code, config, new objects), or bring components back from a target (`refresh`); `enable` turns it on, `status` shows what is open. | When work done in a sandbox or config org has to reach production or client orgs. Offered at the end of a task, never forced. |
 | `/task-comment` · `/bspecs-feedback` | Draft a ClickUp implementation comment · send a plugin-change request upstream. | After shipping · whenever the tooling itself should change. |
 
 | Agent | What it does | How it fires |

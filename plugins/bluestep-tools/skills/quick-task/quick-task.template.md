@@ -2,6 +2,7 @@
 
 **Type:** <bug fix | small change>
 **Component:** <component name>
+**Tracking:** <task link, or none>
 **Status:** in progress <!-- in progress | published, not verified | done -->
 
 ## Summary
