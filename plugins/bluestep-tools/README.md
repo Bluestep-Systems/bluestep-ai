@@ -105,8 +105,9 @@ drift.
 - **Client-data check in git** — `/b6p-setup` copies `pre-commit` and `pre-push` hooks into the project's `scripts/hooks/` (committed, so they work in every tool and for hand edits), and can turn on an optional model review of each push. How it works and what to do when it blocks: `bluestep-reference` → `conventions/client-data.md`. The check on an agent's writes as they happen is the separate, opt-in [`phi-guard`](../phi-guard/README.md) plugin.
 - **On-demand reference** — `bluestep-reference`, a BsJs/RelateScript/platform reference the agent reads one file at a time, only when a task calls for it.
 - **Feedback** — `/task-comment` (ClickUp implementation comment), `/bspecs-feedback` (propose a plugin change upstream; you get an email when it is closed).
+- **Answers that fit the reader** — the project's `AGENTS.md` tells every tool to lead with the answer, match your level (technical detail when you write technically or ask for it, plain words otherwise), ask only what is yours to decide and only when it can't go on without your answer (with the question tool on Claude Code), and list what it did not check. On Claude Code you can also turn on the **Plain answers** output style for shorter, plainer answers: `/b6p-setup` offers it once per project, with an example of each choice, and saves it for you only, in `.claude/settings.local.json` (`"outputStyle": "bluestep-tools:Plain answers"`, the exact value). `/b6p-preferences` shows and changes it later.
 
-A plugin cannot ship *always-on* context, which is why `/b6p-setup` writes the platform rules into
+Apart from an output style you pick, a plugin cannot ship *always-on* context, which is why `/b6p-setup` writes the platform rules into
 your project's own `AGENTS.md` (with the one-line `CLAUDE.md` bridge for Claude Code). Everything
 deeper is read on demand.
 
@@ -115,6 +116,7 @@ deeper is read on demand.
 | Command | Use it to | When |
 | --- | --- | --- |
 | `/b6p-setup` | Check the machine, write the missing project files, bring an old project up to date; `--all` for every project on the machine. | A new machine, a new or existing folder, after a plugin update — or never, because the skills below run it for you. |
+| `/b6p-preferences` | Your own settings for these tools in one place: how Claude answers you (short and plain, or complete and technical), when a long conversation is summarized, the client-data guard. Changes only your git-ignored `.claude/settings.local.json`. | When answers are too long, too short or too technical, or to see what you can change. |
 | `/bluestep-vite-report` | Scaffold an **off-platform** Vite/Preact single-page-app merge report (a bundled `static/index.html` deployed via deploy-lib). | A merge report that needs a real SPA build rather than the hand-written `static/script.ts` path. |
 | `/spec-create` | Plan a feature — `requirements.md`, then `design.md`, then `tasks.md`, with approval between each. | A non-trivial change worth designing before coding. |
 | `/spec-execute` | Implement **one** approved task and tick it; delegates to `b6p-task-implementer` by default, `--inline` to stay in the session. | After `/spec-create`, once per task. |
@@ -176,8 +178,10 @@ with `B6PT_TOKEN` set the plugin page shows `bluestep-gateway` connected.
   `task-comment`, `bspecs-feedback`, `bluestep-vite-report`, and `bluestep-reference` (the on-demand
   platform reference).
 - `agents/` — the three BlueStep subagents.
-- `hooks/` — `block-generated-files.sh`, `tab-guard.sh` (Claude Code only) and the session
-  `canary.sh` (Claude Code only), wired in `hooks.json`.
+- `hooks/` — `block-generated-files.sh`, `tab-guard.sh` (Claude Code only), the session
+  `canary.sh` and the after-compaction `compact-reminder.sh` (both Claude Code only), wired in
+  `hooks.json`.
+- `output-styles/` — `plain-answers.md`, the opt-in Claude Code output style `/b6p-setup` offers.
 - `.mcp.json` — bundles the `bluestep-gateway` MCP server.
 - [`CHANGELOG.md`](CHANGELOG.md) — this plugin's release history.
 

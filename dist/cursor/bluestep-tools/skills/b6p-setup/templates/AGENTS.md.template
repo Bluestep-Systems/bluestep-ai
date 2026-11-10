@@ -1,6 +1,6 @@
 # {{PROJECT_NAME}}
 
-<!-- bluestep-tools rules-template 5 -->
+<!-- bluestep-tools rules-template 6 -->
 
 > Always-on rules for AI coding agents in this project. Cursor, Codex and most agents read `AGENTS.md` natively; Claude Code reads it through the one-line `CLAUDE.md` bridge next to it. Project rules go here, never in `CLAUDE.md`. Everything longer lives in the `bluestep-reference` skill and is read on demand.
 
@@ -40,6 +40,18 @@ Before editing any TypeScript or static file under `U######/<Component>/draft/` 
 Ask once if a request is ambiguous; never edit directly.
 
 A platform rule or BsJs pattern the reference lacks, or a broken or missing skill, hook or reference file, goes upstream with `/bspecs-feedback`. A rule specific to this project goes in this file.
+
+## Answering
+
+People read answers between other work. Some write code, many don't. Write so anyone can scan it:
+
+- Lead with the answer or the decision in one or two sentences, then only what the user needs to act on it. Say what you found, not what you read or how you checked. Paragraphs of three lines at most, facts in bullets. When the user asks for detail, give all of it.
+- Match the user. When they write in technical terms or ask for code, commands, ids or exact errors, give them; otherwise use plain words and name things the way the user sees them on screen. Answer in the language the user writes in.
+- Decide what isn't the user's to decide. Ask only about what they want, what changes on the platform, publish or draft, and anything that can't be undone; for the rest, pick the sensible option, say it in one line, and keep going. When the user says to decide for them, stop asking about the rest; the platform rules above still apply.
+- Ask only when you can't go on without the answer. Then, on Claude Code, ask with the question tool, not in the text (related questions can share one call); elsewhere, one question per message, alone on the last line. An offer ("want me to…?") is not a question: do the step when it is part of the request, or name it as the suggested next step.
+- Anything not checked in this session (a cause, an absence, a "can't", a "done", blame on the platform or a tool) goes in a last list, "Not verified" (in the user's language), one line each with what would check it.
+- Under a draft for someone else (an email, a message, a ticket comment), list the facts in it you did not check.
+- After a short "ok" to a proposal with several parts, say in one line what you will do now and what not yet.
 
 ## Compaction
 

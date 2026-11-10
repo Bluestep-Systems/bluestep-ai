@@ -11,6 +11,50 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.47.0] — 2026-11-09
+
+> **Answers that fit the reader.** Users told us answers were too long, too technical, and that a
+> question at the end got lost. Two changes: an `## Answering` section in the shipped `AGENTS.md`
+> for every tool (**template marker 6**: every project on 5 or below detects `rules-template`, and an
+> unmodified file is swapped without a question), and an opt-in Claude Code output style for people
+> who want short, plain answers. No hook changes.
+
+### Added
+
+- **`## Answering` in the shipped `AGENTS.md`** (86bcx7urv), for Claude Code, Cursor and Codex. Lead
+  with the answer and only what the user needs to act on it; match the user (code, commands, ids and
+  exact errors when they write technically or ask, plain words otherwise) in the language they write
+  in; decide what isn't the
+  user's to decide and ask only about what they want, platform changes, publish or draft, and what
+  can't be undone, and stop asking about the rest when the user says to decide; ask only when the
+  work can't go on without the answer, and then with the question tool on Claude Code (one question
+  alone on the last line elsewhere), never as a list of questions in the text; an offer ("want me
+  to…?") is done or named as the next step, not asked; unchecked claims in a last **Not verified**
+  list. The template is now 63 lines.
+- **Output style `Plain answers`** (86bcx7urv), in `output-styles/plain-answers.md`, Claude Code only
+  and **opt-in**: the same rules, pushed further toward short answers in everyday words with no ids
+  or tool names unless needed. `keep-coding-instructions` keeps Claude Code's coding instructions.
+  It is not forced: in the CLI 2.1.321 a forced plugin style replaced even a style the user had
+  picked on purpose.
+- **`/b6p-preferences`**, a new skill: the user's own settings for these tools in one place, in
+  plain words — how Claude answers them (**Short and plain** or **Complete and technical**, each shown
+  with an example), when a long conversation is summarized (a personal `autoCompactWindow` over the
+  team's 400K), and whether the client-data guard is installed. It writes only the git-ignored
+  `.claude/settings.local.json`, never the team's `.claude/settings.json`. On Cursor and Codex, which
+  have no output styles, it writes nothing and says where a personal rule goes.
+- **`/b6p-setup` asks how answers should read**, once per person and project, on Claude Code, when
+  neither `~/.claude/settings.json` nor `.claude/settings.local.json` sets `outputStyle`: one line
+  on what is new, then `/b6p-preferences`' card. **Short and plain** writes
+  `"outputStyle": "bluestep-tools:Plain answers"`; **Complete and technical** writes `"default"`, so the
+  question is not asked again.
+- **How it was checked:** the Claude Code CLI 2.1.321 with the tester's own instructions excluded, 8
+  prompts (developer and non-developer, "decide for me" and "ask me first") × 3 setups (the old
+  template, the new one, the new one plus the style). The new section added the Not verified list
+  and kept code, exact lines and API calls on technical prompts; alone it
+  barely changed length or wording for non-developers, and the style cut a diagnosis answer from 318
+  to 227 words without internal names. Then two live sessions in the desktop app: a request with a real
+  choice got one question, in the app's end-of-turn box with buttons, and a diagnosis got none.
+
 ## [plugin 0.46.13] — 2026-11-09
 
 > **Plain-words approvals and honest type-check counts.** Reference text only; no hook or template
