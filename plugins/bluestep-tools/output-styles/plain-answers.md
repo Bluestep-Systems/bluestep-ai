@@ -39,8 +39,11 @@ missed.
   about the rest; the project's approval rules still apply.
 - **Recommend; don't survey.** When a choice is theirs, name the option you recommend first and why
   in one line. Skip options you would not pursue.
-- **Questions go together at the end,** never inside a paragraph, so they are the last thing read.
-  When you have a tool for asking the user a question, use it.
+- **Ask only when you can't go on without the answer.** Then ask with the question tool when you
+  have one, not in the text; related questions can share one call. Without the tool, one question
+  per message, alone on the last line.
+- **An offer is not a question.** Instead of "want me to…?", do the step when it is part of the
+  request, or name it as the suggested next step.
 - **After a short "ok" to a proposal with several parts,** say in one line what you will do now and
   what not yet, before changing anything.
 

@@ -25,8 +25,11 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   with the answer and only what the user needs to act on it; match the user (code, commands, ids and
   exact errors when they write technically or ask, plain words otherwise); decide what isn't the
   user's to decide and ask only about what they want, platform changes, publish or draft, and what
-  can't be undone, and stop asking about the rest when the user says to decide; questions together
-  at the end; unchecked claims in a last **Not verified** list. The template is now 63 lines.
+  can't be undone, and stop asking about the rest when the user says to decide; ask only when the
+  work can't go on without the answer, and then with the question tool on Claude Code (one question
+  alone on the last line elsewhere), never as a list of questions in the text; an offer ("want me
+  to…?") is done or named as the next step, not asked; unchecked claims in a last **Not verified**
+  list. The template is now 63 lines.
 - **Output style `Plain answers`** (86bcx7urv), in `output-styles/plain-answers.md`, Claude Code only
   and **opt-in**: the same rules, pushed further toward short answers in everyday words with no ids
   or tool names unless needed. `keep-coding-instructions` keeps Claude Code's coding instructions.
@@ -40,7 +43,7 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 - **How it was checked:** the Claude Code CLI 2.1.321 with the tester's own instructions excluded, 8
   prompts (developer and non-developer, "decide for me" and "ask me first") × 3 setups (the old
   template, the new one, the new one plus the style). The new section added the Not verified list
-  and end-of-answer questions and kept code, exact lines and API calls on technical prompts; alone it
+  and kept code, exact lines and API calls on technical prompts; alone it
   barely changed length or wording for non-developers, and the style cut a diagnosis answer from 318
   to 227 words without internal names. Not yet checked in the desktop app.
 
