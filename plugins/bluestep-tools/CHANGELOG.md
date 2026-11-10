@@ -11,6 +11,44 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.49.0] — 2026-11-10
+
+> **The reference catches up with web release 26.11.09.** The platform now compiles TypeScript
+> itself, and scripts that run as their caller now enforce that caller's permissions. Both were
+> checked live on a playground org with b6p 0.8.2 before a line went in; what could not be checked
+> is marked "as reported". No hook or skill flow changes.
+
+### Added
+
+- **`reference/server-side-compile.md`**: which write the platform compiles. A b6p 0.8.x push or
+  publish goes over WebDAV and is neither recompiled nor gated (a publish went live with the draft's
+  gate tripped); a gateway `write_script_draft` of a source compiles the whole draft and returns a
+  `compile` block, while a write into `.build/` alone compiles nothing; the save gate keeps the old
+  build when the new one would change an untouched file's program (`GATE_TRIPPED`,
+  `OUTPUT_DIFFERS`); a GraphQL publish refuses with `PUBLISH_REFUSED` and one of the org's
+  `PublishRefusalReason` values; what to do with a trip (accept the new output, or
+  `externallyBuilt`).
+- **`reference/script-permission-checks.md`**: endpoints and reports without Run as Super User,
+  formulas and anonymous pages enforce the caller's View/Create/Edit/Delete. A query over a field
+  the caller may not view is refused (`RemoteSecurityException: You may not run this Relate Query:
+  it depends on a field you may not view.`). Scripts that existed at the deploy carry
+  `legacyPermissions: true` and keep the old behaviour; new ones read `false`; the flag applies on
+  the next run with no publish. Test new scripts as a non-super caller.
+
+### Changed
+
+- **"The platform never compiles" is gone** from `b6p-platform.md`, `bsjs-development.md` and
+  `gotchas/third-party-lib-type-noise.md`: each now says the CLI's build is what goes live with
+  b6p 0.8.x, and points at the server compile for gateway, GraphQL and editor saves.
+- **`conventions/mcp-platform-authoring.md`**: how to read `write_script_draft`'s `compile` block,
+  and `legacyPermissions` on the script tools; the EndPoint grant bullet points at the new checks.
+- **`b6p-platform.md` anonymous access**: a new script also checks the visitor's View on what it
+  reads, even on a form where Everyone is Relate Author.
+- **`/b6p-push`** and its `references/type-check-diagnostics.md` say a b6p 0.8.x publish is not
+  recompiled or refused by the platform.
+- **`/b6p-propagate`'s config matrix** has a `legacyPermissions` row: a script created in a target
+  reads `false` while its source may read `true`.
+
 ## [plugin 0.48.1] — 2026-11-10
 
 > **The change log no longer slows down shell commands.** The `change-log.sh` hook from 0.48.0 started

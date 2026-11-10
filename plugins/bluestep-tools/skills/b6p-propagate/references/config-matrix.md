@@ -55,6 +55,7 @@ nightly schedule off in the source."). Every other item follows the plan.
 | `configJson` | `/gql` only | `/gql` only | plan |
 | description | `/gql` only | `update_script` `description` (run on the newer line) | plan |
 | name | `get_script`, `lookup_script_by_name` | check by hand: `update_script` `name` does not rename | plan |
+| `legacyPermissions` | `get_script`, `lookup_script_by_name` (since web 26.11.09) | `update_script` `legacyPermissions`; turning it on needs a super administrator, so otherwise check by hand. A script created in the target reads `false` (the bluestep-reference skill's `reference/script-permission-checks.md`) | plan |
 
 ### Formulas
 

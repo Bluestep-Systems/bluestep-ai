@@ -53,6 +53,8 @@ If `$ARGUMENTS` contains a component path (relative to the project root), use it
 
 **Publish** (`--snapshot --message`) compiles `scripts/` and any `static/` bundle in the CLI, updates the **live version** and records a restore point. **Save draft only** (plain push) uploads the source as-is: nothing compiles, the live version does not change — rarely what the user wants. Publish is the recommended default: pre-selected, never run without an explicit selection.
 
+With b6p 0.8.x this holds on a platform that compiles on its own (since web 26.11.09): the push goes over WebDAV, which the platform never compiles, so a publish goes live with the CLI's build and is never refused by the platform's save gate. The platform's compile applies to saves made through the gateway MCP, GraphQL or its editor — the `bluestep-reference` skill's `reference/server-side-compile.md`.
+
 Most users are non-technical, so present the choice in **plain language — avoid the words "snapshot" and "push" in what they see.** Show the one-line diff scope from step 2, then ask **two** structured questions with clickable options (`AskUserQuestion` in Claude Code) — one at a time, never as a numbered list to answer by hand:
 
 1. **"How should this change go out?"** — two options, plus an "Other" escape (`AskUserQuestion` adds "Other" automatically in Claude Code, so don't author a third option there; where the tool doesn't auto-add one, add it yourself):

@@ -566,7 +566,9 @@ verified — the dating key at the top of this page says how to read the markers
   - **MergeReport** — yes, on the report. Reader is enough.
   - **EndPoint** — yes, on the endpoint; with "Run as Super User" off, also on the forms it uses.
     Reader is enough with "Run as Super User" on; with it off the right level is not established, so
-    read back and test before settling on one.
+    read back and test before settling on one. A script created since web 26.11.09 also checks its
+    caller's View on every field a query it runs depends on: see
+    [reference/script-permission-checks.md](../reference/script-permission-checks.md).
   - **Formulas** (pre-save, post-save, pre-edit, pre-delete, scheduled, on-demand) — no, neither on
     the formula nor on the forms it reads. Never widen a form's permissions so a formula can read
     it: that gives people access nobody asked for.
@@ -609,6 +611,18 @@ verified — the dating key at the top of this page says how to read the markers
   category argument): `MUST_HAVE` adds a category, `NONE` takes it off, and `get_script` reads them
   back as `mustHaveCategories`. Read its schema first: it has conditions of its own on the formula's
   record-type scope and primary form. (verified 2026-11 on the newer release)
+- **`write_script_draft` compiles the draft on the server** (since web 26.11.09): read the
+  `compile` block of its response. `COMPILED` means the draft's `.build/` was rebuilt;
+  `GATE_TRIPPED` means the source was saved but no output was written and the old build still runs —
+  report it, do not rewrite in a loop. A write into `.build/` alone compiles nothing. The draft is
+  still not live. Detail: [reference/server-side-compile.md](../reference/server-side-compile.md).
+  (verified 2026-11)
+- **`legacyPermissions`** on `get_script`, `lookup_script_by_name`, `create_script` and
+  `update_script` says whether runs of the script skip the caller-permission checks scripts gained in
+  web 26.11.09. A new script reads `false`; turning it on with `update_script` needs a super
+  administrator. A **new endpoint or report must be tested as a non-super caller.** Detail:
+  [reference/script-permission-checks.md](../reference/script-permission-checks.md). (verified
+  2026-11)
 
 **Units & records**
 
