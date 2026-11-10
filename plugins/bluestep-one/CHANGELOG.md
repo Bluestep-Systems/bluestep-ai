@@ -3,6 +3,30 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
+## [0.1.1] — 2026-11-10
+
+### Added
+
+- Gotchas: `B6pSaveFooter` truncates its error line; a `class` on a canvas `x-import` can replace
+  a kit part's classes; a `formEntries` read filtered on a text field is slow the first time per
+  value; `updateFormRow` on a signed entry can answer success and save nothing; a "[Federation
+  Runtime] … shared singleton" console line on the first load after a publish, with the screen
+  working. These entries carry no id; the reference's manifest says so and lists their topics.
+
+### Changed
+
+- **A build that fails with "source fetch answered 404" can need several tries** (G-229,
+  `build/publish.md`, gate 5 of `/bluestep-one:build`). The second try is no longer "always"
+  enough: after two failures sign out and in again, after four hand the build to the *Build* tab
+  and report it. An org runs at most three builds at once.
+- **P-76 now describes** inline warning links (each link drawn in its own words) and a reasoned
+  refusal without the closing "Please try … again.", done by small helpers in each component
+  repo, not by the kit.
+- **G-91:** on one form checked, the built-in entry screen now draws relationship fields as
+  pickers; whether its save writes the link is not checked yet.
+- `build/ux-check.md` says what to do when the only console error is that first-load federation
+  line.
+
 ## [0.1.0] — 2026-11-05
 
 > **First release.** Build BlueStep One custom components with Claude Code. Claude Code only; the

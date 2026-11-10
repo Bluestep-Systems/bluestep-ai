@@ -43,7 +43,8 @@ Each is a gate: a failure stops the run there, says which gate and why, and noth
    `one.host` (`publish.md`): check who is signed in, then a lone
    `buildCustomComponent(id)` mutation, then poll `customComponentBuild(id, sha)` until
    `SUCCEEDED`. The gateway has no build tool. On `FAILED` with "source fetch answered 404", build
-   the same commit again once; a second failure stops the run. With no signed-in tab, ask the user
+   the same commit again, as `publish.md` › *Known failures* says (how many tries, and when to
+   stop and hand the build to the *Build* tab). With no signed-in tab, ask the user
    to sign in to that site in the app's browser; if a POST is refused, ask them to press *Rebuild
    draft* in the component's *Build* tab.
 6. **Publish.** Read `publishedSha`. Publish only when it differs from the built sha and the build

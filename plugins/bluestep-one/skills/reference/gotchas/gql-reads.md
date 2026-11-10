@@ -100,3 +100,27 @@ What to do: ask for `sortOrder` and sort every option list a screen draws by it 
 kept in the answer's order).
 
 **Applies to:** any BlueStep One component
+
+### A `formEntries` read filtered on a text field costs about 2.5 s the first time per value; a "has a value" filter and a sort on a date-time field cut it to 0.6 s
+
+What looks right: a `formEntries` read on one form across a unit, with one `=` filter on a text
+field (one that holds a parent entry's id) and five fields on 100 rows, is a cheap read. What
+happens: seen once, measured on one form, the first read of each filter value cost 1.5 to 2.6 s,
+the server's time rather than the rows' (2 rows and 100 rows took the same), and the same read
+again 0.22 s for minutes. A page that reads one parent after another waits for the slowest read:
+several seconds before anything shows on a record with many parents. With a second filter
+`{ fieldId: "<date-time field>", operation: "<>" }` and no value (the rows that have one; `=` with
+no value is the rows without) and `sort: [{ fieldId: "<the same>", direction:
+DESCENDING_NULLS_LAST }]`, the same read cost 0.6 s cold and 0.21 s warm, newest row first. In the
+same probe a `<>` with a value answered INTERNAL; on a signature field, use the `d` operators
+(G-171).
+
+**How to tell.** From a signed-in tab on a test org, time the read twice on a filter value not read
+for a while, then the same read with the `<>` filter and the sort on another such value, twice
+(measured: about 2500/220 ms against 600/210 ms).
+
+What to do: filter and sort on the date-time field the screen needs, ask for the rows that have it,
+read one page, and show each read as it lands instead of waiting for the last one; never size a
+loading state on one timing.
+
+**Applies to:** any BlueStep One component

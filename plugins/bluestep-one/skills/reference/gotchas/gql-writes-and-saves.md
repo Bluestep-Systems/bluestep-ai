@@ -76,3 +76,23 @@ What to do: to prove what a save did to a multi-select, read the field back; do 
 `changes`.
 
 **Applies to:** any BlueStep One component
+
+### `updateFormRow` on an entry with a signed signature can answer success, keep its `rowVersion` and save nothing
+
+What looks right: create an entry with its signature set (`true`), then `updateFormRow` a field
+left out of the create (a plain text field) with the answered `expectedVersion`. What happens:
+seen once, on one form, the mutation answered `data` with the entry's id and the **same**
+`rowVersion`, with no `errors`, and the field was still empty on read-back. The same value sent
+inside the `createFormRow`, beside the signature, was saved. Unlike G-321, the version sent was
+current and the value was new. The cause is not proven; most likely the signed signature locks the
+fields it covers and the update path drops the change without a refusal.
+
+**How to tell.** On a test org, `createFormRow` an entry with its required fields and the
+signature `true`, leaving out one plain text field; `updateFormRow` that field with the answered
+version; read `rowVersion` and the field back: the version has not moved and the value is null.
+
+What to do: send every value an entry needs in the same create that signs it. After an
+`updateFormRow` that changes a value, compare the answered `rowVersion` with the one sent and
+treat an unchanged version as "not saved" (a write of equal values also keeps its version, G-321).
+
+**Applies to:** any BlueStep One component

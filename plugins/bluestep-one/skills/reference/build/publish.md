@@ -52,8 +52,10 @@ works on both.
 ## Known failures
 
 - **`QUEUED` for minutes, then `FAILED` with "source fetch answered 404"** (twice in its `log`).
-  Build the same commit again: the second try has succeeded within seconds every time seen. Two
-  failures in a row: try a third time, then stop and report.
+  Build the same commit again: a later try usually builds, mostly by the fourth, but not always
+  (G-229). After two failures sign out and in again; after four, stop, ask the user to build from
+  the component's *Build* tab, and report it. An org runs at most three builds at once, so build a
+  batch two or three at a time.
 - **A push the Build tab does not show.** The tab cannot tell whether a push is waiting; read
   `customComponentBuild` for the pushed sha instead.
 - **"Tool not found" from the gateway's `graphql_mutation` or `graphql_query`.** The org already

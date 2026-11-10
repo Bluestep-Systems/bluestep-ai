@@ -75,6 +75,9 @@ never idle, or a screen not scanned for names stops too.
   project keeps its design decisions, and report the missing server read to the platform team.
   Lower it again once the server serves it. Never raise a
   key to pass a run without that reason.
+- **Only a "[Federation Runtime] … shared singleton … does not satisfy" console error** on the
+  first load after a publish, with the screen complete: reload once and run the check again; do
+  not publish again for it (`gotchas/manage-walks-and-method.md`, the entry beside G-231).
 
 ## Known limits
 
