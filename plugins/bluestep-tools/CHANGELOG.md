@@ -23,7 +23,8 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 
 - **`## Answering` in the shipped `AGENTS.md`** (86bcx7urv), for Claude Code, Cursor and Codex. Lead
   with the answer and only what the user needs to act on it; match the user (code, commands, ids and
-  exact errors when they write technically or ask, plain words otherwise); decide what isn't the
+  exact errors when they write technically or ask, plain words otherwise) in the language they write
+  in; decide what isn't the
   user's to decide and ask only about what they want, platform changes, publish or draft, and what
   can't be undone, and stop asking about the rest when the user says to decide; ask only when the
   work can't go on without the answer, and then with the question tool on Claude Code (one question
@@ -45,7 +46,8 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   template, the new one, the new one plus the style). The new section added the Not verified list
   and kept code, exact lines and API calls on technical prompts; alone it
   barely changed length or wording for non-developers, and the style cut a diagnosis answer from 318
-  to 227 words without internal names. Not yet checked in the desktop app.
+  to 227 words without internal names. Then two live sessions in the desktop app: a request with a real
+  choice got one question, in the app's end-of-turn box with buttons, and a diagnosis got none.
 
 ## [plugin 0.46.13] — 2026-11-09
 
