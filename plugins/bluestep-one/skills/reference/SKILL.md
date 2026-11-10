@@ -6,7 +6,8 @@ description: "On-demand reference for building BlueStep One custom components �
 # BlueStep One reference
 
 Read only the file the task needs. Entries carry ids (`G-`, `R-`, `P-`) in their headings, and
-other entries cite them by id; an id is the same in every file. Running a GraphQL call from a
+other entries cite them by id; an id is the same in every file. Entries added after 0.1.0 carry
+no id; cite one by its heading. Running a GraphQL call from a
 signed-in tab is in the bluestep-tools reference (`/bluestep-tools:bluestep-reference` ›
 `reference/gql-in-a-tab.md`).
 
@@ -30,12 +31,12 @@ same query runs unchanged as a `/gql` POST from a signed-in tab.
 
 ## Gotchas
 
-- [gotchas/host-components-kit.md](gotchas/host-components-kit.md) — the host contract, custom components and the `@bluestep/ui` and `@bluestep/form-kit` kits: partial host saves, radio groups and arrow keys, focus in dialogs and popovers, icon sizes, missing CSS variants, `PageContent` padding, record types, sub-unit searches, copied read deadlines, `openNewEntry`, `components.list` names, nav reads, deletes, `shownWhen` in blocks. Load when a component reads through the host, places itself, or draws kit parts.
-- [gotchas/gql-reads.md](gotchas/gql-reads.md) — reading over `/gql`: CSRF round trips, signature filters, cached host reads, id spellings, option order. Load before writing a `/gql` read.
-- [gotchas/gql-writes-and-saves.md](gotchas/gql-writes-and-saves.md) — writing over `/gql`: links a save can clear, stale versions, field-id spellings, `history` changes. Load before writing a `/gql` create or update.
+- [gotchas/host-components-kit.md](gotchas/host-components-kit.md) — the host contract, custom components and the `@bluestep/ui` and `@bluestep/form-kit` kits: partial host saves, radio groups and arrow keys, focus in dialogs and popovers, icon sizes, missing CSS variants, `PageContent` padding, record types, sub-unit searches, copied read deadlines, `openNewEntry`, `components.list` names, nav reads, deletes, `shownWhen` in blocks, the save footer's truncated error, classes on a canvas `x-import`. Load when a component reads through the host, places itself, or draws kit parts.
+- [gotchas/gql-reads.md](gotchas/gql-reads.md) — reading over `/gql`: CSRF round trips, signature filters, cached host reads, id spellings, option order, slow first reads on a text filter. Load before writing a `/gql` read.
+- [gotchas/gql-writes-and-saves.md](gotchas/gql-writes-and-saves.md) — writing over `/gql`: links a save can clear, stale versions, field-id spellings, `history` changes, an update on a signed entry that saves nothing. Load before writing a `/gql` create or update.
 - [gotchas/forms-fields-options-time.md](gotchas/forms-fields-options-time.md) — forms, relationships, option colors and checkbox layouts, windowed reads by date. Load when a screen reads or writes a form, a relationship, a select or a date.
 - [gotchas/formulas-save-order.md](gotchas/formulas-save-order.md) — what a PRE_EDIT formula sees in a save. Load when a screen's save must keep a formula's effect.
-- [gotchas/manage-walks-and-method.md](gotchas/manage-walks-and-method.md) — copied code, live-region announcements, versions written by post-save formulas, slow or failing builds, multi-unit pages, reloads between builds, read deadlines, unload guards. Load when a build, a reload or a save's version behaves oddly, or when a screen spans several units.
+- [gotchas/manage-walks-and-method.md](gotchas/manage-walks-and-method.md) — copied code, live-region announcements, versions written by post-save formulas, slow or failing builds, multi-unit pages, reloads between builds, a console line on the first load after a publish, read deadlines, unload guards. Load when a build, a reload or a save's version behaves oddly, or when a screen spans several units.
 - [gotchas/permissions-users-staff.md](gotchas/permissions-users-staff.md) — rights, staff users, *Temporary login* and signed-out sessions. Load when deciding who may see or do what, or when a save is refused.
 - [gotchas/reports-pages-search-nav.md](gotchas/reports-pages-search-nav.md) — placing a component on a page, page contexts, filters, lists built from the day's entries, nav bars and menus, list sorting, drafts across reloads. Load when a component is a page, a list or a nav piece.
 - [gotchas/live-checks-probes-testing.md](gotchas/live-checks-probes-testing.md) — a component repo's `.scratch/` folder. Load before a probe, a live check or a fixture capture.

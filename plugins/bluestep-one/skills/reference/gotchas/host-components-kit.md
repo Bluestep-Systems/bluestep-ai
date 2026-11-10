@@ -11,11 +11,11 @@ What happens, per the host's code:
 
 - **A value set to `null` is dropped** before the write, since `updateFormRow` cannot set a field
   to null. The save resolves and the field keeps its old value.
-- **A relationship value is skipped**: a link never goes out through the host's save. The built-in
-  entry screen saves through the same path. It now draws a relationship field as a type-ahead
-  picker that takes a pick, but whether its save writes the link was not checked, so read the
-  entry back. Its pickers are not narrowed by another field: a Manage page that narrowed one
-  picker by another in its own script loses that filter there.
+- **A relationship value is skipped**: a link never goes out through the host's save. On one form
+  checked, the built-in entry screen draws a relationship field as a type-ahead picker that takes
+  a pick; whether its save writes the link was not checked, so read the entry back. That picker
+  was not narrowed by another field, so a Manage page that narrowed it in its own script loses
+  that filter there.
 - **A refused field rejects the whole save** with the server's words, and nothing is saved. An
   unknown field is `PRECONDITION` "Unknown or non-editable field."; a field without Edit Value
   rights is `FORBIDDEN` "<Label>: you do not have Edit Value privileges.". The error is
@@ -354,12 +354,37 @@ merge report draws them, and test with a field that carries a `shownWhen`.
 
 ### `B6pSaveFooter`'s error line is one truncated line, so a server refusal is cut off
 
-What looks right: passing the server's refusal to `B6pSaveFooter`'s `error` prop, since the footer has a place for it. What happens: the error line carries `truncate` (the whole text only in its `title` tooltip), so a sentence like "You do not have permission to save this message." is cut to an ellipsis in a 672 px dialog, and the user never reads why the save failed. How to tell: a refusal longer than about 40 characters in a dialog footer ends in "…". What to do: show a refusal in full in a destructive `Alert` at the top of the dialog body (P-76's reasoned refusal is one), and keep the footer's `error` for short words; never un-truncate it with page CSS.
+What looks right: pass the server's refusal to `B6pSaveFooter`'s `error` prop, since the footer
+has a place for it. What happens: the error line carries `truncate`, so a refusal such as
+"<Label>: you do not have Edit Value privileges." is cut to an ellipsis in a 672 px dialog, and
+the user never reads why the save failed. A string error keeps its whole text only in the line's
+`title` tooltip. Seen once, on a canvas; the class is in the kit's current source.
+
+**How to tell.** A long refusal in a dialog footer ends in "…".
+
+What to do: show a refusal in full in a destructive `Alert` at the top of the dialog body, and
+keep the footer's `error` for short words; never un-truncate it with page CSS.
 
 **Applies to:** any BlueStep One component
 
-### On a Design artifact canvas, a `class` on an `x-import` of a kit component replaces the kit's classes
+### On a Design artifact canvas, a `class` on an `x-import` of a kit part can replace the part's own classes
 
-What looks right: asking the Design agent to widen a dialog or restyle a header button by putting `class="sm:max-w-3xl"` (or `className`, or `style`) on its `<x-import component-from-global-scope="BluestepUi.B6pDialogContent">`, as P-33 does with `className` in a built component. What happens: on the canvas the attribute replaces the component's own class list instead of adding to it, so `B6pDialogContent` loses its centring, padding, border and shadow, and header `B6pButton`s lose their hover and focus ring. The agent then patches it with page CSS (`[role="dialog"] { width: … !important }`), which draws a look the built component never has. How to tell: open the frame's `.dc.html` from the export and grep the `x-import` lines for `class=` or `style=`; on screen, a dialog pinned to the top-left or with no padding. What to do: in the canvas brief, forbid `class`, `className` and `style` on kit `x-import`s and `!important` in the canvas CSS; widen a dialog only by the kit's own `sm:max-w-*` added to its classes, and have the agent report every attribute left on a kit part.
+What looks right: to widen a dialog or restyle a button on a canvas drawn as a Design artifact in
+Claude, put `class="sm:max-w-3xl"` (or `className`, or `style`) on its `<x-import
+component-from-global-scope="BluestepUi.B6pDialogContent">`, as P-33 does with `className` in a
+built component. What happens: seen once, the attribute replaced the part's class list instead of
+adding to it, so `B6pDialogContent` lost its centring, padding, border and shadow, and header
+`B6pButton`s lost their hover and focus ring. Design then patched it with page CSS
+(`[role="dialog"] { width: … !important }`), which draws a look the built component never has.
+On another canvas a card's content and footer stayed flush even after their `class` was removed,
+so the cause is not fully known.
 
-**Applies to:** any BlueStep One component. Any canvas drawn as a Design artifact with the BlueStep One UI design system
+**How to tell.** Open the frame's `.dc.html` from the canvas export and grep the `x-import` lines
+for `class=` or `style=`; on screen, a dialog pinned to the top-left or a kit part with no padding.
+
+What to do: when asking Design for a canvas, forbid `class`, `className` and `style` on kit
+`x-import`s and `!important` in the canvas CSS; put extra classes on an inner element instead,
+and ask Design to list every attribute left on a kit part. In the build, trust the kit part's own
+padding over the canvas when the two differ.
+
+**Applies to:** any BlueStep One component
