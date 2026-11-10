@@ -36,11 +36,17 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   or tool names unless needed. `keep-coding-instructions` keeps Claude Code's coding instructions.
   It is not forced: in the CLI 2.1.321 a forced plugin style replaced even a style the user had
   picked on purpose.
+- **`/b6p-preferences`**, a new skill: the user's own settings for these tools in one place, in
+  plain words — how Claude answers them (**Short and plain** or **Complete and technical**, each shown
+  with an example), when a long conversation is summarized (a personal `autoCompactWindow` over the
+  team's 400K), and whether the client-data guard is installed. It writes only the git-ignored
+  `.claude/settings.local.json`, never the team's `.claude/settings.json`. On Cursor and Codex, which
+  have no output styles, it writes nothing and says where a personal rule goes.
 - **`/b6p-setup` asks how answers should read**, once per person and project, on Claude Code, when
-  neither `~/.claude/settings.json` nor `.claude/settings.local.json` sets `outputStyle`. **Short and
-  plain** writes `"outputStyle": "bluestep-tools:Plain answers"` to `.claude/settings.local.json`,
-  which is git-ignored, so it is never the team's choice; **As it does now** writes `"default"` so
-  the question is not asked again.
+  neither `~/.claude/settings.json` nor `.claude/settings.local.json` sets `outputStyle`: one line
+  on what is new, then `/b6p-preferences`' card. **Short and plain** writes
+  `"outputStyle": "bluestep-tools:Plain answers"`; **Complete and technical** writes `"default"`, so the
+  question is not asked again.
 - **How it was checked:** the Claude Code CLI 2.1.321 with the tester's own instructions excluded, 8
   prompts (developer and non-developer, "decide for me" and "ask me first") × 3 setups (the old
   template, the new one, the new one plus the style). The new section added the Not verified list
