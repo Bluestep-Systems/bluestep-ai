@@ -5,7 +5,9 @@
 The MCP integration's job is the non-overlapping piece: automating `[PLATFORM]` authoring/wiring tasks the
 CLI cannot do. See the **2026-07-08 scope-narrowing addendum** at the end; **further amended 2026-07-20** —
 the per-org connection model is superseded by a single bundled global gateway (see the **2026-07-20 gateway
-addendum**).
+addendum**). **Amended 2026-11-09 by [`change-propagation.md`](change-propagation.md):** sync still stays on
+b6p, but `/b6p-propagate` also creates objects and writes script config through the gateway (and `/gql` in a
+tab), under a plan-level approval echo.
 
 **Date:** 2026-07-08
 

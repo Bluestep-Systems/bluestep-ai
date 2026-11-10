@@ -20,6 +20,8 @@ description: Draft a standardized implementation comment for a ClickUp task afte
 4. **Ask one question:**
    > Does this change need to be propagated to other orgs? (yes / no)
 
+   In a workspace with `.bluestep/project.json`, do not ask it: run the close-out (`../bluestep-reference/conventions/close-out.md` (relative to this file)) instead, or use its answer if it already ran in this session. "Now" or "later" means yes here; "not needed" means no.
+
 5. **Collect the remaining details based on the answer:**
 
    **If yes (propagated — component change):**

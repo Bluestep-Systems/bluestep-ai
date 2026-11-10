@@ -57,6 +57,8 @@ description: Execute one task from a feature spec. By default delegates implemen
    - `@b6p-commenter` — update the component's `draft/README.md` from the new code.
    - `@b6p-code-review` — a BlueStep-aware, report-only review of the change.
 
+   When this was the spec's **last** open task and the workspace has `.bluestep/project.json` (in this folder or a parent), run the close-out in `${CLAUDE_PLUGIN_ROOT}/skills/bluestep-reference/conventions/close-out.md` in the same message — it asks at most once whether the change goes to other orgs, and does nothing when there is nothing to move.
+
 ## When the user says a `[PLATFORM]` task is done
 
 If the user comes back and says "I did task <N> on the platform", just edit `tasks.md` to mark it `[x]`. No code changes, no push. The task is closed. (When the gateway MCP is live, such a task may instead have been completed in-session via the procedure above — mark it `[x]` the same way.)

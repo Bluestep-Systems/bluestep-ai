@@ -57,6 +57,9 @@ conversationally.
   Hooks run in **whatever shell hosts the agent — Git Bash on Windows, not WSL** — so they must
   not assume `jq` or WSL tools; that assumption is why they silently allowed everything for 77
   days. Parser fallback is jq → python3 → python → node, and the guardrails **fail closed**.
+  The one exception is `change-log.sh` (`PostToolUse` and `PostToolUseFailure`, Claude Code only), which logs platform
+  writes for `/b6p-propagate`: it is not a guardrail, needs node, and **fails open** — it never
+  blocks and never prints → `change-propagation.md`.
 - **Machine bootstrap.** `bootstrap/bootstrap.ps1` installs the tools per user at the versions and
   SHA-256 in `plugins/bluestep-tools/skills/b6p-setup/assets/tool-versions.json`, the one file the
   skills also read minimums from. The user runs it; an agent hands it over, never runs it. A change
