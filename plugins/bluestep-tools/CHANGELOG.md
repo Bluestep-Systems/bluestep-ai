@@ -11,6 +11,20 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.48.1] — 2026-11-10
+
+> **The change log no longer slows down shell commands.** The `change-log.sh` hook from 0.48.0 started
+> after every Bash and PowerShell call for everyone with the plugin, propagation on or not: about a
+> third of a second per command on Windows. It now starts only for commands that run `b6p`, and it
+> runs in the background, so no step waits for it. Nothing changes in what it records.
+
+### Changed
+
+- **`change-log.sh` wiring** (`hooks/hooks.json`): one entry per tool, each with `"async": true`; the
+  Bash and PowerShell entries carry `"if": "Bash(b6p *)"` / `"if": "PowerShell(b6p *)"`, so Claude
+  Code skips starting the hook for any other command (chained commands such as `cd x && b6p push`
+  still match). Gateway and browser-script calls still start it, in the background.
+
 ## [plugin 0.48.0] — 2026-11-10
 
 > **`/b6p-propagate`: move a change from one org to others.** A new skill carries a change made in

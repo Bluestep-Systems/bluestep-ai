@@ -22,10 +22,43 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "mcp__.*bluestep-gateway__invoke_org_tool|Bash|PowerShell|mcp__(Claude_Browser|claude-in-chrome)__(javascript_tool|browser_batch)",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(b6p *)",
+            "async": true,
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/change-log.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "PowerShell(b6p *)",
+            "async": true,
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/change-log.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*bluestep-gateway__invoke_org_tool",
+        "hooks": [
+          {
+            "type": "command",
+            "async": true,
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/change-log.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__(Claude_Browser|claude-in-chrome)__(javascript_tool|browser_batch)",
+        "hooks": [
+          {
+            "type": "command",
+            "async": true,
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/change-log.sh"
           }
         ]
@@ -33,10 +66,23 @@
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "Bash|PowerShell",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(b6p *)",
+            "async": true,
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/change-log.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "PowerShell(b6p *)",
+            "async": true,
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/change-log.sh"
           }
         ]
