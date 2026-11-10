@@ -730,6 +730,12 @@ elif kind == "gw_view_create":
          "tool_response": text({"data": {"form": {"topId": "1000001__FID_probeForm"}, "view": {"topId": "1000019__FID_probeQuery", "version": 1}}})}
     if len(a) > 1 and a[1] == "noview":
         d["tool_response"] = text({"data": {"form": {"topId": "1000001__FID_probeForm"}, "viewName": "zz probe query"}})
+elif kind == "gw_batch_partial":
+    # batch_fields is not all-or-nothing: the response holds the applied fields and an errors list.
+    d = {"tool_name": gw, "tool_input": {"org": a[0], "tool": "batch_fields", "arguments": {"action": "CREATE",
+         "formId": "1000001___7", "fields": [{"name": "Alpha", "formulaId": "zzAlpha"}, {"name": "Beta", "formulaId": "zzBeta"}]}},
+         "tool_response": text({"data": {"form": {"topId": "1000001___7"}, "fields": [{"topId": "1000101___11"}, {"topId": "1000101___12"}]},
+                                "errors": [{"item": 2, "message": "refused"}]})}
 elif kind == "gw_form_create":
     d = {"tool_name": gw, "tool_input": {"org": a[0], "tool": "form", "arguments": {"form": {"action": "CREATE",
          "displayName": "zz probe form", "altIds": [{"key": "FID", "value": "probeForm"}], "recordTypes": ["1000003___1"]}}},
@@ -776,6 +782,17 @@ cl "view create with nested arguments → one line" 1 "$(pl gw_view_create "$W_C
 if tail -n 1 "$LOG" | grep -q '"op":"create","type":"view","objId":"1000019__FID_probeQuery","name":"zz probe query","fid":"probeQuery"'; then
   echo "  PASS  the view line has the view id, not the form id, and op create"; pass=$((pass+1))
 else echo "  FAIL  view line content: $(tail -n 1 "$LOG" | cut -c1-200)"; fail=$((fail+1)); fi
+cl "batch_fields with one item refused and two applied → two lines" 2 "$(pl gw_batch_partial "$W_CL" U111)"
+if tail -n 2 "$LOG" | head -n 1 | grep -q '"op":"create","type":"field","objId":"1000101___11","name":"Alpha","fid":"zzAlpha"' \
+   && tail -n 1 "$LOG" | grep -q '"objId":"1000101___12","name":"Beta"'; then
+  echo "  PASS  each created field gets its own line with its own id, not the form id"; pass=$((pass+1))
+else echo "  FAIL  field lines: $(tail -n 2 "$LOG" | cut -c1-160 | tr '\n' ' ')"; fail=$((fail+1)); fi
+cl "b6p push with --file=path → one line" 1 "$(pl b6p "$W_CL" Bash 'b6p --yes --json push --file=U111/Comp/draft/scripts/app.ts --snapshot' true)"
+mkdir -p "$CL/U111/Comp"
+cl "b6p push with a path relative to the component folder → one line" 1 "$(pl b6p "$(natpath "$CL/U111/Comp")" Bash 'b6p --yes --json push --file draft/scripts/app.ts' true)"
+if tail -n 1 "$LOG" | grep -q '"org":"U111"' && tail -n 1 "$LOG" | grep -q '"name":"Comp"'; then
+  echo "  PASS  a relative push path is read against the session folder"; pass=$((pass+1))
+else echo "  FAIL  relative push line: $(tail -n 1 "$LOG" | cut -c1-160)"; fail=$((fail+1)); fi
 cl "view create whose response names only the form → one line" 1 "$(pl gw_view_create "$W_CL" U111 noview)"
 if tail -n 1 "$LOG" | grep -q '"type":"view","objId":null'; then
   echo "  PASS  a view create with no view id in the response logs objId null, not the form id"; pass=$((pass+1))

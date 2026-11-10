@@ -34,7 +34,8 @@ A reader skips a line that does not parse, or whose `v` it does not know, and sa
 | `target` | The target's name from the config when `role` is `target`; else `null`. |
 | `surface` | `claude-code`, `cursor`, or `codex`. |
 
-A `role:"target"` entry is a change made straight in a target. It is allowed and never open work;
+A `role:"target"` entry is either a write a move made there (the move claims it as `move`) or a
+change made straight in a target (no claim lists it). The second is allowed and never open work;
 the close-out says in one line that the source is behind there.
 
 ## Claim (v1)
@@ -50,16 +51,20 @@ the close-out says in one line that the source is behind there.
 - `refresh` — the entries came from `/b6p-propagate refresh` and are already in step.
 - `no-task` — the entries were moved by `/b6p-propagate` with no task. Written by the move, for
   the entries the user picked, once their first target ran.
+- `move` — `role:"target"` entries that a move or a refresh wrote itself: this session's entries
+  in that org since the target's plan was approved. Written after each target's read-back, so
+  they never read as changes made straight in the target.
 
 The close-out writes `task:` and `not-needed` claims (`bluestep-reference` ›
-`conventions/close-out.md`); `/b6p-propagate` writes `refresh` and `no-task` ones. A claim names entries by `id` and carries no `id` of its own.
+`conventions/close-out.md`); `/b6p-propagate` writes `refresh`, `no-task` and `move` ones. A claim names entries by `id` and carries no `id` of its own.
 
 ## Open work
 
 An entry is open when `role` is `source` and no claim lists its `id`. A `/gql` entry is mapped first:
 match its `host` to an org through `available_tenants` (`defaultHost`); if none matches, ask the user.
 `/b6p-propagate status` and the close-out read only open entries. Claimed entries never come back as
-open work. Whether a claimed entry has reached each target is on the task card, not in the log
+open work. A `role:"target"` entry that no claim lists is a direct target change: not open work,
+but named once at close-out. Whether a claimed entry has reached each target is on the task card, not in the log
 (`references/task-card.md`).
 
 ## What the hook logs
@@ -81,6 +86,8 @@ It does **not** log:
 - a gateway call whose response is a platform error, or a push that says `pushed:false`;
 - a push whose path has no `U######/<ComponentName>` folder in it;
 - changes made in the platform UI (the agent writes those by hand, below, when it knows of them);
+- `trigger_formula`, which runs a published formula (the run saves it, with no change to its code or
+  config, so there is nothing to move);
 - anything on Cursor or Codex;
 - anything when node is missing or the hook hits an error. It never blocks and never prints.
 

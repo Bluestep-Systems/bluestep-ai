@@ -173,7 +173,10 @@ function readHookWiring(plugin) {
     // PostToolUse and PostToolUseFailure carry only hooks/change-log.sh, which records platform writes for
     // /b6p-propagate and never blocks. Claude Code only for now: on Cursor the skill has the
     // agent append the entry itself, until Cursor's after-tool events are proven live.
-    if (event === 'PostToolUse' || event === 'PostToolUseFailure') continue;
+    // Skipped only while change-log.sh is all they carry: any other hook on these events falls
+    // through to the unmapped-event error below instead of being dropped silently.
+    if ((event === 'PostToolUse' || event === 'PostToolUseFailure') &&
+        (groups ?? []).every((grp) => (grp.hooks ?? []).every((h) => /\/hooks\/change-log\.sh\b/.test(String(h.command ?? ''))))) continue;
     if (event !== 'PreToolUse') {
       throw new Error(`emit-cursor: ${hooksRel}: unmapped source hook event "${event}" — give it a Cursor wiring or set crossTool false`);
     }

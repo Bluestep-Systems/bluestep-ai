@@ -191,7 +191,10 @@ Restore points: <from move-report.md>
 
 ## 8. The org guard, at every write
 
-Compare U-numbers, never hosts: one org can answer on several hosts.
+Compare U-numbers, never hosts: one org can answer on several hosts, so two orgs are never told
+apart by comparing their hosts. A browser tab has no U-number, though: its host is tied to an org
+only through a host that org returned in this move (`/gql` writes, below). That check fails safe:
+a valid alternate host stops the step and the user signs in on the host named.
 
 - **Every push.** All three must match the step's target org, or the target stops:
   - the folder's `U######` is that org's U-number;

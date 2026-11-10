@@ -43,11 +43,18 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 - **The `change-log.sh` hook** (Claude Code, `PostToolUse` and, for a b6p push that exits 1 after going live, `PostToolUseFailure`) appends one line per platform write to
   `.bluestep/changes.jsonl` in an enabled workspace. It is not a guardrail: it needs node, never
   blocks and never prints. On Cursor and Codex the agent writes the same line itself, and on every
-  surface it writes one for a change you made in the platform's own screens.
+  surface it writes one for a change you made in the platform's own screens. A field create logs
+  one line per field with that field's own id, a batch with some items refused still logs the
+  ones that landed, and a push given as `--file=path` or as a path inside the component folder is
+  recognized. A move claims the writes it made in a target, so they never read as changes made
+  straight there.
 - **The close-out** (`bluestep-reference` › `conventions/close-out.md`): at the end of a task in an
   enabled workspace, one question — does this change go to the target orgs now, later, or not at
   all. "Later" writes the list to the task card's "Propagation list" field (or a block in the
-  description). Nothing is asked when nothing was written to the source.
+  description). Nothing is asked when nothing was written to the source; a change the log missed
+  (made in the platform's screens, or on a machine without node) is written in first, so it is
+  still offered. In a workspace with propagation on, `/task-comment` uses this question instead
+  of its own yes/no.
 - **`gotchas/cross-org-push.md`**: b6p pushes to the org of the local `U######` folder and takes
   only the WebDAV id from a URL, its cleanup deletes in the URL's org, and `b6p deploy` exits 0 when
   every target fails.

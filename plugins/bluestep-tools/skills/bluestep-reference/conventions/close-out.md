@@ -15,7 +15,10 @@ in the `/b6p-propagate` references, linked below.
   - a `.bluestep/project.json` exists in the session's folder or one of its parents
     ([project-config.md](../../b6p-propagate/references/project-config.md));
   - the `.bluestep/changes.jsonl` next to it has open source entries
-    ([change-log.md](../../b6p-propagate/references/change-log.md)).
+    ([change-log.md](../../b6p-propagate/references/change-log.md)), **or** this session changed
+    something in the source that the log lacks: a change made in the platform UI, a push or write
+    the hook did not record, any write on a machine without node. Append those entries by hand
+    first (step 2), then go on.
 - Otherwise do nothing and say nothing.
 - On Cursor and Codex no hook writes the log: the agent appended an entry after each platform write
   itself ([change-log.md](../../b6p-propagate/references/change-log.md)). Those entries count the same.
@@ -55,7 +58,8 @@ the dropdown field is skipped silently.
 
 ## Changes made straight in a target org
 
-Open entries with the target role get no question. One line per target: the source is behind in
+Target-role entries that no claim lists get no question (a move claims its own writes as `move`,
+so these are changes made straight in a target). One line per target: the source is behind in
 `<target name>`, with the components. `/b6p-propagate refresh` brings them back when the user wants.
 
 ## Never block or nag

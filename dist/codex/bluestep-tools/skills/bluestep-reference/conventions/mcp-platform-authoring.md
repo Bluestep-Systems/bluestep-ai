@@ -174,7 +174,10 @@ which org. Required at **every** entry point, conversational included.
   target org when it lists, in order, every concrete inner call that will run there (org, tool,
   arguments, `expectedVersion`), and marks each no-MCP-inverse create as having no undo through the
   gateway. The approval covers exactly the listed calls: a call that is not in the plan, a changed
-  argument, or a second org needs its own yes. Destructive ops (deletes, a `REPLACE` of
+  argument, or a second org needs its own yes. The one exception is the rollout's later targets:
+  once the first target has landed, targets whose plans have the same shape may be approved together
+  in one yes that names every target and shows each one's ids and versions (`/b6p-propagate`'s
+  `references/plan.md`, section 7). Destructive ops (deletes, a `REPLACE` of
   permissions) still get an individual echo.
 
 ### 6 — Execute + declaration read-back

@@ -67,7 +67,8 @@ as not to move, unless the user names it.
    move, every `/gql` write first checks the tab is signed in to this target. Code goes with
    `b6p push --file` from this target's own folder, read as `/b6p-push` steps 4–5.
 4. **Read back, update the card** — `references/move-report.md` and `references/task-card.md`:
-   read everything back, tick what landed, show the new card text and write it on a yes.
+   read everything back, tick what landed, show the new card text and write it on a yes. Claim the
+   target-role log entries this move wrote in that org as `move` (`references/change-log.md`).
 5. **On a failure** — section 11: stop this target, say what landed, ask whether to go on with the
    next. A refusal for a missing right names the right.
 

@@ -20,7 +20,7 @@ description: Draft a standardized implementation comment for a ClickUp task afte
 4. **Ask one question:**
    > Does this change need to be propagated to other orgs? (yes / no)
 
-   It is the close-out's question (`${CLAUDE_PLUGIN_ROOT}/skills/bluestep-reference/conventions/close-out.md`). If the close-out already asked it in this session, use that answer and do not ask again. In a workspace with `.bluestep/project.json` and nothing asked yet, a "yes" runs the close-out after this comment is drafted.
+   In a workspace with `.bluestep/project.json`, do not ask it: run the close-out (`${CLAUDE_PLUGIN_ROOT}/skills/bluestep-reference/conventions/close-out.md`) instead, or use its answer if it already ran in this session. "Now" or "later" means yes here; "not needed" means no.
 
 5. **Collect the remaining details based on the answer:**
 

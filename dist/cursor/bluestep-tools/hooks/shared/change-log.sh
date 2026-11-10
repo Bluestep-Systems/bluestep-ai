@@ -30,7 +30,7 @@ esac
 
 command -v node >/dev/null 2>&1 || exit 0
 
-printf '%s' "$INPUT" | node -e '
+printf '%s' "$INPUT" 2>/dev/null | node -e '
 const fs = require("fs");
 const path = require("path");
 let raw = "";
@@ -81,7 +81,14 @@ function firstTopId(o, depth) {
 }
 
 // Class part of a topId per type, to pick the created object out of a response that names others.
-const CLASS_PREFIX = { form: "1000001_", view: "1000019_", option_list: "1000012_", record_type: "1000003_" };
+const CLASS_PREFIX = { form: "1000001_", field: "1000101_", view: "1000019_", option_list: "1000012_", record_type: "1000003_" };
+
+function allTopIds(o, prefix, depth, out) {
+  if (!o || typeof o !== "object" || depth > 6) return out;
+  if (typeof o.topId === "string" && o.topId.startsWith(prefix) && out.indexOf(o.topId) < 0) out.push(o.topId);
+  for (const v of Object.values(o)) allTopIds(v, prefix, depth + 1, out);
+  return out;
+}
 
 function findTopId(o, prefix, depth) {
   if (!o || typeof o !== "object" || depth > 6) return null;
@@ -130,6 +137,7 @@ function run(d) {
   // A failed call wrote nothing, except a b6p push that exited 1 after going live.
   if (d.hook_event_name === "PostToolUseFailure" && tool !== "Bash" && tool !== "PowerShell") return;
   let e = null;
+  let more = [];
 
   if (/__invoke_org_tool$/.test(tool) && /bluestep-gateway/.test(tool)) {
     const inner = String(input.tool || "");
@@ -139,7 +147,8 @@ function run(d) {
     const resp = Array.isArray(d.tool_response) ? d.tool_response : [];
     let body = null;
     try { body = JSON.parse((resp[0] && resp[0].text) || "null"); } catch (err) { body = null; }
-    if (body && (body.error || body.errors)) return;
+    // A refused call wrote nothing; a batch that also returns data applied its other items.
+    if (body && (body.error || (body.errors && !body.data))) return;
     // Some tools nest their arguments under their own name ({ form: {...} }, { view: {...} }).
     const raw = input.arguments || {};
     const args = raw[inner] && typeof raw[inner] === "object" && !Array.isArray(raw[inner])
@@ -156,14 +165,28 @@ function run(d) {
       args.objectId || firstTopId(body && body.data, 0)) || null;
     e = { org, source: "gateway", tool: inner, op, type, objId,
       name: args.name || args.displayName || args.mefrName || null, fid: fidOf(objId, args) };
+    // A field create can add several fields: one entry each, named when the counts match.
+    if (type === "field" && op === "create") {
+      const ids = allTopIds(body && body.data, CLASS_PREFIX.field, 0, []);
+      const items = Array.isArray(args.fields) ? args.fields : [args];
+      const names = items.map((f) => (f && (f.name || f.label)) || null);
+      if (ids.length) {
+        const all = ids.map((id, i) => Object.assign({}, e, { objId: id, name: ids.length === names.length ? names[i] : null,
+          fid: ids.length === names.length && items[i] && items[i].formulaId ? String(items[i].formulaId) : fidOf(id, {}) }));
+        e = all[0]; more = all.slice(1);
+      }
+    }
   } else if (tool === "Bash" || tool === "PowerShell") {
     const cmd = String(input.command || "");
     if (!/\bb6p\b[\s\S]*\bpush\b/.test(cmd)) return;
     const text = (d.tool_response && d.tool_response.stdout) || (typeof d.error === "string" ? d.error : "");
     const out = lastJsonBlock(text);
     if (!out || out.pushed !== true) return;
-    const p = (cmd.match(/--(?:file|root)\s+("([^"]+)"|\x27([^\x27]+)\x27|(\S+))/) || []);
-    const filePath = String(p[2] || p[3] || p[4] || "").split("\\").join("/");
+    const p = (cmd.match(/--(?:file|root)(?:\s+|=)("([^"]+)"|\x27([^\x27]+)\x27|(\S+))/) || []);
+    const given = String(p[2] || p[3] || p[4] || "");
+    // A path relative to a component folder names no U######: read it against the session folder.
+    const full = /(?:^|[\\/])U\d+[\\/]/.test(given) || !d.cwd ? given : path.resolve(String(d.cwd), given);
+    const filePath = full.split("\\").join("/");
     const m = filePath.match(/(?:^|\/)(U\d+)\/([^/]+)/);
     if (!m || !roles[m[1]]) return;
     e = { org: m[1], source: "b6p", tool: "b6p push", op: /--snapshot\b/.test(cmd) ? "publish" : "draft",
@@ -182,10 +205,10 @@ function run(d) {
 
   const at = new Date().toISOString();
   const role = e.org ? roles[e.org] : null;
-  const line = Object.assign({ v: 1, kind: "entry", id: at + "-" + Math.random().toString(16).slice(2, 6), at,
-    session: d.session_id || null }, e, {
-    role: role ? role[0] : null, target: role && role[0] === "target" ? role[1] : null, surface: "claude-code" });
-  fs.appendFileSync(path.join(path.dirname(cfgFile), "changes.jsonl"), JSON.stringify(line) + "\n");
+  const lines = [e].concat(more).map((x) => JSON.stringify(Object.assign({ v: 1, kind: "entry",
+    id: at + "-" + require("crypto").randomBytes(2).toString("hex"), at, session: d.session_id || null }, x, {
+    role: role ? role[0] : null, target: role && role[0] === "target" ? role[1] : null, surface: "claude-code" })) + "\n");
+  fs.appendFileSync(path.join(path.dirname(cfgFile), "changes.jsonl"), lines.join(""));
 }
 ' 2>/dev/null
 exit 0
