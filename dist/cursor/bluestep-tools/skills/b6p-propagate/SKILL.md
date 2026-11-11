@@ -82,7 +82,7 @@ must still do, and the end-of-rollout line. With no task, claim the moved entrie
 
 `references/plan.md` section 12: per component, pull both copies, back up the source's `draft/`,
 mirror the target's code into the source, compare config, and leave the source's schedule,
-`disabled`, `runImmediate` and `formulaType` as they are unless the user says yes to a question
+`disabled`, `runImmediate`, `formulaType` and `legacyPermissions` as they are unless the user says yes to a question
 that names the risk. One plan, one approval, the same org guard. Claim the resulting log entries as
 `refresh`.
 

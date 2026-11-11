@@ -85,7 +85,9 @@ and `runAsSuper` (fields and values verified 2026-11; setting them that way not 
 - **Run as Super User** only if the script must read document bytes: without it, every content read
   on a document throws `!isSuperUser`, whatever the document's own permissions say (as reported; see
   [../reference/csv-parsing.md](../reference/csv-parsing.md)). It lifts platform filtering for the
-  whole script, so every route must filter in code.
+  whole script, so every route must filter in code. Without it, an endpoint created since web
+  26.11.09 also applies its caller's View to fields and entries and keeps secrets super-only — see
+  [../reference/script-permission-checks.md](../reference/script-permission-checks.md).
 - Platform `/download/...` URLs need a signed-in session and ignore Basic Auth (they answer with the
   login page as `200 text/html`, as reported), so a consumer can never use them directly. Stream the
   bytes through your own route.

@@ -569,9 +569,13 @@ verified — the dating key at the top of this page says how to read the markers
     read back and test before settling on one. A script created since web 26.11.09 also checks its
     caller's View on every field a query it runs depends on: see
     [reference/script-permission-checks.md](../reference/script-permission-checks.md).
-  - **Formulas** (pre-save, post-save, pre-edit, pre-delete, scheduled, on-demand) — no, neither on
-    the formula nor on the forms it reads. Never widen a form's permissions so a formula can read
-    it: that gives people access nobody asked for.
+  - **Formulas** (pre-save, post-save, pre-edit, pre-delete, scheduled, on-demand) — no grant on the
+    formula. A formula with `legacyPermissions: true` reads its forms as before, with no grant on
+    them either; one created since web 26.11.09 checks the permissions of whoever runs it (as
+    reported), so it may be refused what that user may not view — see
+    [reference/script-permission-checks.md](../reference/script-permission-checks.md). Never widen a
+    form's permissions so a formula can read it: that gives people access nobody asked for, and it
+    is the user's call.
 - **`lookup_script_by_name` misses are name mismatches far more often than missing scripts.** The
   exact-name lane is **case-sensitive** and matches the script's **display name literally** — trailing
   spaces, casing, and punctuation all count — and BSJS endpoints *are* searched, so a miss is not
@@ -613,7 +617,7 @@ verified — the dating key at the top of this page says how to read the markers
   record-type scope and primary form. (verified 2026-11 on the newer release)
 - **`write_script_draft` compiles the draft on the server** (since web 26.11.09): read the
   `compile` block of its response. `COMPILED` means the draft's `.build/` was rebuilt;
-  `GATE_TRIPPED` means the source was saved but no output was written and the old build still runs —
+  `GATE_TRIPPED` means the source was saved but output was held back and the old build still runs —
   report it, do not rewrite in a loop. A write into `.build/` alone compiles nothing. The draft is
   still not live. Detail: [reference/server-side-compile.md](../reference/server-side-compile.md).
   (verified 2026-11)

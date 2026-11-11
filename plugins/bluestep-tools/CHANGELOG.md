@@ -16,24 +16,26 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
 > **The reference catches up with web release 26.11.09.** The platform now compiles TypeScript
 > itself, and scripts that run as their caller now enforce that caller's permissions. Both were
 > checked live on a playground org with b6p 0.8.2 before a line went in; what could not be checked
-> is marked "as reported". No hook or skill flow changes.
+> is marked "as reported". `/b6p-propagate` now holds `legacyPermissions` for its own yes.
 
 ### Added
 
-- **`reference/server-side-compile.md`**: which write the platform compiles. A b6p 0.8.x push or
-  publish goes over WebDAV and is neither recompiled nor gated (a publish went live with the draft's
-  gate tripped); a gateway `write_script_draft` of a source compiles the whole draft and returns a
-  `compile` block, while a write into `.build/` alone compiles nothing; the save gate keeps the old
-  build when the new one would change an untouched file's program (`GATE_TRIPPED`,
-  `OUTPUT_DIFFERS`); a GraphQL publish refuses with `PUBLISH_REFUSED` and one of the org's
-  `PublishRefusalReason` values; what to do with a trip (accept the new output, or
+- **`reference/server-side-compile.md`**: which write the platform compiles. On 26.11.09.x a b6p
+  0.8.x push or publish goes over WebDAV, which compiles nothing, so the CLI's build goes live; a
+  gateway `write_script_draft` of a source compiles the whole draft and returns a `compile` block,
+  while a write into `.build/` alone compiles nothing; the save gate keeps the old build when the
+  new one would change an untouched file's program (`GATE_TRIPPED`, `OUTPUT_DIFFERS`), and the
+  other things that trip it; what is never compiled (no `tsconfig.json`, `externallyBuilt`,
+  git-managed); a GraphQL publish refuses with `PUBLISH_REFUSED` and one of the org's
+  `PublishRefusalReason` values; clearing a trip is the user's call (accept the new output, or
   `externallyBuilt`).
 - **`reference/script-permission-checks.md`**: endpoints and reports without Run as Super User,
   formulas and anonymous pages enforce the caller's View/Create/Edit/Delete. A query over a field
   the caller may not view is refused (`RemoteSecurityException: You may not run this Relate Query:
-  it depends on a field you may not view.`). Scripts that existed at the deploy carry
-  `legacyPermissions: true` and keep the old behaviour; new ones read `false`; the flag applies on
-  the next run with no publish. Test new scripts as a non-super caller.
+  it depends on a field you may not view.`), even over a form where Everyone is Relate Author.
+  Scripts that existed at the deploy carry `legacyPermissions: true` and keep the old behaviour; new
+  ones read `false`; the flag applies on the next run with no publish, so changing it is the user's
+  call. Test new scripts as a non-super caller; widening permissions is the user's call too.
 
 ### Changed
 
@@ -41,13 +43,17 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   `gotchas/third-party-lib-type-noise.md`: each now says the CLI's build is what goes live with
   b6p 0.8.x, and points at the server compile for gateway, GraphQL and editor saves.
 - **`conventions/mcp-platform-authoring.md`**: how to read `write_script_draft`'s `compile` block,
-  and `legacyPermissions` on the script tools; the EndPoint grant bullet points at the new checks.
-- **`b6p-platform.md` anonymous access**: a new script also checks the visitor's View on what it
-  reads, even on a form where Everyone is Relate Author.
-- **`/b6p-push`** and its `references/type-check-diagnostics.md` say a b6p 0.8.x publish is not
-  recompiled or refused by the platform.
-- **`/b6p-propagate`'s config matrix** has a `legacyPermissions` row: a script created in a target
-  reads `false` while its source may read `true`.
+  and `legacyPermissions` on the script tools; the EndPoint and Formula grant bullets point at the
+  new checks (a formula created since 26.11.09 checks whoever runs it).
+- **`conventions/public-facing-api.md`**: the Run as Super User bullet points at the new checks.
+- **`b6p-platform.md` anonymous access**: a new script also checks the visitor's reads and writes;
+  the "no elevated authority for anonymous writes" finding predates the checks.
+- **`/b6p-push`** and its `references/type-check-diagnostics.md` say that on 26.11.09.x a b6p 0.8.x
+  publish is not recompiled or refused by the platform, and that a later release may gate it.
+- **`/b6p-propagate`**: `legacyPermissions` is **held** both ways, like `schedule` and
+  `runImmediate` — never copied in a move or refresh without its own yes, never turned on in a target
+  just to match the source. The config matrix has rows for it and for `externallyBuilt`, which a
+  script created in a target lacks.
 
 ## [plugin 0.48.1] — 2026-11-10
 
