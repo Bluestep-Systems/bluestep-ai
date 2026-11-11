@@ -38,6 +38,13 @@ and never treat it as equal.
 the source without a separate yes to a question that names the risk (for example: "This turns the
 nightly schedule off in the source."). Every other item follows the plan.
 
+**`legacyPermissions` is held both ways.** A change applies to the script's next run with no
+publish, so never copy it onto a source or a target as part of a move or refresh. When source and
+target differ, list it in the plan and ask a separate question that names the risk (for example:
+"This makes the live <script> check its callers' permissions from its next run."). Never plan
+turning it on in a target just to match the source: that is for a super administrator to decide,
+and a script created in a target always starts `false`.
+
 ## Part 1 — script config, per type
 
 ### All scripts (formulas, endpoints, merge reports)
@@ -55,6 +62,8 @@ nightly schedule off in the source."). Every other item follows the plan.
 | `configJson` | `/gql` only | `/gql` only | plan |
 | description | `/gql` only | `update_script` `description` (run on the newer line) | plan |
 | name | `get_script`, `lookup_script_by_name` | check by hand: `update_script` `name` does not rename | plan |
+| `legacyPermissions` | `get_script`, `lookup_script_by_name` (since web 26.11.09; measured on the newer line only) | `update_script` `legacyPermissions`; turning it on needs a super administrator. A script created in the target reads `false` (the bluestep-reference skill's `reference/script-permission-checks.md`) | **held**, both ways (see above) |
+| `externallyBuilt` | `/gql` only (as reported, not measured) | `/gql` only (as reported, not measured). A script created in the target lacks it, so a bundled build there trips the save gate on its next server save | plan |
 
 ### Formulas
 

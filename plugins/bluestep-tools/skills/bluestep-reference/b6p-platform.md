@@ -45,7 +45,7 @@ The workspace is a **local copy** of components that live on the BlueStep platfo
 
 - New B6P components (MergeReport, Endpoint, Formula) are created **on the platform**, never locally.
 - Inside an existing component, creating new `.ts` files locally is fine — they ship to the platform on `push`.
-- Compilation happens in the **b6p CLI**, only on a publish/snapshot push (`b6p push --snapshot`) — never by hand (`tsc` is never run locally) and never on a plain push, which uploads the source as-is.
+- With b6p 0.8.x, what goes live is compiled by the **b6p CLI** on a publish push (`b6p push --snapshot`); a plain push uploads the source as-is, and the platform compiles nothing it receives over WebDAV. Since web 26.11.09 the platform also compiles on its own when a script is saved through the gateway MCP, GraphQL or its editor, and on a GraphQL publish — see `reference/server-side-compile.md`. Never run `tsc` by hand.
 
 ## Data hierarchy
 
@@ -89,8 +89,15 @@ easy to miss because failing either produces a different symptom:
 - **"Everyone: Relate Author" on the FORM** — grants create.
 
 Both are required for an anonymous write. **Anonymous writes need NO elevated script authority**
-(verified live) — the natural assumption is the opposite, and an elevated-authority fallback is
-expensive to build for nothing.
+(verified live, before web 26.11.09 — on a script with `legacyPermissions: true` it still holds) —
+the natural assumption is the opposite, and an elevated-authority fallback is expensive to build for
+nothing.
+
+**A new script checks the visitor's reads as well.** An endpoint created since web 26.11.09 has
+`legacyPermissions: false` and applies the anonymous visitor's permissions to what it reads and
+writes: a query over the form where Everyone is Relate Author was refused as depending on a field
+the visitor may not view (seen 2026-11; the grant that would let it run was not found). Read the
+script's flag, test as the visitor, and see `reference/script-permission-checks.md`.
 
 The diagnostic cleanly separates the two failure modes:
 

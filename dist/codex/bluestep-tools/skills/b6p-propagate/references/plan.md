@@ -289,7 +289,7 @@ swapped: the target is read, the source is written.
 - Pull both fresh, back up the source `draft/`, and mirror target to source.
 - Objects the components need that the source lacks are created in the same order.
 - Config differences follow the refresh defaults in `config-matrix.md`. `schedule`, `disabled`,
-  `runImmediate` and `formulaType` stay as they are in the source. Each changes only on its own yes,
+  `runImmediate`, `formulaType` and `legacyPermissions` stay as they are in the source. Each changes only on its own yes,
   to a question that names the risk (for example, a schedule copied in runs the formula in the
   source on that schedule).
 - One approval, the push, the read-back; then the resulting entries are claimed as `refresh`

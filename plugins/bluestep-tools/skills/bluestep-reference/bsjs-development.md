@@ -495,7 +495,7 @@ annotations. The main settings of a pulled one:
 }
 ```
 
-Do not run `tsc` locally. Compilation happens only in the b6p CLI at **publish/snapshot** (`b6p push --snapshot`) — a **plain push skips the TypeScript build entirely**, so pushing without a snapshot means the code has been compiled nowhere.
+Do not run `tsc` locally. With b6p 0.8.x the build that goes live is the CLI's, made at **publish/snapshot** (`b6p push --snapshot`) — a **plain push skips the TypeScript build entirely**, and the platform does not compile what arrives over WebDAV, so the draft's `.build/` stays as it was. A save through the gateway MCP (`write_script_draft`), GraphQL or the platform editor is compiled by the platform since web 26.11.09, behind a save gate that can hold the new output back: `reference/server-side-compile.md`.
 
 ### Graal compatibility (server-side)
 
