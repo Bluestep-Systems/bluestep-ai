@@ -11,6 +11,21 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.49.1] — 2026-11-12
+
+> **The approval question no longer shows the call's JSON.** Before a platform write the agent
+> asks in plain words only. The exact call is there when you ask for it.
+
+### Changed
+
+- **`conventions/mcp-platform-authoring.md`, step 5**: since 0.46.13 the question opened with a
+  plain summary and printed the exact `invoke_org_tool` call under it. Most people who approve
+  cannot read that call, so it is no longer printed. The summary must now say everything the call
+  creates, changes or removes — each field by label and kind, access by who gets it — and the call
+  that runs holds nothing more. "Show me the call" prints it in a code block and asks again. A
+  `/b6p-propagate` plan still lists its calls, and so does a session where the user asked to see
+  them.
+
 ## [plugin 0.49.0] — 2026-11-10
 
 > **The reference catches up with web release 26.11.09.** The platform now compiles TypeScript
