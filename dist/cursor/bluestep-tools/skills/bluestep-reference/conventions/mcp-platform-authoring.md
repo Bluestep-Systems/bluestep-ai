@@ -141,8 +141,9 @@ mutation.
 
 ### 5 — Approval echo (mandatory)
 
-Ask in plain words first, then show the exact call, and **wait for an explicit yes** in the main
-session. Most people who approve do not read the JSON, so the summary is what they decide on:
+Ask in plain words and **wait for an explicit yes** in the main session. Most people who approve
+cannot read the call's JSON, so the summary is what they decide on, and the call itself is shown
+only when they ask for it:
 
 1. **What changes**, in the words of the person's own work — "add the staff lookup to the Provider
    Dashboard report", not the tool name or ids.
@@ -152,18 +153,31 @@ session. Most people who approve do not read the JSON, so the summary is what th
 4. **The choices that matter** that were made for them: field types, who gets access, what is left
    out on purpose.
 
-Keep it to two or three short lines; a batch gets one line per change. Then the exact call in a code
-block under it, so it can still be checked — e.g.:
+Keep it to two or three short lines; a batch gets one line per change — e.g.:
 
 > Add the staff lookup query to the Provider Dashboard report on <org name>, as `allStaff`, so the
 > report can find each user's staff record. This can be undone (remove the query again).
->
-> ```
-> invoke_org_tool → org=U<number> (<org name>), tool=script_queries, arguments={ scriptId: "…", action: "ADD", queries: [{ queryId: "…", groupId: "allStaff" }] }
-> ```
+
+**The summary is complete.** Everything the call creates, changes or removes is in it, in words:
+each field by its label and kind ("a yes/no box", "a number with two decimals"), access by who
+("nobody but org admins can open it"), never by ids, tool names or JSON. A change the summary does
+not say is a change the user did not approve, so the call that runs holds nothing more than the
+summary says.
+
+**The exact call on request.** Do not print the `invoke_org_tool` call, its arguments or any JSON
+in the question. When the user asks for it ("show me the call", "what exactly runs?"), print it in
+a code block — org as U-number and display name, tool, arguments — and ask again:
+
+```
+invoke_org_tool → org=U<number> (<org name>), tool=script_queries, arguments={ scriptId: "…", action: "ADD", queries: [{ queryId: "…", groupId: "allStaff" }] }
+```
+
+Two cases always show the call under the summary, since the approval there covers a list of calls
+someone will check line by line: a `/b6p-propagate` plan (below), and a user who has asked in this
+session to see the calls.
 
 This is the **key mitigation** for losing the native per-tool approval surface: behind `invoke_org_tool`
-the harness sees one generic tool, so the echo is the only place the human sees exactly what will mutate
+the harness sees one generic tool, so the echo is the only place the human hears what will change in
 which org. Required at **every** entry point, conversational included.
 
 - Denial → leave the task `[ ]`, report, stop.
