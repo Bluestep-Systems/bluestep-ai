@@ -30,6 +30,11 @@ Where `[current entry]` is available it is almost always the right choice — bi
 `[all entries]` instead forces an `optCurrent()`-style narrowing step by hand that the
 platform would otherwise do for you.
 
+Reading an entry's id takes one more hop through a query than through a current-record import
+(reported 2026-09 from production, not re-run here). A current-record import declares a bare
+`FormEntry`, so the id is `settings.id()`. A query-scoped import needs
+`record.forms.settings.entry().id()`.
+
 ## When [current entry] is available
 
 Any component whose **primary form is a multi-entry form** — not just post-save formulas.

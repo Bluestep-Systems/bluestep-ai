@@ -210,6 +210,12 @@ B.commit();
 const id = newEntry.id().shortId();   // the real id only after commit; "0" before (reference/new-entry-id.md)
 ```
 
+`B.commit(messagesConsumer)` (in an endpoint, reported 2026-11 from a live run): on a successful
+commit it returned an **empty** `Optional`, not `Optional.of(true)` as `B.d.ts` says, and called the
+consumer with `null`, so a consumer that loops its rows threw inside `commit()` after the data was
+already saved. Guard the consumer for `null`, and treat only an explicit `false` or reported rows as
+a failure. A later `B.net.sendMessage(msg, true)` cannot undo a commit that already ran.
+
 ## Reading and writing fields
 
 ### Read
@@ -296,6 +302,11 @@ vs `response.out()`, and why `status()`/`contentType()` belong in try/catch (the
 `scripts/app.ts` runs top-down when the request comes in: no `run()` wrapper, and keep every
 `const`/`let` above the code that uses it (`conventions/top-level-const-tdz.md`).
 
+Pin every query's unit on each request (`gotchas/recordquery-session-unit.md`): a query runs in the
+caller's session unit, so a "This Unit Only" query called from a session in another unit returns
+another unit's record (and its `optById` comes back empty). Pick the record by id after pinning,
+never by `[0]`.
+
 ```typescript
 const action = B.net.request.optParameter("action").orElse("");
 switch (action) {
@@ -367,6 +378,14 @@ B.out = renderMain();                       // renderMain: your own function ret
 OnDemand formulas run on the **task pod** — well-suited for heavy or long-running work because they keep load off production pods. Trigger them asynchronously and let the result land in a record the caller can poll or react to.
 
 **Critical latency caveat:** OnDemand has a ~5 second scheduler-queue delay before it starts, by design. This is fine for background / async work. It is the wrong tool for anything on a user's synchronous wait path — if a user is waiting for a response, an OnDemand hop adds ~5 s of irreducible latency before the work even begins. Prefer a synchronous task-pod **Endpoint** for user-facing create or update paths.
+
+**Its log is on the task pod too.** The gateway's log tools (`read_log`; on the older release
+`read_script_log` / `search_script_log`) may not read it and answer "No out log found" for a run that
+happened. Endpoint logs are split across web pods as well, so the gateway can read the wrong one.
+Read the run's output in the platform's log viewer (the Out Log / Error Log links on the script's
+page, one link per pod), or ask the user to paste it. Do not plan work around reading OnDemand logs
+over MCP. (reported 2026-09 from production, not re-run here; see also
+[gotchas/merge-report-console-logs.md](gotchas/merge-report-console-logs.md))
 
 **How an OnDemand is triggered:** in RelateScript, `runFormula("name")` / `System.runFormula("name")` — the **named** form — IS the trigger: calling it dispatches the named OnDemand formula to the task pod, detached from the current save transaction (and subject to the ~5 s queue delay above). Confirmed by the platform team. The call never executes the target inline/synchronously within the save, so there is nothing to "make async" on the caller's side — do not caution users about it.
 

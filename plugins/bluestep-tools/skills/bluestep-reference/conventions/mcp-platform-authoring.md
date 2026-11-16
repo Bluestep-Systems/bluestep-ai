@@ -241,7 +241,9 @@ next task. Conversationally there is no checkbox — just report what ran.
 false negatives**: the formId filter misses `primaryForm` relationships and omits EntityList/MEFR
 views entirely (verified 2026-07), so it cannot prove a view is absent — list **without**
 the filter and match by name/type before concluding an object doesn't exist (details:
-`gotchas/relate-query-over-mefr.md`).
+`gotchas/relate-query-over-mefr.md`). The `list_forms` / `list_views` name search can also miss a
+form or view by its own name (reported 2026-09 from production, not re-run here): when you have the
+id, read it with `get_form` / `get_view` before concluding it is absent.
 
 ## Safety / destructive-tool discipline
 
@@ -388,6 +390,23 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
   `includeFields`) report each field's `formatType`, the value to send when creating a field like it.
 - **CREATE takes no `fieldId` and needs a `name`; UPDATE refuses `null`.** To clear a setting on UPDATE,
   send `"clear": ["<setting>"]`; a cleared setting is then missing from the readback.
+- **A field's `name` is what end users read**: the tool schema calls it the default reporting column
+  heading and record-summary label. Write it as short Title Case words ("Deposit Type"), never
+  camelCase, and never copy the `formulaId` into it; camelCase belongs in `formulaId` only. This is
+  for new fields: do not propose renaming existing ones.
+- **`frozen` is not a read-only switch.** Per the tool schema it marks the field as built in: only a
+  super user can edit the field's definition and no one can delete it, super users included. It does
+  not stop users entering a value. To make a value read only, use `fieldControlType`
+  (`READONLY_DEFAULT`, or `READONLY_WHEN_COMPLETED`); set `frozen` only when asked to lock the
+  definition. (read from the tool schema 2026-11)
+- **A `CUSTOM` field control reads back over GraphQL, not over `get_form`.** `get_form` shows only
+  `fieldControlType: CUSTOM`. The rule is on the field over GraphQL:
+  `remoteObjects(ids: ["<field topId>"]) { ... on RelateFieldWrapper { field { ... on RelateFieldInterface { fieldControlType fieldControlValue fieldControlView fieldControlField { __typename } } } } }`,
+  for example `"true"` and `HIDDEN` for a rule set in the UI (verified 2026-11). `batch_fields` sets
+  one with `fieldControlFieldTopId` (the watched checkbox, radio, signature or single-select on the
+  same form), `fieldControlValue` (`true`/`false`, `signed`/`unsigned`, or an option id) and
+  `fieldControlView` (`READONLY` or `HIDDEN`), as its schema documents. `customLock` is a different
+  thing: the endorsements a user needs to see or edit the field.
 - Base-record-type creation works on current platform versions: `record_type` with the Relate app's ID
   as `parentId` and `baseType: true` creates the base type together with its base form. On orgs behind
   that fix it instead produces an **orphaned category** with UI-only cleanup — so read the created type
@@ -547,7 +566,10 @@ verified — the dating key at the top of this page says how to read the markers
   doesn't render until a Right Label is added in the UI. Workaround: **always pass `rightLabel`**
   when creating SIMPLE signature fields via MCP. (verified 2026-07) A signature's
   `signatureFormatType` (SIMPLE or SECURE) is fixed at CREATE: an UPDATE that changes it is refused,
-  so pick it then, or create a new field. (verified 2026-11)
+  so pick it then, or create a new field. (verified 2026-11) Create signatures as SIMPLE (the
+  tool's default) with `rightLabel` set to the signer's role (Employee, Nurse, Administrator). SECURE
+  is a separate digital-signature workflow, not a stricter SIMPLE: use it only when asked for it by
+  name, never because a document says "notarized".
 
 **Scripts**
 
@@ -603,6 +625,9 @@ verified — the dating key at the top of this page says how to read the markers
   formula without it, add the category with `set_category_requirement`, then set `primaryFormId`
   with `update_script` (order as reported 2026-09, not re-run here). Never stand in for a Primary
   Form with a form-id check in code — see [formula-patterns.md](formula-patterns.md).
+- **A Cross-Record relationship field created with `batch_fields` gets no formula id**, so a script
+  reaches it only through `allFields` (see
+  [relationship-field-set.md](../reference/relationship-field-set.md)).
 - **Merge Report settings the gateway tools can't set.** `create_script` / `update_script` take
   `primaryFormId` for a FORMULA only. For a MERGE_REPORT, set these with the GraphQL mutation
   `updateScriptMergeReport(inputs: [{ topId, … }])` (route and approval as in "GraphQL reads and
@@ -616,12 +641,22 @@ verified — the dating key at the top of this page says how to read the markers
     in a pagelet" (the In Connect column of step 3). A new report starts with it off. A report meant
     for a page or pagelet needs it; without it the report can't be placed there (as reported 2026-10,
     not re-run here).
+  - `availableRelateRecordNav: true` — shows the report in the record's navigation. It is the input;
+    `useForRelateRecNav` is the same setting on the output type, and cannot be sent.
+  - The Relate folder: `create_script` files a new MERGE_REPORT in the folder `new`, and the record
+    navigation groups reports by folder, so the report shows only under a "new" dropdown of the
+    record menu. Move it next to its siblings with `parents: [{ topId: "<folder id>" }]` in the same
+    mutation. (Both reported 2026-11 from a live report.)
 - **Send a `formulaType` change together with what the new type needs.** Moving a formula to
   `SCHEDULED_QUERY` needs `schedule` in the same `update_script` call (it is refused without one, unless
   the formula already has one); moving it to `ON_DEMAND` needs `onDemandIdentifier`, unique across the
   org. A formula moved off `ON_DEMAND` keeps its identifier, which stays taken; clear it with
   `onDemandIdentifier: ""`. `schedule` takes a `kind` and its fields plus an optional `timeZoneId`;
-  read it back with `lookup_script_by_name`. (verified 2026-11 on the newer release)
+  read it back with `lookup_script_by_name`. (verified 2026-11 on the newer release) Set
+  `timeZoneId` to the zone the code computes "today" in. For US Mountain time pick the Mountain
+  zone, never Phoenix: same offset, but no daylight saving, so it is one hour off half the year.
+  The symptom when it is wrong: date-window logic runs against yesterday. (reported 2026-09 from
+  production, not re-run here)
 - **`update_script` with `name` does not rename**, although its schema says it does. The version goes
   up, but `get_script` and `lookup_script_by_name` keep the old name. Rename the script in the platform
   UI. (verified 2026-11 on the newer release)
@@ -641,6 +676,9 @@ verified — the dating key at the top of this page says how to read the markers
   administrator. A **new endpoint or report must be tested as a non-super caller.** Detail:
   [reference/script-permission-checks.md](../reference/script-permission-checks.md). (verified
   2026-11)
+- **No gateway tool or GraphQL mutation starts an OnDemand formula.** `run_formulas` recalculates
+  formula fields only. Start the run from the platform UI, or by saving a form whose formula starts
+  it. (reported 2026-09 from production, not re-run here)
 
 **Units & records**
 
@@ -722,11 +760,17 @@ rows as **not checked** — never as passed. (verified
 | `recordTypes` | expected type(s) | `get_view` | categories are categories **of** a base record type; without it the filter has nothing to hang on |
 | `searchComponents` | non-empty, **unless** the query is meant to filter by category only | `get_view` | empty criteria and no category filter **fails open** — the query matches **every** record of its record type. A category-only query (record type + must-have category, no criteria) is correct with none |
 | `mustHaveCategories` / `mustNotHaveCategories` | expected sets | GraphQL: `remoteObject(id) { ... on RelateQuery { mustHaveCategories { displayName } mustNotHaveCategories { displayName } } }` | accepted on create, **stored neither**; `get_view` shows neither a stored filter nor a dropped one |
-| run unit | for a lookup, a fixed unit that holds every record the code must find | GraphQL: `unitKey` on the same `RelateQuery` | `unitKey` set = the query runs there, whatever unit it is called from. `unitKey` null = it runs in the caller's unit, so records outside that unit are silently not found. The `unit` field is the unit that **owns** the query, not where it runs (verified 2026-10) |
+| run unit | for a lookup, a fixed unit that holds every record the code must find | GraphQL: `unitKey` on the same `RelateQuery` | `unitKey` set = the query runs there, whatever unit it is called from. `unitKey` null = it runs in the caller's unit, so records outside that unit are silently not found. The `unit` field is the unit that **owns** the query, not where it runs (verified 2026-10). Symptom: a record silently missing from a builder or endpoint. To prove and fix a pin, see below the table |
 
 Repairing dropped categories: a follow-up `updateRelateQuery` **also** drops them **unless
 `recordTypes` is sent in the same mutation** — the repair call must carry the record types alongside
 the categories, not the categories alone. Confirm the repair with the `mustHaveCategories` read above.
+
+Proving and fixing the run unit (reported 2026-09 from production, not re-run here): run
+`relateQuery(id, unit: <other unit>)` with two different units. A pinned query returns the same rows
+whatever unit is passed; different sizes mean it is not pinned. To pin it, pass the `unit` argument of
+the gateway `view` tool, and send `recordTypes` and `mustHaveCategories` again in the same call, or
+the categories can drop. Then repeat the `unitKey` and `mustHaveCategories` reads above.
 
 A criterion **with a blank value** is not the same as an empty criteria set: it is applied. `<>` blank
 means "is not empty" and `=` blank means "is empty", so a leftover blank criterion silently hides every

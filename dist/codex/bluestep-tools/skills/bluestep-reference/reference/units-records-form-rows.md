@@ -1,5 +1,5 @@
 ---
-description: "Creating units, records and form rows (seed or test data) over GraphQL — no gateway tool writes them. createUnit needs organizationEmail; deleteUnit moves the unit's records, sub-units and users to its parent, so dry-run it and confirm on its own; createRecord needs parents and fills the base-form entry from fieldValues; createFormRow refuses a bad value by field label and saves nothing. On the older platform release units and records stay a UI hand-back."
+description: "Creating units, records and form rows (seed or test data) over GraphQL — no gateway tool writes them. createUnit needs organizationEmail; deleteUnit moves the unit's records, sub-units and users to its parent, so dry-run it and confirm on its own; createRecord needs parents and fills the base-form entry from fieldValues; createFormRow refuses a bad value by field label and saves nothing. Sub-units have classId 111000, so a children query with 111111 returns none. On the older platform release units and records stay a UI hand-back."
 ---
 
 # Units, records and form rows
@@ -26,6 +26,10 @@ mutation($i: [CreateUnitInput!]!) { createUnit(inputs: $i) { id displayName } }
 ```
 
 `organizationEmail` is required. Records can be created in the new unit.
+
+**Listing sub-units: they have classId 111000.** `children(parentId: "<top unit id>", classId: 111111)`
+returns `[]` even when the org has sub-units. Never conclude an org is flat from that: query with
+`classId: 111000`, or leave `classId` out. (reported 2026-09 from production, not re-run here)
 
 **Deleting a unit is destructive.** `deleteUnit(unitId, dryRun, moveContentsTo, expectedVersion)`
 moves the unit's records, sub-units and users to the parent unit (or to `moveContentsTo`), which
