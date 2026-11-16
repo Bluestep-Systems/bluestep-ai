@@ -42,3 +42,44 @@ The rule: before the design check's verdicts, list in `design-audit.md` every co
 
 A BlueStep One component can be changed from Build in Edit mode in two ways. Its **settings** (the props an admin sets on a placed component) are picked up by Build's default AI tool with no code: an admin or the agent can change them in words. A **tool of its own**, registered by the component, covers behavior a setting cannot hold (for example, drag and drop of tiles in a grid). A component converted from Manage only has to reproduce Manage's behavior, so the build tends to give it neither, and then the org cannot change it except in code. So when building a component, put in settings what an org would sensibly change (labels, defaults, which parts show, thresholds, filters), and add a tool of its own only for what does not fit a setting. Aim for both, settings and tools, as the standard. It is a short ask in the build prompt, not a separate piece of work; on a converted component it does not hold up a release. Not yet tried live: Build's default tool changing a setting.
 **Applies to:** any BlueStep One component
+
+### A component that writes a Manage form reads the required fields from the form definition and decides each one in writing; it never keeps its own list
+
+A write over `/gql` (`createFormRow`, `updateFormRow`) skips the form's required fields, and the platform then refuses every later save of that entry until each one is filled. The mechanical gate is in `build/typecheck.md` (*Required-fields check*: read each field's `required` from `host.forms.get` on every load, and check every write, either with the host's `validate` (or the form kit's `useFormValidation` with `validateAll()`) or with a policy with `own` and `exempt` and a coverage test); this is the rule behind it, for what the gate does not read.
+
+- A load that cannot read `required` fails with *Try again*; a save never guesses.
+- A required field with no rule that the screen does not draw still refuses the save, and the footer names it ("This form also requires: ..."), so it never slips through.
+- `required: true` alone does not say what Manage refuses: fields hidden by default and conditional ones are not asked, and rows made in Manage can hold a required field empty. So each exception is written in the screen's policy and not inferred from the flag or from a walk on one record. A list made from one record where Manage let a field go empty (because the page had nothing to pick there) lets that field, and others marked required, be saved empty on every record.
+- The test for each field: does the Manage page that saves this form draw it, visible and editable, in this state? `own` carries that page's condition (read from its grouping and its required rules, not from another org's copy of the page); `exempt` says why the page never asks it (not drawn, read only, filled by a formula or the server).
+- A required Yes/No is answered by No: port it as "not null", never as "must be Yes".
+- A screen drawn with the form kit gets the plain check from `host.formEntries.validate(def, values, { hidden })`, or from the form kit's `useFormValidation(host.formEntries, …)` with `validateAll()` before the save (`FormRenderer` checks nothing by itself); its policy is the `hidden` list and its own rules.
+
+**How to tell.** Run `node "${CLAUDE_PLUGIN_ROOT}/tools/required.mjs" <repo>` from the folder that holds the repos (from inside a repo it cannot find the sources of the copies): a repo that writes forms and checks no required field fails. On a test org, save an entry from a component with a required field left empty: the screen refuses it and names the field; then create one over `/gql` with the field empty (it saves) and try to save it in Manage (refused).
+**Applies to:** any BlueStep One component that writes a Manage form
+
+### Each Manage field type is drawn by one control, with Manage's own words; keep a map of them and give a new type a row before it is built
+
+What looks wrong: the same field type drawn several ways across the components of one workspace (a signature as a checkbox in one, a *Sign* button in another, a bordered button in a third), and one hand-built control copied into several repos. A look change to a control then never reaches every screen at once.
+The rule:
+
+- One control per Manage field type: the kit's where the kit has one; a shared file where it has none yet, copied unchanged to every repo (the copies check) and swapped for the kit's when it arrives. Never a second hand-drawn version of a type.
+- The words are Manage's own control's, never a screen's invention and never the field's label. For a signature they are the field's `rightLabel`, which Manage prints inside its bordered button: read it from the form definition (`host.forms.get`, `rightLabel` on a signature field) or over `/gql` (`... on RelateSignatureSimpleField { formulaId rightLabel }`), and fall back to a plain default only when the field names none. Where two controls of one type meet with the same words, the field's label goes beside the control.
+- Before a screen draws a field type that is not in the map, add its row to the map and build from it. A type the kit does not draw yet is a finding for the kit's owner, sent with the row.
+
+A starting map (change it to what the workspace uses):
+
+| Manage field type | BlueStep One control | words |
+|---|---|---|
+| Signature, simple | a toggle button (`B6pButton` outline, a box inside; signs on save) | the field's `rightLabel` |
+| Signature, secure | no button: the signed text, or "Not signed" (a row write cannot sign it; it needs the signer's passphrase) | none |
+| Checkbox | `B6pCheckbox` (whole box and words clickable) | the field's label |
+| Multi-select | one checkbox per option, written as an array of ids | the options' labels |
+| Single-select, radio | `B6pRadioGroup` | the options' labels |
+| Single-select, dropdown | `B6pSelect` | the options' labels |
+| Text, number | `B6pInput` | none |
+| Memo | `B6pTextarea` | none |
+| Date, date and time | `B6pInput type="date"` / `type="datetime-local"`, as the form kit's own date field does: no text box typed as a date, no hidden picker, no calendar button of its own | none |
+
+`B6pCheckbox` draws no refused state and cuts a long label: see "`B6pCheckbox` takes no invalid, required or id, and its label is one truncated line" in `gotchas/host-components-kit.md`. A request for Manage's look on a control is a change to the kit's component, for every form at once, not a hand-built field in one component.
+**How to tell.** On a test org, list a form's field types over `/gql` (`__typename`, and `rightLabel` on signature fields), then open two components that draw the same type and compare the control and its words with that read and with Manage's input.
+**Applies to:** any BlueStep One component

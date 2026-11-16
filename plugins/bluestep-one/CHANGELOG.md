@@ -3,6 +3,49 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
+## [0.2.0] — 2026-11-16
+
+### Added
+
+- **Rules:** a component that writes a Manage form decides each required field in writing, from
+  the form definition, never from its own list; one control per Manage field type, with Manage's
+  own words, kept in a map.
+- **Patterns:** a component bound on several forms reads only the form being opened; rules shared
+  by many forms go in one component with a table keyed by the form's alias; linking a page hidden
+  from the menu (`sites.compositePages()`, `navigation.hrefFor`); a read-only component maps fields
+  by `formulaId` over `/gql`, since the host's form definition leaves out fields locked Hidden;
+  linking an entry held by its `/gql` id with `formEntries.keyFor` and `entryHref`.
+- **Gotchas, host and kit:** print mode overrides a component's table layout; `records.listTypes()`
+  lists only the person type's sub-types; a hand-drawn print copy must apply `fieldControl`; a
+  month input needs more than a canvas's 150 px; `B6pCheckbox` has no invalid, required or id; the
+  form kit's "Remove my signature" that a `/gql` save does not apply; the built-in entry screen
+  drops merge-report and static-content fields; a canvas export colours links, the host does not.
+- **Gotchas, `/gql`:** a number field's `valueAsString` has thousands separators; `myAlerts` stops
+  at 100 rows; an `auto` alert cannot be cleared by its receiver; a money field takes only
+  "$4.00"-style text and no negatives.
+- **Gotchas, method and rights:** a block's read after the screen's save; a BsJs endpoint's "this
+  unit" query follows the Manage session's unit, not the BlueStep One page's; a refused read at a
+  screen's start.
+
+### Changed
+
+- **G-171:** a *Signature* filter takes `d<` and `d<=` too, and since web 26.11.09 its date value
+  is ISO 8601 with an offset; Manage's own date text is refused. A component that sent the old
+  value fails to load.
+- **G-239** now covers every refused part of a load (a side form, one record among many, one form
+  in a joint query), not only a side form.
+- **P-14:** a Manage on-open rule keyed on a security group has no client-side source; a BsJs
+  endpoint that answers for the caller's groups does.
+- **G-320:** read the dialog's opener in a layout effect, and where to move focus when the action
+  removes the opener.
+- `build/typecheck.md`: run `required.mjs` from the folder that holds the component repos.
+
+### Fixed
+
+- **The UX probe no longer counts a kit switch named by its `<label for>` as unnamed.**
+  `tools/ux-probe.js` read `labels` only for inputs, selects and text areas; it now reads them for
+  every labelable element, buttons included.
+
 ## [0.1.2] — 2026-11-16
 
 ### Fixed

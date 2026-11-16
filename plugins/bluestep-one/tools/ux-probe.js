@@ -297,13 +297,15 @@
     if (by) { const n = clean(by.split(/\s+/).map((id) => textOf(document.getElementById(id))).join(" ")); if (n) return n; }
     const label = el.getAttribute("aria-label");
     if (label && clean(label)) return clean(label);
+    // Every labelable element (button, input, meter, output, progress, select, textarea) is named
+    // by its <label for> before its own text: a kit switch is a <button role="switch"> with one.
+    const labelled = clean((el.labels ? [...el.labels] : []).map(textOf).join(" "));
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) {
       if (el.type === "submit" || el.type === "button" || el.type === "reset") { if (clean(el.value)) return clean(el.value); }
-      const labels = el.labels ? [...el.labels] : [];
-      const n = clean(labels.map(textOf).join(" "));
-      if (n) return n;
+      if (labelled) return labelled;
       return clean(el.getAttribute("placeholder") || el.getAttribute("title"));
     }
+    if (labelled) return labelled;
     const own = clean(textOf(el));
     return own || clean(el.getAttribute("title"));
   }

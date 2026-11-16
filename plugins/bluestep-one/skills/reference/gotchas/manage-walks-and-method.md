@@ -48,6 +48,13 @@ What looks right: the page finds the setup record of the viewer's unit, and ever
 **How to tell.** 1. On a test org with a top unit and child units whose setup differs, open the page as a top-unit user and pick a record of a child unit. 2. Open the select: it offers the child unit's choices, not those of the page's setup record. 3. Over `/gql`, read the setup form for both units' records and compare.
 **Applies to:** any BlueStep One component
 
+### A BsJs endpoint's "this unit" query follows the Manage session's unit, not the unit the BlueStep One page is on
+
+What looks right: an endpoint called from a BlueStep One page runs a "this unit only" query and answers for the unit the page is on. What happens: the query runs in the server session's unit (bluestep-tools reference, `gotchas/recordquery-session-unit.md`), and BlueStep One does not move that unit: choosing a site or unit in BlueStep One changes only the app's own state, and `/gql` `{ app { unit { id } } }` still answers the session's unit. A staff user whose BlueStep One site and `host.session.currentUnit()` were a child unit got the top unit's rows, because the session sat on the top unit. Related: G-230.
+**How to tell.** From a BlueStep One tab on a child unit's site, compare `host.session.currentUnit()` with `/gql` `{ app { unit { id } } }` and with the unit the endpoint answers for; or call the endpoint with and without a `unit=<the page's unit>` parameter.
+What to do: the page sends its unit (`session.currentUnit().id`), and the endpoint pins the query to that unit before reading (the fix in `recordquery-session-unit.md`). An endpoint that runs as Super can then read any unit, so it must check that the caller may see the unit it was sent.
+**Applies to:** any BlueStep One component that reads a unit-bound BsJs query through an endpoint
+
 ### G-231 — A BlueStep One tab that has loaded one build of a custom component fails to load another build of it until a full reload
 
 What looks right: publish a new build, then route the same tab (by the menu or the address's hash) to the page that places the component; the host loads the new build. What happens: the tab still holds the remote it loaded first. When the editor's preview has loaded a new build over an older one, the console reads "The remote \"<name>\" is already registered", then "shared singleton module @bluestep/ui does not satisfy the requirement … ^1.0.0". A page that then asks for the older build shows "This component couldn't be loaded. Cannot access 'm' before initialization" (`ReferenceError: Cannot access '…' before initialization` in `/component/<name>/<sha>/….js`). F5 loads the new build and the page works. How to tell: the console names two different shas under `/component/<name>/`, or a `before initialization` error comes from the component's chunk. What to do: after a publish, reload the tab (F5) before judging the page; P-37's check of the served sha comes after that reload.
@@ -87,4 +94,22 @@ What looks right: `updateFormRow` with an old `expectedVersion` is always refuse
 
 What looks right: `event.preventDefault()` in a `beforeunload` listener makes the browser ask before a reload. What happens: current Chromium and Firefox ask; Safari and older Chromium ask only when `event.returnValue` is also set. This is the browsers' documented behaviour; it has not been tried. How to tell: in Safari, change a form with a leave guard and reload: the page leaves without asking. What to do: set `event.returnValue = ""` after `preventDefault()`, in the source file and in every copy of it (`${CLAUDE_PLUGIN_ROOT}/tools/copies.mjs` flags a copy whose source changed), in one change.
 **To see it again.** The steps under *How to tell*.
+**Applies to:** any BlueStep One component
+
+### A block's read keyed only on its own retry never runs again after the screen's save reloads the entry
+
+What looks right: a block drawn inside a form-entry screen (a summary drawn in a field's place)
+starts its read once and keys it on the entry and its own *Try again* count, so a re-render does
+not read twice. What happens: after a save the screen reads the entry again and draws it anew, but
+the block's key has not changed, so the block keeps the rows it read before the save. A change the
+form's formulas made on save (a total, a new line) does not show until the page reloads.
+
+**How to tell.** On a test org, on a test entry, change a field the block's figures depend on and
+save: "Saved." shows and the fields reload, but the block still shows the old figure.
+
+What to do: have the screen hand each block a load counter, bumped on every load of the entry, and
+put it in the block's read key and effect deps (`${entryId}|${load}|${attempt}`), with an
+`AbortController` per key. After the fix the block shows its skeleton after the save, then the new
+figure.
+
 **Applies to:** any BlueStep One component

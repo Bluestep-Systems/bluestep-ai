@@ -95,4 +95,46 @@ What to do: send every value an entry needs in the same create that signs it. Af
 `updateFormRow` that changes a value, compare the answered `rowVersion` with the one sent and
 treat an unchanged version as "not saved" (a write of equal values also keeps its version, G-321).
 
+Taking a stored signature off is the other side of it: see "The form kit offers "Remove my
+signature" on a stored signature that a `/gql` save does not take off" in
+`gotchas/host-components-kit.md`.
+
+**Applies to:** any BlueStep One component
+
+### An alert of type `auto` cannot be cleared by the user who receives it
+
+What looks right: a page that lists the viewer's alerts (`myAlerts`) can clear any of them with
+`acknowledgeAlert(relationshipId, 100)`, since being a receiver grants edit. What happens: per the
+schema, an `auto` alert's status "is settable only with add-child on the tenant root", so a staff
+receiver is refused. Only `signature` (0 or 100) and `percent` (tens) alerts are the receiver's to
+answer, and 100 dismisses the alert for every receiver. On one system, the alerts its scheduled
+formulas raised were `auto`, and the ones Manage's Alerts page clears were `signature`.
+
+**How to tell.** On a test org, introspect `AlertInterface` and `Mutation.acknowledgeAlert` over
+`/gql` (`{ __type(name: "AlertInterface") { fields { name description } } }`), and read
+`alert { type }` in `myAlerts`.
+
+What to do: read each alert's `type` before offering a clear, and offer it only on `signature` and
+`percent` alerts.
+
+**Applies to:** any BlueStep One component
+
+### A money field over `/gql` takes only text like "$4.00", and no negative amount at all
+
+What looks right: a `NumberMoney` field holds a number, so `createFormRow` / `updateFormRow` take
+`4`, `"4"` or `"4.00"`, as a `NumberFloat` or `NumberInteger` field does, and a negative amount is
+`"-5.00"`. What happens: a JSON number, `"0"`, `"4.00"` and `false` are all refused with
+PRECONDITION "Number is in an invalid format: <value>", and nothing is saved. Only text with the
+dollar sign is taken: `"$5"` (read back `$5.00`) and `"$1,200.00"`; `""` empties the field. Every
+negative shape tried was refused too: `"-$5.00"`, `"$-5.00"`, `"($5.00)"`, `"-5.00"`. So a negative
+amount cannot be written over `/gql` at all, though Manage holds negative amounts. A shared write
+helper that sends `String(n)` for every number fails on every money field.
+
+**How to tell.** On a test org, as an admin, run `updateFormRow` on a money field of a test entry
+with `"0"`, then `"$5"`, then `"-$5.00"`, then `""`, and read
+`data(fields: ["<field id>"]) { valueAsString }` after each.
+
+What to do: format money as `$#,##0.00` before a write. When a screen needs a negative amount, say
+on screen that it cannot be saved there, and ask the platform team for negatives.
+
 **Applies to:** any BlueStep One component
