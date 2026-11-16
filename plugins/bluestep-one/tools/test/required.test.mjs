@@ -103,6 +103,26 @@ test("a write checked by host.formEntries.validate passes", (t) => {
   assert.equal(cli(root, "app").status, 0);
 });
 
+test("a write checked by the form kit's useFormValidation and validateAll passes", (t) => {
+  const { root, app } = workspace(t);
+  write(app, "src/entry/FormEntry.tsx",
+    'const draft = useFormDraft(host.formEntries, formDef);\nconst validation = useFormValidation(host.formEntries, formDef, draft.values, { hidden });\n' +
+    "async function onSave() {\n  if (!validation.validateAll().isValid) return;\n  await draft.submit();\n}\n");
+  const result = checkRequired(root, "app");
+  assert.equal(result.state, "validate");
+  assert.ok(result.notes.some((line) => line.includes("useFormValidation") && line.includes("src/entry/FormEntry.tsx")));
+  assert.equal(cli(root, "app").status, 0);
+});
+
+test("useFormValidation with no validateAll does not count as the check", (t) => {
+  const { root, app } = workspace(t);
+  write(app, "src/entry/FormEntry.tsx",
+    "const draft = useFormDraft(host.formEntries, formDef);\nconst validation = useFormValidation(host.formEntries, formDef, values);\nawait draft.submit();\n");
+  const result = checkRequired(root, "app");
+  assert.equal(result.state, "missing");
+  assert.ok(result.missing.some((line) => line.includes("useFormValidation(")));
+});
+
 test("a write in a file no validating file imports is not checked by validate", (t) => {
   const { root, app } = workspace(t);
   write(app, "src/data/write.ts", WRITE);

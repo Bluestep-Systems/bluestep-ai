@@ -33,7 +33,8 @@ Each is a gate: a failure stops the run there, says which gate and why, and noth
 
    **3b. Required fields.** `node "${CLAUDE_PLUGIN_ROOT}/tools/required.mjs" <repo>` exits 0: a
    component that writes a platform form checks the form's own required fields, through
-   `host.formEntries.validate` or the shared `src/data/required.ts` (copied unchanged) with a
+   `host.formEntries.validate` (directly, or through the form kit's `useFormValidation` and
+   `validateAll()`) or the shared `src/data/required.ts` (copied unchanged) with a
    coverage test (`typecheck.md` › *Required-fields check*). For the repo that holds the module's
    source, add `--source <that repo>/src/data/required.ts`. Exit 1 stops the run until the
    component reads the flags from the form definition; there is no "named as not needed" here.

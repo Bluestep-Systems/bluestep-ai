@@ -9,8 +9,9 @@
  * marked required in Build saves empty. So the list is read from the form definition, never typed by hand.
  *
  * A repo passes when nothing in `src` writes a form, or when it does one of these:
- *   - every file that writes calls `host.formEntries.validate(`, or is imported by a file that
- *     does (the host's own check against the definition); or
+ *   - every file that writes calls `host.formEntries.validate(`, or the form kit's
+ *     `useFormValidation(` (which calls it) together with `validateAll(`, or is imported by a file
+ *     that does (the host's own check against the definition); or
  *   - carries the shared module `src/data/required.ts` unchanged, uses it from `src`, and has a
  *     coverage test: a test file that imports the screen's policy (a module holding a
  *     `: RequiredPolicy =` value) and calls `uncovered(`.
@@ -47,6 +48,17 @@ const WRITES = [
   [/\buseFormDraft\s*\(/, "useFormDraft"],
 ];
 const VALIDATE = /\bformEntries\s*\.\s*validate\s*\(/;
+// The form kit's hook calls `formEntries.validate` itself; `validateAll()` is the check before a save.
+const KIT_HOOK = /\buseFormValidation\s*\(/;
+const KIT_CHECK = /\bvalidateAll\s*\(/;
+
+/** How a file checks required fields: "validate", "kit" (the form kit's hook) or null. */
+function validatesBy(text) {
+  if (VALIDATE.test(text)) return "validate";
+  if (KIT_HOOK.test(text) && KIT_CHECK.test(text)) return "kit";
+  return null;
+}
+const HOW = { validate: "host.formEntries.validate", kit: "the form kit's useFormValidation + validateAll" };
 const SOURCE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/;
 const REGEX_BEFORE = /[(,=:[!&|?{};+\-*%<>~^]/;
 
@@ -187,12 +199,14 @@ function moduleUsed(repo) {
 }
 
 /**
- * The files that write and are not checked by `host.formEntries.validate`: a write file is checked
- * when it calls it, or when a file that calls it imports it. `{ validating, unchecked }`, repo-relative.
+ * The files that write and are not checked by `host.formEntries.validate` (directly, or through the
+ * form kit's `useFormValidation` with `validateAll`): a write file is checked when it does the check,
+ * or when a file that does imports it. `{ validating: [{ file, how }], unchecked }`, repo-relative.
  */
 export function validateCoverage(repo, writes) {
   const files = walk(path.join(repo, "src"));
-  const validating = files.filter((file) => VALIDATE.test(code(file)));
+  const how = new Map(files.map((file) => [file, validatesBy(code(file))]));
+  const validating = files.filter((file) => how.get(file));
   const reached = new Set(validating);
   for (const file of validating) {
     for (const spec of importsOf(code(file))) {
@@ -201,7 +215,7 @@ export function validateCoverage(repo, writes) {
     }
   }
   const unchecked = [...new Set(writes.map((w) => w.file))].filter((file) => !reached.has(path.join(repo, file)));
-  return { validating: validating.map((file) => rel(repo, file)), unchecked };
+  return { validating: validating.map((file) => ({ file: rel(repo, file), how: how.get(file) })), unchecked };
 }
 
 function gitShow(cwd, ref) {
@@ -257,7 +271,7 @@ export function checkRequired(workspace, repoDir, { source } = {}) {
   const writes = findWrites(repo);
   if (writes.length === 0) return { writes, state: "no-writes", missing: [], notes: [] };
   const { validating, unchecked } = validateCoverage(repo, writes);
-  const validateNotes = validating.map((file) => `host.formEntries.validate in ${file}`);
+  const validateNotes = validating.map((v) => `${HOW[v.how]} in ${v.file}`);
   if (validating.length > 0 && unchecked.length === 0) return { writes, state: "validate", missing: [], notes: validateNotes };
   const missing = [];
   const notes = [...validateNotes];
@@ -270,7 +284,7 @@ export function checkRequired(workspace, repoDir, { source } = {}) {
   else for (const t of tests) notes.push(`coverage test ${t.file} (policy ${t.policy})`);
   if (missing.length > 0) {
     if (validating.length > 0) missing.push(`or check with host.formEntries.validate( the writes in ${unchecked.join(", ")} (no file that calls it imports them)`);
-    else if (!existsSync(path.join(repo, MODULE))) missing.push("or call host.formEntries.validate( before each write");
+    else if (!existsSync(path.join(repo, MODULE))) missing.push("or call host.formEntries.validate( (or the form kit's useFormValidation( and validateAll() before each write");
   }
   return { writes, state: missing.length === 0 ? "module" : "missing", missing, notes };
 }
@@ -301,7 +315,7 @@ function main(argv) {
   const files = [...new Set(result.writes.map((w) => w.file))];
   if (result.state === "no-writes") console.log(`ok      ${repoDir}: writes no form`);
   else if (result.state === "missing") console.log(`MISSING ${repoDir}: writes forms (${kinds}, in ${files.length} file(s): ${files.join(", ")}) and does not check their required fields`);
-  else console.log(`ok      ${repoDir}: writes forms (${kinds}) and checks required fields (${result.state === "validate" ? "host.formEntries.validate" : "shared module"})`);
+  else console.log(`ok      ${repoDir}: writes forms (${kinds}) and checks required fields (${result.state === "validate" ? "host.formEntries.validate or the form kit's useFormValidation" : "shared module"})`);
   for (const note of result.notes) console.log(`  - ${note}`);
   for (const line of result.missing) console.log(`  missing: ${line}`);
   return result.state === "missing" ? 1 : 0;
