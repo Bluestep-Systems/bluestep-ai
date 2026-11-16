@@ -51,7 +51,10 @@ setter of that name is not one), `formEntries.create(`, `.submit(`, `.save(`, `.
 `useFormDraft(`. A repo with none passes. A repo with one passes when it either:
 
 - checks every write with `host.formEntries.validate(`, the host's own check against the
-  definition: each file that writes calls it, or is imported by a file that does; or
+  definition: each file that writes calls it, or is imported by a file that does. The form kit's
+  `useFormValidation(host.formEntries, …)` calls it too, so a file that calls the hook **and**
+  `validateAll()` (the check before the save, as the built-in entry screen does) counts the same;
+  the hook alone does not; or
 - carries the shared module `src/data/required.ts` **unchanged** and imports a value from it in
   `src`, and has a **coverage test**: a test file (under `test/`, `tests/` or next to the code in
   `src/`) that imports the screen's policy

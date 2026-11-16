@@ -3,6 +3,18 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
+## [0.1.2] — 2026-11-16
+
+### Fixed
+
+- **The required-fields check (gate 3b) no longer fails a component that checks through the form
+  kit.** `tools/required.mjs` counted only a literal `host.formEntries.validate(`, so a component
+  started from the built-in entry screen, which calls the kit's `useFormValidation(host.formEntries,
+  …)` and `validateAll()` before the save, failed with "call host.formEntries.validate( before each
+  write". The hook calls that same host check, so a file that calls the hook and `validateAll()`
+  now counts; the hook without `validateAll()` still does not. `build/typecheck.md` and gate 3b say
+  so.
+
 ## [0.1.1] — 2026-11-10
 
 ### Added
