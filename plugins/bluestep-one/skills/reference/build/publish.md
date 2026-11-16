@@ -53,8 +53,9 @@ works on both.
 
 - **`QUEUED` for minutes, then `FAILED` with "source fetch answered 404"** (twice in its `log`).
   Build the same commit again: a later try usually builds, mostly by the fourth, but not always
-  (G-229). After two failures sign out and in again; after four, stop, ask the user to build from
-  the component's *Build* tab, and report it. An org runs at most three builds at once, so build a
+  (G-229; runs of up to seven failures have ended in a success). After two failures sign out and in
+  again; after four, stop, ask the user to build from the component's *Build* tab, and report it.
+  The second log line can also be "not found" at `postResult`; it is the same failure. An org runs at most three builds at once, so build a
   batch two or three at a time.
 - **A push the Build tab does not show.** The tab cannot tell whether a push is waiting; read
   `customComponentBuild` for the pushed sha instead.
