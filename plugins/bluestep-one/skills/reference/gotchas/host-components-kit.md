@@ -186,6 +186,28 @@ in every one. The whole list on `ApiFormDef` has been asked for.
 
 **Applies to:** any BlueStep One component
 
+### `records.listTypes()` lists only the person type's sub-types, so a record's `/gql` type, or any other base type, finds no host type
+
+What looks right: a record read over `/gql` carries `type { id }`, so match it against
+`records.listTypes()` by `toString()` (as G-207 does), then page `records.list(type)` for the
+record's host key, as a link or a new entry needs. What happens: `/gql` gives every person
+record's `type` as the base type *Individual*, and `listTypes()` returns only Individual's
+sub-types, which `/gql` calls the record's `categories`. It lists no other base type either, so a
+record of a non-person base type is never found. Every lookup by the record's own type found
+nothing, with no error: links to the record were not drawn, and actions that open a new entry said
+"Not available in BlueStep One yet".
+
+**How to tell.** On a test org, as a super user,
+`{ app { relate { individualRecordType { subTypes { id displayName } } } } }` over `/gql` is the
+list `listTypes()` gives; a `relateQuery` over people asking
+`rows { record { type { id } categories { id } } }` gives the same base type id on every row.
+
+What to do: try the record's type, then each of its `categories { id }`, then the form's own
+`ApiFormDef.recordType` (which the host does give, even for a non-person type; G-207 names its
+limit), and walk the first one the host lists.
+
+**Applies to:** any BlueStep One component that finds a host record key from a `/gql` record
+
 ### G-244 — A host entry search on the session's unit with `includeSubUnits: false` misses the entries of records in the units under it
 
 What looks right: a page finds an entry's host key with
@@ -277,7 +299,11 @@ press Escape, and read `document.activeElement`: `BODY`. With the fix below, it 
 
 What to do: give `B6pDialogContent` an `onCloseAutoFocus` that calls `preventDefault()` and moves
 focus itself (to the opener, or to what the action opened). It runs after the dialog is gone and
-the page is no longer hidden, so the move holds.
+the page is no longer hidden, so the move holds. Read the opener (`document.activeElement`) in a
+`useLayoutEffect` when the dialog opens, not in a `useEffect`: the dialog's focus scope moves focus
+into the dialog in its own effect, which runs before the screen's, so a `useEffect` reads an
+element inside the dialog. When the action removes the opener (a dismissed row, a cleared
+request), move focus to the page's next control (a filter, the section's heading) instead.
 
 **Applies to:** any BlueStep One component
 
@@ -386,5 +412,155 @@ What to do: when asking Design for a canvas, forbid `class`, `className` and `st
 `x-import`s and `!important` in the canvas CSS; put extra classes on an inner element instead,
 and ask Design to list every attribute left on a kit part. In the build, trust the kit part's own
 padding over the canvas when the two differ.
+
+### A canvas export draws every link in the primary colour, and the host draws a plain `<a>` in the text colour
+
+What looks right: the canvas shows a component's links in the primary colour, and the component
+draws a plain `<a href>` as the canvas's markup does, so the build matches. What happens: the
+export's own page CSS (in each artboard file) sets `a{color:var(--primary)}a:hover{color:var(--foreground)}`.
+The BlueStep One host sets no colour or underline on a plain `<a>`, so it takes the text colour
+around it: the body text colour in a table, the warning colour inside a warning alert. The links
+read as plain words, and a still picture of the build is easy to pass by eye.
+
+**How to tell.** On the live screen and on the artboard, read `getComputedStyle(link).color` for
+the same link: the live one equals its parent's colour, the canvas one is the primary colour. Grep
+the artboard's `.html` for `a{color:var(--primary)}`.
+
+What to do: give the component's links a class with `color:var(--primary)` and
+`:hover{color:var(--foreground)}` in the component's own style tag (or draw them as P-33 (2)
+does), and read the computed colour in the design check rather than by eye.
+
+**Applies to:** any BlueStep One component
+
+**Applies to:** any BlueStep One component
+
+### On print, the host gives every table `table-layout: auto` and its own cell padding, which outranks a component's plain class rules
+
+What looks right: a component's grid with `.my-grid { table-layout: fixed }` and a hidden width
+row prints well from a plain page, and its `@media print` rules look right when applied on screen.
+What happens: on `beforeprint` the host sets `html[data-print-mode="print"]` (with
+`--print-zoom`, an `@page` from the viewer's print options, and a header and footer), and its
+stylesheet has `html[data-print-mode] table { table-layout: auto; width: 100% }` and
+`html[data-print-mode] :is(th, td) { padding-left: .375rem; padding-right: .375rem }`. Their
+specificity (0,1,2) beats `.my-grid` (0,1,0) and `.my-grid td` (0,1,1), so the table lays out by
+its content: a column with `overflow-wrap: anywhere` shrinks to one letter, its rows grow taller
+than a page, and with `break-inside: avoid` the table starts on page 2. Seen on release
+26.11.02.01, printing from the component's own *Print* button (`window.print()`).
+
+**How to tell.** Without printing: on a test org, on the screen, run
+`window.dispatchEvent(new Event('beforeprint'))`, then read
+`document.documentElement.dataset.printMode` ("print") and the table's computed `tableLayout` and
+column widths; `window.dispatchEvent(new Event('afterprint'))` undoes it. On paper: *Print*, then
+*Save as PDF*.
+
+What to do: start the table's and cells' rules with `:root` (0,2,x), or keep widths in inline
+styles; give the paper its own column widths.
+
+**Applies to:** any BlueStep One component
+
+### A hand-drawn print copy must apply `fieldControl` itself: a Smart Hide field arrives as `calculated`
+
+What looks right: a component that draws its own paper copy from the host's form def
+(`ApiFormDef.fields`, not `FormRenderer`) leaves out section headers, spacers and what
+`apiFieldsHiddenByGrouping` hides, so the screen and the paper seem to hold the same fields. What
+happens: Manage's *Smart Hide* lock (`fieldControlType` `SMART_HIDE` over `/gql`) comes through
+the host as `fieldControl: "calculated"`, "view-only once it has a value, hidden while it is
+empty". `FormRenderer` hides such a field while it is empty; the hand-made copy printed its label
+with a blank value, a field the screen never draws. A field locked Hidden (`"hidden"`) needs the
+same care.
+
+**How to tell.** 1. On a test org, read the form's fields over `/gql`:
+`remoteObjects(ids: ["<form id>"]) { ... on RelateForm { allFields { label wrapper { topId fieldControlType } } } }`,
+and pick a `SMART_HIDE` field that is empty on a test entry. 2. Open that entry in BlueStep One:
+the field is not drawn. 3. Look at the print copy (the browser's print preview): without the fix,
+its label is there with a blank value.
+
+What to do: put the paper's choice of fields in one pure function (`onPaper(field, value)`, say)
+that skips `section-header`, `spacer`, `"hidden"`, and `"calculated"` while blank, and test it.
+
+**Applies to:** any BlueStep One component
+
+### A canvas's 150 px text box drawn for a month picker clips the browser's month input
+
+What looks right: the canvas draws the month picker as a text box 150 px wide, and the build gives
+the kit's input `type="month"` that width. What happens: the browser's month input adds its own
+calendar button and needs about 172 px at 14 px type ("September 2026"), so at 150 px the calendar
+icon is cut off on the right. The width is the component's, not the kit's.
+
+**How to tell.** Open a page with the picker at 1440 px, pick the longest month name, and compare
+the input's `scrollWidth` with its `clientWidth` in the console; the icon shows half drawn.
+
+What to do: give the input `width: max-content`, with the canvas width as `minWidth`.
+
+**Applies to:** any BlueStep One component
+
+### `B6pCheckbox` takes no invalid, required or id, and its label is one truncated line
+
+What looks right: a form checkbox that can be marked required and refused like `B6pInput`
+(`aria-invalid`, a red edge), with an `id` a `B6pLabel htmlFor` can point at. What happens:
+`B6pCheckbox` (`@bluestep/ui` 1.12.0) takes `checked`, `onChange`, `disabled`, `describedBy`,
+`wrap`, `meta`, `className` and `children` only. There is no `invalid`, `aria-required`, `id`,
+`name` or `value`, so a wrapper that keeps those props for its callers drops them, and a required
+box refused by the save draws no red edge (the field's message still names it). The markup is a
+`<label>` with an `sr-only` input, a 16 px box and the words in `min-w-0 truncate`: a long label is
+cut with an ellipsis, not wrapped.
+
+**How to tell.** Read `B6pCheckbox`'s props in the component's `types/ui.d.ts`. On a test org,
+refuse a save on a required box drawn with it: no red edge; a long label ends in "…".
+
+What to do: where the refused state must show, draw the control as a kit toggle button
+(`B6pButton` with `aria-pressed`, and the destructive edge when invalid). Ask the kit's owners for
+the missing props.
+
+**Applies to:** any BlueStep One component
+
+### The form kit offers "Remove my signature" on a stored signature that a `/gql` save does not take off
+
+What looks right: a component draws a form-entry screen with `FormRenderer` and saves through
+`/gql` (`updateFormRow`, with signatures in `sign`). On an entry the viewer already signed, the kit
+draws the signature with a "Remove my signature" button, so taking a signature off seems to be
+there. What happens: the click sets the value to `false` and marks the entry changed, but a `/gql`
+save only adds signatures. A save that drops `false` sends nothing for it, "Saved." shows, and the
+signature is still there after the reload; and clearing a stored signature over `updateFormRow` is
+refused for anyone but an admin anyway (P-76). An update on a signed entry has a trap of its own:
+see "`updateFormRow` on an entry with a signed signature can answer success, keep its `rowVersion`
+and save nothing" in `gotchas/gql-writes-and-saves.md`.
+
+**How to tell.** On a test org, sign a test entry through the component and save, then reopen it:
+"Remove my signature" shows under the signer's line. Read what the component's save sends for a
+signature whose value is `false`.
+
+What to do: draw every signature field whose stored value has text as read only
+(`fieldControl: "view-only"`), so the button is not offered; only an unsigned signature stays
+editable.
+
+**Applies to:** any BlueStep One component
+
+### The built-in entry screen draws no merge-report or static-content field, so a form Manage draws through one needs a component
+
+What looks right: a legacy form that is on for BlueStep One opens on the built-in entry screen,
+its fields draw, and a new entry saves. What happens: the host maps a merge-report field
+(`RelateMergeReportField`) and a static-content field (`RelateStaticContentField`) to nothing, so
+the field and everything it did on the legacy page are gone. Three shapes:
+
+- a document form, whose text fields place other fields by token: the built-in screen shows the
+  tokens as literal text and lists every field of the form as editable, where the legacy page
+  showed only the placed ones;
+- a form whose fields are all *Hidden with default* except one merge-report field: the entry is
+  empty;
+- a merge-report field that only carries page script (scores, totals, required rules): the
+  built-in save leaves those values empty and skips those rules.
+
+**How to tell.** Read the form's fields (the gateway's `describe_form`, or `/gql`
+`relateForm(id) { fields { __typename id label fieldControlType } }`). Any
+`RelateMergeReportField` or `RelateStaticContentField` that is not hidden is one to open: open the
+same test entry on the legacy page and in BlueStep One side by side, and compare what each shows
+and lets you edit. Related: G-333 (a component that draws another form's fields, as a merge
+report did).
+
+What to do: give the form a component on its entry surface, drawn from the host's form definition,
+that rebuilds what the merge report did (its document, list, button, rule or total), and put any
+rule or total the page computed where the save happens. Do not ship the form on the built-in
+screen with that work missing.
 
 **Applies to:** any BlueStep One component

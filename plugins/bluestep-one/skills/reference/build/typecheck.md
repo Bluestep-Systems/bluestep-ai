@@ -64,7 +64,8 @@ setter of that name is not one), `formEntries.create(`, `.submit(`, `.save(`, `.
 
 The module is a copy like any other: a row of the README's *Copied* table names its source and
 commit. The check fails when the copy differs from the source at that commit, or the source changed
-since (carry it over, as for any copy). The repo that holds the source has no row; run the check
+since (carry it over, as for any copy). Run the check from the folder that holds the component
+repos: from inside a repo it cannot find the sources of the copies. The repo that holds the source has no row; run the check
 there with `--source <that repo>/src/data/required.ts`. `--source` on a repo's own module counts
 only when its README lists no row for the module and another repo of the workspace copies it from
 there, so it is no way around a copy that drifted. Exit 0 passes, 1 names what is missing,

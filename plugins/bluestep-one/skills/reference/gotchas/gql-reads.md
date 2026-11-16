@@ -28,8 +28,8 @@ answer 200. 3. POST with a made-up token: a 403 with the body above and no `erro
 What looks right: read the entries still to sign with a `formEntries` filter "*Signature* is
 empty", as Manage's list does, written with `=` and an empty value. What happens: `=` with no
 value, `<>` with no value and `NOT_EQUALS ""` each answer a bare INTERNAL, with no message to act
-on. A *Signature* field's search operators are the `d`-prefixed ones: `d=`, `d<>`, `d>`, `d>=`. With
-an empty value, `d=` means IS NULL (unsigned) and `d<>` means IS NOT NULL (signed). A plain `=`
+on. A *Signature* field's search operators are the `d`-prefixed ones: `d=`, `d<>`, `d>`, `d<`,
+`d>=`, `d<=`. A plain `>=` is refused by name, with that list in the message. With an empty value, `d=` means IS NULL (unsigned) and `d<>` means IS NOT NULL (signed). A plain `=`
 builds an empty SQL segment on the server, which ends as INTERNAL. `QueryFilterInput.operation` is a
 free `String!`, so the `d` operators pass the schema.
 
@@ -38,10 +38,22 @@ So "the unsigned entries" can be a server filter:
 read of a large form with no `unitId` can time out. A PRECONDITION on `=` that names the right
 operators, and their documentation, are still owed.
 
+**Dates (changed in web 26.11.09).** With a value, `d>`, `d>=`, `d<` and `d<=` filter on the
+signing instant. From web 26.11.09 the value is ISO 8601 with an offset
+(`2026-10-01T00:00:00-06:00`) or in UTC (`2026-10-01T06:00:00.000Z`); both matched the same rows.
+A bare date means midnight in the viewer's zone. Manage's own text (`MM/dd/yyyy h:mma`, a newline,
+then a zone name), the only value taken before 26.11.09, is now refused: "Value '…' for field
+'<label>' (Signature Field) is not a valid date and time; expected YYYY-MM-DDTHH:MM[:SS] with an
+optional offset, or MM/DD/YYYY H:MMam …". Before 26.11.09, any other value answered "An unexpected
+server error occurred." Send the offset of the zone the period belongs to (the unit's), never the
+viewer's. Components that sent Manage's text broke when the release went out, and showed only
+their generic load error. `d=` and `d<>` with an empty value are unchanged.
+
 **How to tell.** On a test org, run `formEntries` on a form with a *Signature* field, with a
 `unitId` and the filter `{ fieldId: "<signature field id>", operation: "=", value: "" }`, asking
 `totalSize`: a bare INTERNAL. The same with `operation: "d="` gives the unsigned count, and `d<>`
-the signed count.
+the signed count. Since web 26.11.09, `d>=` with an ISO value with an offset gives the
+entries signed from that instant; the same filter with Manage's text gives the refusal above.
 
 **Applies to:** any BlueStep One component
 
@@ -122,5 +134,37 @@ for a while, then the same read with the `<>` filter and the sort on another suc
 What to do: filter and sort on the date-time field the screen needs, ask for the rows that have it,
 read one page, and show each read as it lands instead of waiting for the last one; never size a
 loading state on one timing.
+
+**Applies to:** any BlueStep One component
+
+### A number field's `valueAsString` carries thousands separators
+
+What looks right: match a stored list of ids (a text setting such as "12345,0,1") against a number
+field's `valueAsString`. What happens: `valueAsString` is "12,345" while `value` is 12345, so a
+string match never hits, and a split on commas breaks the number in two.
+
+**How to tell.** On a test org, read a number field that holds 1000 or more:
+`formEntries(formId: "<form id>", …) { rows { formEntry { data(fields: ["<field id>"]) { valueAsString value } } } }`.
+
+What to do: read `value` for numbers, never `valueAsString`.
+
+**Applies to:** any BlueStep One component
+
+### `myAlerts` answers at most 100 rows, and the count past 100 is unknown
+
+What looks right: `myAlerts` is the viewer's alert inbox, so its length is the number of alerts
+the viewer has. What happens: the schema says the field is "Capped at 100 rows". A user who
+receives many system alerts can pass 100, and a page or badge built on `myAlerts` then stops at
+100 with no sign. Manage's own Alerts page stops at 100 too: it listed exactly 100 before and after
+one was cleared, and the cleared one was replaced by the same next alert in both apps, while the
+platform's header badge showed another number at the same minute. So no screen shows the true
+count.
+
+**How to tell.** On a test org, from a signed-in tab, run
+`{ __type(name: "Query") { fields { name description } } }` over `/gql` and read `myAlerts`'
+description.
+
+What to do: when the answer has exactly 100 rows, show the count as "100+" and say the list may be
+cut. `alertHistory` (an audit read, slow, not for polling) is not a replacement.
 
 **Applies to:** any BlueStep One component
