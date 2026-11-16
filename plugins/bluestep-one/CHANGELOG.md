@@ -3,6 +3,16 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
+## [0.2.1] — 2026-11-16
+
+### Changed
+
+- **G-229 and `build/publish.md`:** a build that fails with "source fetch answered 404" has been
+  seen to fail up to seven times in a row and then build with nothing changed, and its second log
+  line can read "not found" at `postResult`. The agent still stops after four failed tries and
+  hands the build to the *Build* tab: each try costs minutes and one of the org's three build
+  slots, and the user may choose to keep trying.
+
 ## [0.2.0] — 2026-11-16
 
 ### Added
