@@ -1,8 +1,10 @@
 ---
-description: "BlueStep endpoint/merge-report scripts run top-down — declare every const/let ABOVE the entry try block or they are in TDZ when the request handler fires"
+description: "BlueStep endpoint/merge-report scripts run top-down — declare every const/let ABOVE the entry try block or they are in TDZ when the request handler fires; the symptom is some actions failing with ReferenceError while others work"
 ---
 
-In BlueStep endpoint / merge-report scripts, declare every `const` and `let` ABOVE the top-level entry block (the `try { ... }` that runs the request handler). Do not interleave constants with helper functions further down the file.
+In BlueStep endpoint / merge-report scripts, declare every `const` and `let` ABOVE the top-level entry block (the `try { ... }` that runs the request handler). Do not interleave constants with helper functions further down the file. Putting the entry block at the very end of `app.ts`, after every declaration, does the same.
+
+**The symptom is partial.** Only the actions whose code path reads a constant declared below the entry block fail, with `ReferenceError: <NAME> is not defined`; every other action works. So when some of an endpoint's actions answer 500 and others work, check where the entry block sits before suspecting those actions: `awk 'NR > <entry line> && /^(const|let) /' app.ts` lists every binding at risk. Two usual checks do not help: `b6p audit` reports the script in sync and a republish changes nothing, because the source is not stale; and a page that maps the endpoint's error to a friendly sentence hides the `ReferenceError` text, so call the endpoint directly and read the error message.
 
 **Why:** A typical BlueStep endpoint looks like:
 

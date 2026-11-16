@@ -11,6 +11,43 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.50.0] — 2026-11-16
+
+> **The reference fills gaps reported from production, and `/b6p-setup` recognizes a one-tools
+> workspace.** Field-authoring defaults (`name`, `frozen`, signatures, `CUSTOM` field controls)
+> were checked against the live tool schema and a live read; the rest is marked as reported.
+
+### Added
+
+- **Endpoints and BsJs** (`bsjs-development.md`): pin every query's unit on each request (a "This
+  Unit Only" query from a session in another unit returns another record); `B.commit(messagesConsumer)`
+  can return an empty `Optional` and call the consumer with `null` on success; an OnDemand run's log
+  is on the task pod, which the gateway's log tools may not read.
+- **`reference/relationship-field-set.md`**: a Cross-Record relationship field has no formula id;
+  read and write it through `allFields` as a `RelationshipField`.
+- **`conventions/mcp-platform-authoring.md`**: field `name` is the users' column heading, in Title
+  Case, never the `formulaId`; `frozen` locks the definition, not the value; signatures are SIMPLE
+  with `rightLabel` = the signer's role unless SECURE is asked for by name; a `CUSTOM` field control
+  reads back over GraphQL, not `get_form`, and how `batch_fields` sets one; how to prove a query's
+  run unit is pinned and fix it with the `view` tool; `timeZoneId` for a schedule (Mountain, never
+  Phoenix); no tool starts an OnDemand formula; name search in `list_forms` / `list_views` can miss;
+  a Cross-Record field from `batch_fields` has no formula id; a new Merge Report's Relate folder and
+  `availableRelateRecordNav`.
+- **Smaller notes**: sub-units have classId 111000 (`reference/units-records-form-rows.md`);
+  `user.credential()` is not the login (`reference/api-patterns.md`); a current-record import's id
+  is one hop shorter than a query's (`reference/current-record-bindings.md`); a post-save runs only
+  on a real data change, and change detection keys selects by option id (`gotchas/common-gotchas.md`).
+
+### Changed
+
+- **`conventions/top-level-const-tdz.md`** names the symptom (some of an endpoint's actions fail
+  with `ReferenceError` while others work) and the manifest loads it on that symptom.
+- **`/b6p-setup`** recognizes a one-tools (BlueStep One conversion) workspace — `.claude/one-tools.json`
+  or the one-tools template marker in `AGENTS.md` — points at `/one-tools:one-setup`, writes nothing
+  and goes to the report, instead of offering to set it up as a BlueStep project or opt it out.
+- **`/b6p-push`** `references/verify-live-build.md`: re-trigger a formula by saving a changed value;
+  an unchanged re-save does not run a post-save.
+
 ## [plugin 0.49.1] — 2026-11-12
 
 > **The approval question no longer shows the call's JSON.** Before a platform write the agent

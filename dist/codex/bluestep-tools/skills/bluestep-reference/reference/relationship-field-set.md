@@ -30,6 +30,17 @@ For fields like `parentLog` on the `logs` MEF that link one log entry to another
 
 Companion pattern: separately populate the sibling `parentLogId` TextField with `parentLogEntry.id().shortId()` — that one IS a string field and is correct.
 
+## Cross-Record relationship fields have no formula id
+
+A Cross-Record relationship field gets no formula id (script name), whether an FID is added when it
+is created or later, so it is never in `declarations/index.d.ts` and `entry.fields.<name>` does not
+exist. Read and write it through `FormEntry.allFields`, picked by `metaData().id()` and cast to
+`Bluestep.Relate.RelationshipField`: `selected()` reads it, `set(<target FormEntry>, true | false)`
+ticks or unticks a target (returns `true`; works on a `newEntry()` before `B.commit()`). Unticking
+through a `RelationshipFormEntry` from `selected()` works even for a target that has left the
+lookup. The script still needs read and write field-access rows on the field. (Reported 2026-11 from
+a live endpoint.)
+
 ## Related
 
 - See [new entry id](new-entry-id.md) — must `B.commit()` before reading a new entry's `shortId()`, including before using it as a relationship target.

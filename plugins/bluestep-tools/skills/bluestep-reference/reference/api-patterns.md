@@ -519,6 +519,10 @@ if (user) { const name = user.fullName(); }
 if (B.isLayout("MANAGE")) { /* Manage-specific behavior */ }
 ```
 
+The login is `user.userName()`. `user.credential()` is the professional suffix (MD, RN), usually
+empty, not the login, so an allowlist checked against it refuses everyone (reported 2026-09 from
+production, not re-run here; see [conventions/public-facing-api.md](../conventions/public-facing-api.md)).
+
 ⚠️ `B.optUser` is a Java Optional — never serialize it directly into a template literal (it produces `"function () { [native code] }"`). Always resolve with `.map(...).orElse(...)` first.
 
 ## Type Safety

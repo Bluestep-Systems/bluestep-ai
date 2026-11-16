@@ -108,6 +108,11 @@ default path still works. **Match by `displayName()` (or the option's id), not `
 unless export values are known to be populated for that list. (MCP-created/edited option lists
 lacking export values is a platform-side gap, tracked separately.)
 
+For an approval snapshot or any change detection, record a select by its **option id** — not
+`displayName()` (renaming an option would un-approve every record) and not `exportValue()` (it can be
+blank, as above). Leave `DocumentLinkField.contentTimestamp()` out of change detection: it is not
+stable between saves. (reported 2026-09 from production, not re-run here)
+
 ## Nullable booleans — an unticked box is `null`, not `false`
 
 A BlueStep boolean field that was **never touched** reads as `null`, not `false`. Only a box someone
@@ -130,6 +135,12 @@ if (rec.forms.prefs.fields.consented.val() === true) { include(rec); }
 Rule: **test opt-out flags with `!== true` and opt-in flags with `=== true`.** Never write `=== false`
 against a BlueStep boolean unless you genuinely mean "was explicitly set to no" and have accepted that
 untouched records fall outside the filter.
+
+## A post-save runs only when data changed
+
+A post-save formula fires only on a real data change. Re-saving a record without changing anything
+does nothing, so it is no way to re-run the formula. Tip: keep a harmless boolean on the form that the
+formula does not read, and flip it to force a run. (reported 2026-09 from production, not re-run here)
 
 ## Error handling
 
