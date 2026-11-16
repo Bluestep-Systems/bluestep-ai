@@ -52,10 +52,23 @@ jobs:
           # the ClickUp API (accepted residual risk, see the ADR addendum).
           # File edits stay disallowed: the bot routes, it never writes code.
           claude_args: |
-            --model claude-sonnet-5
+            --model claude-sonnet-5-5
             --max-turns 60
             --allowedTools Bash,Read,Grep,Glob
             --disallowedTools Edit,Write,NotebookEdit
         env:
           # The repo secret is named CLICKUP_API_TOKEN; the skill and scripts read CLICKUP_TOKEN.
           CLICKUP_TOKEN: ${{ secrets.CLICKUP_API_TOKEN }}
+
+      # The action reports only `is_error: true`. Print why: the result text and the last
+      # assistant text (an API error such as a billing or model refusal lands there). Tool
+      # output is not printed — this repo's logs are public.
+      - name: Show why the run failed
+        if: failure()
+        run: |
+          f="${RUNNER_TEMP}/claude-execution-output.json"
+          if [ ! -f "$f" ]; then echo "no execution output at $f"; exit 0; fi
+          echo "result:"
+          jq -r '[.[] | select(.type == "result")] | last | (.result // .error // "(none)") | tostring | .[0:600]' "$f"
+          echo "last assistant text:"
+          jq -r '[.[] | select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text] | last // "(none)" | .[0:600]' "$f"
