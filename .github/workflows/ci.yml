@@ -973,6 +973,21 @@ jobs:
           }
         shell: pwsh
 
+      # The git author step (3b) asks for a name and email only when a person can
+      # answer. The runner's input is redirected, so the first run must report it
+      # as skipped (or ok, when the runner's git already has both) and never wait.
+      - name: Git author step skips itself without a console
+        if: runner.os == 'Windows'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . (Join-Path $env:RUNNER_TEMP 'bs-ci.ps1')
+          $res = Get-BsResults $env:BS_RUN1_LOG
+          $s = $res['git author']
+          if (-not $s) { Write-Host "::error::no 'git author' result line in $env:BS_RUN1_LOG"; exit 1 }
+          if ($s.Status -notin @('skipped', 'ok')) { Write-Host "::error::git author is '$($s.Status)' ($($s.Detail)), expected 'skipped' (no console) or 'ok'"; exit 1 }
+          Write-Host "git author - $($s.Status) ($($s.Detail)). OK"
+        shell: pwsh
+
       # A new shell: pwsh -NoProfile with PATH rebuilt from the registry. Our
       # copy of each tool must exist and report its pinned version; which copy
       # the new shell resolves is reported, and a different one is a warning
