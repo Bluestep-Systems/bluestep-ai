@@ -8,14 +8,16 @@ repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 ### Added
 
 - **`/bluestep-one:build <name> --clone` creates or registers a component that is not in
-  `components[]`.** It looks the name up first (`customComponents`, a read) and registers a match
-  instead of making a twin. Only a true miss is created, with one `createCustomComponent` from a
+  `components[]`.** It looks the name up first (`customComponents`, a read) and registers a match,
+  once the user confirms it, instead of making a twin. A lookup by a user who is not super is not
+  taken as proof of a miss. Only a true miss is created, with one `createCustomComponent` from a
   signed-in tab, after the user's yes in chat. The create carries the catalog fields (summary,
   description and use cases, all required by the skill), `provisionRepo: true`, the plugin's seed
   files and an `X-Request-Id`, so a lost answer is resent, not re-applied. A taken repo name goes
   back to the lookup, never to a second create under another name. The config entry is written only
-  after the clone and `git checkout draft` worked, checked against the schema. Without `--clone`
-  the skill still stops and names the component. → `build/types.md` › *A new component repo*.
+  after the clone and `git checkout draft` worked, checked against the schema, never twice for one
+  id. A component already listed is cloned and set up as before. Without `--clone` the skill still
+  stops and names the component. → `build/types.md` › *A new component repo*.
 - **Seed files** in `templates/component/`: a minimal `component.json`, `src/Component.tsx` and a
   README with an empty *Copied from other repos* table, beside the existing `tsconfig.json` and
   `.gitignore`. A seeded create commits exactly these five.

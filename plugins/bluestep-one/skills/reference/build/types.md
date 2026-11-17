@@ -34,18 +34,26 @@ tab*). A tab on another host gets no write: say which host it is on.
 ### Look it up first
 
 A read, so no prompt:
-`{ customComponents { id displayName repoName repoProvisioned gitCloneUrl } }`. Match the name
-against both `displayName` and `repoName`, ignoring case and treating `-` and `_` as the same.
+`{ user { super } customComponents { id displayName repoName repoProvisioned gitCloneUrl description } }`.
+Match the name against `displayName`, ignoring case and treating `-` and `_` as the same. Match the
+repo name the create would use against every `repoName` the way the server folds them (every
+character outside letters, digits, `_` and `$` counts as `_`), ignoring case as well: a wider match
+is asked about, never assumed.
 
-- **One match with a repo** → no create. Clone and register it, then set it up as an existing repo.
-  A component made in the *Build* panel has no description (its form has no such field): offer to
-  fill it with the update below, after the same yes.
+- **One match with a repo** → no create. Show it (display name, repo name, id) and ask whether it is
+  the one; register it only on that yes, then clone and set it up as an existing repo (on a no, go
+  on as for no match, with a repo name of its own). When its
+  `description` is empty (a component made with *New* › *Custom component* has none), offer to fill
+  it with `updateCustomComponent` (`build/publish.md` › *The row's catalog fields*), with its own
+  yes.
 - **One match, `repoProvisioned: false`** → read its `rowVersion`
   (`remoteObjects(ids: ["<id>"]) { ... on CustomComponent { rowVersion } }`), then one
   `updateCustomComponent(inputs: [{ topId, expectedVersion, provisionRepo: true }])`, with the same
   yes and script shape as a create. Then as above.
 - **Several matches** → list them and ask which.
-- **No match** → create it.
+- **No match** → create it. When `user.super` is false, the list holds only what this user can
+  see, so a miss is not proof: say so in the yes sentence, and let the user confirm the name is
+  new.
 
 ### The create
 
@@ -72,9 +80,9 @@ repo name is permanent ("I'll create the component *Task Board*, repo `task-boar
 `<one.host>`, with its catalog fields and the plugin's starting files."). Run nothing without the
 user's yes there. Where mods are on, the plugin's mod then shows one card, once, and its *Proceed*
 covers bluestep-tools' guard too. The card shows the script's opening comment cut at about 200
-characters, so that sentence says what and where within them. The card and the guard act only in
-a folder with `.claude/bluestep-one.json`, and in auto mode the guard's ask can be settled without
-being shown: the chat yes is the gate.
+characters, so that sentence says what and where within them. The card shows only in a folder
+with `.claude/bluestep-one.json` (bluestep-tools' guard asks in any folder), and in auto mode a
+guard's ask can be settled without being shown: the chat yes is the gate.
 
 **The script** opens with the same sentence as a comment, holds the input in a literal
 `variables`, writes the mutation out in full, and writes the request id out too, so a resend
@@ -127,7 +135,9 @@ JSON.stringify(body.errors ?? body.data);
 - **A taken name** → HTTP 200, `createCustomComponent: null`, code `PRECONDITION`. The exact repo
   name gets "already used by another component"; a name that differs only in `.`, `-` or `_` gets a
   message about a colliding container name. Either way, back to the lookup; never a second create
-  under a new name.
+  under a name the agent picks. When the lookup still finds no match (the owner is a component
+  this user cannot see), stop: say the repo name is taken, and ask the user for another one. A
+  create under it is a new create, with its own yes.
 
 The new repo is ready: `draft`, its only branch, holds one commit, *Scaffold component*, with
 exactly the five seed files.
@@ -147,7 +157,8 @@ exactly the five seed files.
 2. `git checkout draft`.
 3. Only once both worked, add `{ "id": "<id>", "name": "<repoName>", "repo": "<checkout path,
    relative to the project>" }` to `.claude/bluestep-one.json` › `components`: read the whole file,
-   add the entry, leave every other key as it is, and check the result against
+   add the entry (none when that id is already there), leave every other key as it is, and check
+   the result against
    `${CLAUDE_PLUGIN_ROOT}/config/bluestep-one.schema.json` before writing it. A clone that fails
    after a create is reported with the id, and no entry is written; the next `--clone` finds the
    component by the lookup.

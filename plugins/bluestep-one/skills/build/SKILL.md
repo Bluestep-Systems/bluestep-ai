@@ -17,16 +17,22 @@ component in `components[]` by name or id; take its `id` and `repo`. A build or 
 on an id there. Work is done in the component repo, under the repo's own `AGENTS.md` where it has
 one. Never `b6p push`; never edit `types/`.
 
+With `--clone` on a component already in `components[]`: if its `repo` folder has no checkout,
+clone it (`types.md` › *Clone, then register*, steps 1–2; the entry is already there, so write
+none); either way, set the checkout up. No lookup and no create.
+
 A component not in `components[]` is not registered yet. Without `--clone`, stop: name it, and say
 that `--clone` looks it up and creates or registers it. With `--clone`, follow `types.md` › *A new
-component repo*: look it up, register a match, provision a row with no repo, create only a true
-miss; clone, then register; set the checkout up. Never miss these:
+component repo*: look it up, register a match the user confirms, provision a row with no repo,
+create only a true miss; clone, then register; set the checkout up. Never miss these:
 
-- No create or provision before the user's yes in chat, in the one sentence that file gives.
+- No create, provision or catalog update before the user's yes in chat, in one sentence.
 - No create without a summary, a description and use cases: propose them from the task or ask.
-- A taken-name refusal goes back to the lookup, never to a second create under a new name.
+- A found component is shown to the user (name, repo, id) and registered only on their yes.
+- A taken-name refusal goes back to the lookup, never to a second create under another name the
+  agent picks.
 - The entry goes into `.claude/bluestep-one.json` only after the clone and `git checkout draft`
-  worked.
+  worked, and never twice for one id.
 
 No tab signed in to `one.host`, no yes, or another refusal: say why in one line and hand over that
 file's manual steps.
@@ -36,8 +42,9 @@ file's manual steps.
 Each is a gate: a failure stops the run there, says which gate and why, and nothing after it runs.
 
 1. **Types.** `node "${CLAUDE_PLUGIN_ROOT}/tools/fetch-types.mjs" --out <shared types folder>`:
-   all seven, banner checked (`types.md`). With `--clone`, the component is found or created,
-   cloned and registered first (*Before anything*), and its checkout set up as `types.md` › *A new
+   all seven, banner checked (`types.md`). With `--clone`, the component is cloned (and found or
+   created and registered when it was not listed) first (*Before anything*), and its checkout set
+   up as `types.md` › *A new
    component repo* › *Set up the checkout* says: files are replaced only on the untouched platform
    scaffold, every other file is kept. Then go on.
 2. **Type check and tests.** `node "${CLAUDE_PLUGIN_ROOT}/tools/typecheck.mjs" <repo>` exits 0,
