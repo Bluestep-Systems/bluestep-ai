@@ -65,7 +65,7 @@ as not to move, unless the user names it.
 3. **Write** — sections 8–9. The org guard holds at every write: the folder's `U######` is this
    target's, every gateway write carries this target's `org` and an `expectedVersion` read in this
    move, every `/gql` write first checks the tab is signed in to this target. Code goes with
-   `b6p push --file` from this target's own folder, read as `/b6p-push` steps 4–5.
+   `b6p script push --file` from this target's own folder, read as `/b6p-push` steps 4–5.
 4. **Read back, update the card** — `references/move-report.md` and `references/task-card.md`:
    read everything back, tick what landed, show the new card text and write it on a yes. Claim the
    target-role log entries this move wrote in that org as `move` (`references/change-log.md`).
@@ -97,7 +97,7 @@ that names the risk. One plan, one approval, the same org guard. Claim the resul
 ## What this skill must NOT do
 
 - Do NOT write to any org without the user's yes on a plan that lists the write.
-- Do NOT use `b6p deploy`, a push URL from another org, or `/b6p-push`'s `--root` fallback
+- Do NOT use `b6p script deploy`, a push URL from another org, or `/b6p-push`'s `--root` fallback
   (the `bluestep-reference` skill's `gotchas/cross-org-push.md`).
 - Do NOT carry an id from one org into a call on another; match by FID or exact name.
 - Do NOT open the platform's web script editor during a move: it writes the draft by itself.

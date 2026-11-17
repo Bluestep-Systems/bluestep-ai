@@ -17,7 +17,7 @@ description: "B.exports is a Java-side proxy map, not a plain JS object — arra
   TypeError: invokeMember (push) on ...ProxyJavaMap... failed due to: Unknown identifier: push
   ```
 
-- **Nothing local catches this.** Editing, `tsc`, and the `b6p push` transpile step all pass — only an actual platform run reproduces the failure. Don't trust a clean local build here.
+- **Nothing local catches this.** Editing, `tsc`, and the platform's build of a push all pass — only an actual platform run reproduces the failure. Don't trust a clean local build here.
 
 - **Scope of what's confirmed:** only the array `.push()` path was reproduced live. Object bracket-assignment on a read-back value (e.g. `B.exports.k[prop] = v` after a prior write) was **not** confirmed to have the same issue — treat it as suspect but unproven.
 

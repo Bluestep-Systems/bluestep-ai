@@ -1,5 +1,5 @@
 ---
-description: "Deploying an off-platform Vite/Preact SPA merge report. Since the web release that makes scripts git-only, deploy-lib's WebDAV upload into draft/static/ and snapshot/static/ is refused (HTTP 403): build Vite into the pulled report's draft/static/ and publish with b6p push --snapshot. Keeps the deploy-lib notes for a server without that release: install from git, the package.json config block (config.deployUrl is camelCase, config.deploypathsuffix/config.builddir are lowercase), npm run deploy -- --build --clean, the auth resolution order (--token-file → BLUESTEP_TOKEN → .env-local → interactive, Authorization: Bearer) and Node 20+. Owns the config-casing issue link (deploy-lib issue #30)."
+description: "Deploying an off-platform Vite/Preact SPA merge report. Since the web release that makes scripts git-only, deploy-lib's WebDAV upload into draft/static/ and snapshot/static/ is refused (HTTP 403): build Vite into the pulled report's draft/static/ and publish with b6p script push --snapshot. Keeps the deploy-lib notes for a server without that release: install from git, the package.json config block (config.deployUrl is camelCase, config.deploypathsuffix/config.builddir are lowercase), npm run deploy -- --build --clean, the auth resolution order (--token-file → BLUESTEP_TOKEN → .env-local → interactive, Authorization: Bearer) and Node 20+. Owns the config-casing issue link (deploy-lib issue #30)."
 ---
 
 This is the deploy half of the off-platform Vite/Preact SPA merge-report pattern — see
@@ -12,7 +12,7 @@ compiler is never involved.
 deploy-lib uploads over WebDAV. Once a server has the web release that makes scripts git-only, every
 WebDAV write into a script's `draft/` or `snapshot/` is refused with HTTP 403 ("This script is edited
 through git; use the BSJS editor or the b6p CLI."), so `npm run deploy` can no longer reach the report.
-Whether deploy-lib gets a git-based release is not known yet. Until it does, deploy with b6p 0.9 or later:
+Whether deploy-lib gets a git-based release is not known yet. Until it does, deploy with b6p 1.0 or later:
 
 1. **Pull the report once** with `/b6p-pull`, so `U######/<Report>/draft/` is a git clone of it. If the
    report still publishes over WebDAV, the pull asks to move it to git first (one-way; `/b6p-pull` step 2).
@@ -23,19 +23,18 @@ Whether deploy-lib gets a git-based release is not known yet. Until it does, dep
 3. **Publish with b6p**, through `/b6p-push` (it asks before it publishes):
 
    ```bash
-   b6p --yes --json push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>"
+   b6p --yes --json script push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>"
    ```
 
-   b6p builds `scripts/app.ts` and writes the build manifest; the Vite output in `static/` holds no
-   TypeScript, so the platform's stale-build check has nothing in it to flag. Do not add
-   `--externally-built`: it only stops b6p from writing the manifest, and the platform skips its
-   check only for a script whose own `externallyBuilt` setting is on (set by the release's one-time
-   cutover for existing bundler-built scripts, otherwise over `/gql`). On a new report that setting is
-   off, so the flag gets the publish refused. The publish is one commit, so the report's history is
-   its git history, next to the Vite project's own repository.
+   The platform builds the push from each `tsconfig.json` in the draft (`scripts/`), writes the build
+   manifest, and publishes; the Vite output in `static/` holds no TypeScript and no `tsconfig.json`,
+   so the platform's build leaves it as it is. A script whose platform `externallyBuilt` setting is on
+   (the release's one-time cutover set it on existing bundler-built scripts) skips the build check
+   altogether; b6p has no flag for it. The publish is a commit, so the report's history is its git
+   history, next to the Vite project's own repository.
 
-This route follows the b6p 0.9 code and the web release notes; it has not yet been run end to end on
-a live report.
+This route follows the b6p 1.0 and web release notes; it has not yet been run end to end on a live
+report.
 
 ## deploy-lib (servers without the git-only release)
 

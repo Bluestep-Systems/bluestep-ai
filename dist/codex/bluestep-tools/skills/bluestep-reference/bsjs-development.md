@@ -23,7 +23,7 @@ Deep reference for BlueStep TypeScript development. Critical rules live in `AGEN
 
 ```
 <project-root>/
-└── U######/                       ← Unit folder, created by `b6p pull`
+└── U######/                       ← Unit folder, created by `b6p script pull`
     └── ComponentName/
         ├── declarations/          ← platform-generated, DO NOT EDIT
         │   ├── B.d.ts
@@ -514,7 +514,7 @@ annotations. The main settings of a pulled one:
 }
 ```
 
-Do not run `tsc` locally. With b6p 0.9 the build that goes live from a push is the CLI's, made at **publish/snapshot** (`b6p push --snapshot`) and committed with a build manifest the platform checks before it publishes — a **plain push skips the TypeScript build entirely** and commits the draft as it is, so its `.build/` stays as it was. Type errors are warnings (exit `0`) unless `--fail-on-type-errors`. A save through the gateway MCP (`write_script_draft`), GraphQL or the platform editor is compiled by the platform since web 26.11.09, behind a save gate that can hold the new output back: `reference/server-side-compile.md`.
+Do not run `tsc` locally. With b6p 1.0 the **platform** builds every push, plain or publish, and b6p moves the local `draft/` to the build commit; only a publish (`b6p script push --snapshot`) makes that build live. Diagnostics are warnings (exit `0`) unless `--fail-on-type-errors`. A save through the gateway MCP (`write_script_draft`), GraphQL or the platform editor is compiled by the platform since web 26.11.09, behind a save gate that can hold the new output back: `reference/server-side-compile.md`.
 
 ### Graal compatibility (server-side)
 
@@ -531,10 +531,10 @@ Server-side `B.net.fetch` is **synchronous** — no `await`/Promise round-trip (
 Query, form, and field references must exist in **the component you are editing**'s `declarations/index.d.ts` **before** you reference them in code. Form-field imports are per-component — another component's declarations file tells you nothing about this one. If a name is missing:
 
 1. Add it to **this component's** form-import config on the platform.
-2. Run `b6p pull "<DAV URL>"` to update this component's declarations.
+2. Run `b6p script pull "<DAV URL>"` to update this component's declarations.
 3. Then reference it in TypeScript.
 
-Hallucinating an import name is **not** caught at publish either: the push transpile runs without `declarations/`, so the fabricated name just joins the benign `Cannot find name` noise and the broken code ships. Verify every name against `declarations/index.d.ts` before using it — that check is the only gate.
+Hallucinating an import name is **not** caught at publish either: the build's `Cannot find name` diagnostics are warnings, so the fabricated name just joins the benign noise and the broken code ships. Verify every name against `declarations/index.d.ts` before using it — that check is the only gate.
 
 ## TS narrowing pitfalls (Graal/Java types)
 
@@ -590,7 +590,7 @@ TypeScript cannot guarantee that the captured variable is still non-null when th
 
 ## Porting from RelateScript
 
-Some RelateScript names do not exist in BsJs, and the publish transpile does not catch them — they
+Some RelateScript names do not exist in BsJs, and the publish build does not catch them — they
 fail only at runtime:
 - `log` → `console` (see Error handling below).
 - `isGlobalUser()` → `isGlobalSuper()` for a global super user, or `isGlobal()` for any global

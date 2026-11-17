@@ -33,7 +33,8 @@ A reader skips a line that does not parse, or whose `v` it does not know, and sa
 | `role` | `source` or `target`, from the config. `null` while `org` is `null`. |
 | `target` | The target's name from the config when `role` is `target`; else `null`. |
 | `surface` | `claude-code`, `cursor`, or `codex`. |
-| `commitSha` | Only on `b6p` entries: the draft commit the push made (b6p 0.9), else `null`. |
+| `commitSha` | Only on `b6p` entries: the draft commit the push made, else `null`. |
+| `buildCommitSha` | Only on `b6p` entries: the platform's "Build draft" commit for that push (b6p 1.0), else `null`. |
 | `publishedSha` | Only on `b6p` entries: the commit a publish made live, else `null`. |
 
 A `role:"target"` entry is either a write a move made there (the move claims it as `move`) or a

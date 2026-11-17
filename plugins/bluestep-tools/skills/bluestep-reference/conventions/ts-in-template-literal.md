@@ -29,8 +29,8 @@ Use plain ES2015+ JavaScript only inside the template literal. The TypeScript co
   A stray backtick closes the literal early and TypeScript misparses the rest of the **file**
   (a cascade of bogus diagnostics — `"," expected`, `Cannot find name 'B'` — far from the real
   cause); an unintended `${` interpolates server-side where you meant literal text. Shipped in
-  practice: comments quoting words in backticks inside the client literal broke the transpile,
-  and `b6p push --snapshot` still printed "Snapshot complete" (emit continues through errors),
+  practice: comments quoting words in backticks inside the client literal broke the build,
+  and the publish still printed "Snapshot complete" (b6p 0.8; emit continues through errors),
   deploying a broken `app.js`.
 - **Regex escapes are consumed by the template literal itself.** The literal cooks backslash
   escapes before the browser ever sees the string: an unrecognized escape like `\s` becomes plain

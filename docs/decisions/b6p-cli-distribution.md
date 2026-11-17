@@ -17,11 +17,12 @@ workaround (Option E). This ADR is now historical — kept for the rationale tra
 > is retired along with the bspecs npm CLI path.
 
 > **Minimum CLI version raised (plugin 0.51.0, for the web release that makes scripts git-only):**
-> the skills now rely on **b6p CLI 0.9.0 or later**. That release refuses every WebDAV write to a
-> script's source with HTTP 403, so 0.8.x cannot push any script, and 0.9.0 is the first CLI that
-> pushes over git (a commit with an author, a build manifest on publish, a one-way switch from
-> WebDAV that `--yes` declines). `/b6p-pull` and `/b6p-audit` now say 0.9.0 too: 0.9.0 is also the
-> first that pulls a git draft. The checks below are unchanged in where they run.
+> the skills now rely on **b6p CLI 1.0.0 or later**. That release refuses every WebDAV write to a
+> script's source with HTTP 403, so 0.8.x cannot push any script. b6p 0.9 moved to git (a commit
+> with an author, a one-way switch from WebDAV that `--yes` declines) but failed its first platform
+> request on a CSRF token; 1.0.0 fixes that, lets the platform build every push, and moves the
+> commands under `b6p script`. `/b6p-pull` and `/b6p-audit` say 1.0.0 too. The checks below are
+> unchanged in where they run. Users update only once their namespace has the release.
 >
 > **Minimum CLI version (2026-09-29, plugin 0.38.0):** the skills relied on **b6p CLI 0.8.1** then.
 > 0.8.0 reversed what `--yes` does on a push: it takes the safe answer of the overwrite and

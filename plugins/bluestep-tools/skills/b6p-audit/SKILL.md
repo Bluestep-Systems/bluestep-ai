@@ -1,15 +1,15 @@
 ---
 name: b6p-audit
 description: Compare a local component's state against what lives on the BlueStep platform, listing files that differ. Use when the user wants to know if they (or someone else) changed something on the platform side, or before a push, to see what changed there before the push stops to ask about it.
-allowed-tools: Bash(b6p:*) Bash(git:*) Bash(test -f *)
-compatibility: Needs the b6p CLI 0.9.0 or later on PATH and a b6p access token stored with b6p auth set.
+allowed-tools: Bash(b6p:*) Bash(git:*)
+compatibility: Needs the b6p CLI 1.0.0 or later on PATH and a b6p access token stored with b6p auth set.
 ---
 
 # /b6p-audit — Compare local vs. platform
 
 ## What this does
 
-Runs `b6p audit`, which fetches the component's current state from the BlueStep platform and lists files where local content differs from platform content. Since b6p 0.9.0 it compares the local `draft/` with the platform's `draft` branch (the draft, not the live version). **Read-only** — it does not modify anything.
+Runs `b6p script audit`, which fetches the component's current state from the BlueStep platform and lists files where local content differs from platform content. It compares the local `draft/` with the platform's `draft` branch (the draft, not the live version). **Read-only** — it does not modify anything.
 
 Use this **on demand**, not as a pre-flight before every push. The user decides when to run it; typical triggers are:
 
@@ -29,35 +29,35 @@ Always pass `--yes` so b6p does not stop at a question you cannot answer; it pri
 
 ### 0. Auth preflight (do this first, before any `b6p` call)
 
-With no access token stored in `~/.b6p/`, the audit asks for one — a question you cannot answer, and `--yes` does not — and exits `1` naming it. Check first:
+With no access token stored in `~/.b6p/`, the audit asks for one — a question you cannot answer, and `--yes` does not — and exits `1` naming it. Check first; this never prompts:
 
 ```
-test -f ~/.b6p/secrets.enc && echo OK
+b6p --json auth status
 ```
 
-- If it prints nothing (file absent) → STOP. Do **not** run the audit. Tell the user:
+- If it prints `{"authenticated": false}` → STOP. Do **not** run the audit. Tell the user:
   > `b6p` has no BlueStep platform access token on this machine yet, so the audit would stop at a question I can't answer. Run `b6p auth set` once in your own terminal (it stores the token in `~/.b6p/`, once per machine), then retry `/b6p-audit <component>`.
-- If it prints `OK` → continue. This only rules out a missing file: `secrets.enc` holds every secret under its own key, so it can exist without an access token, and then the audit stops at `Enter your access token` and exits `1`. Relay that message and give the same `b6p auth set` instruction; do not retry.
+- If it prints `{"authenticated": true}` → continue.
 
 ### 1. Identify the component
 
 If `$ARGUMENTS` contains a component path (e.g. `U######/Combined Scheduler`), use it. If empty, ask the user which component to audit.
 
-Confirm the component was pulled with `b6p` 0.9.0 or later: `U######/<ComponentName>/draft/.git` must exist. Without it the audit only prints `The draft of "<name>" is not a git working copy yet, so there is nothing to compare it against. Pull the script first.` and compares nothing: with `--json` it prints `null` and exits `0`, so read that line. Then suggest `/b6p-pull` — which may have to ask about moving the script to git first — and do not run it unasked.
+Confirm the component was pulled as a git clone: `U######/<ComponentName>/draft/.git` must exist. Without it the audit prints `The draft of "<name>" is not a git working copy yet, so there is nothing to compare it against. Pull the script first.`, compares nothing and exits `1`. Then suggest `/b6p-pull` — which may have to ask about moving the script to git first — and do not run it unasked.
 
 ### 2. Run the audit
 
 Pass `--json` so the result is parseable, and `--file` to specify a file inside the component:
 
 ```
-b6p --yes --json audit --file "U######/<ComponentName>/draft/scripts/app.ts"
+b6p --yes --json script audit --file "U######/<ComponentName>/draft/scripts/app.ts"
 ```
 
 The CLI walks up from `--file` to find the component root, then compares each file against the platform.
 
 ### 3. Parse and summarise
 
-Read the JSON output. The shape (the same in 0.9.0; each path starts with the component's folder name, e.g. `<ComponentName>/draft/scripts/app.ts`):
+Read the JSON output. The shape (each path starts with the component's folder name, e.g. `<ComponentName>/draft/scripts/app.ts`):
 
 ```json
 {
@@ -83,9 +83,9 @@ Never auto-pull or auto-push from inside this skill. The user drives the next st
 
 ## What this skill must NOT do
 
-- Do NOT pass `--pull` to `b6p audit` (that flag would auto-sync; we want read-only).
+- Do NOT pass `--pull` to `b6p script audit` (that flag would auto-sync; we want read-only).
 - Do NOT chain into `/b6p-pull` or `/b6p-push` without the user asking.
-- Do NOT invoke `b6p` any way other than the bare `b6p` binary, and never without `--yes`.
+- Do NOT invoke `b6p` any way other than the bare `b6p` binary, and never without `--yes`; use `b6p script audit`, not the deprecated top-level `b6p audit`.
 
 ## If the CLI fails
 
@@ -93,5 +93,5 @@ Three distinct failure modes — handle them differently:
 
 - **`command not found` / `b6p` cannot be resolved** — the b6p-cli standalone binary is not installed (or not on `PATH`). Tell the user:
   > `b6p` could not be resolved. Install the b6p-cli standalone binary and make sure it is on your `PATH` (see its release/install instructions).
-- **Exit `1` naming a question it could not answer** (`Enter your access token`) — not a tool failure: relay the message and tell the user to run `b6p auth set`, then retry. It can happen even when the step-0 check printed `OK`.
+- **Exit `1` naming a question it could not answer** (`Enter your access token`) — not a tool failure: relay the message and tell the user to run `b6p auth set`, then retry.
 - **Any other error** (network, a real auth rejection by the platform, etc.) — the audit is read-only, so failures are usually transient. Surface the raw error to the user and suggest retrying.

@@ -1,5 +1,5 @@
 ---
-description: "b6p 0.8.x sent a push to the org named by the local U###### folder, not to the org in a target URL: a push or deploy aimed at another org wrote into the folder's own org (or into a different component there), and its cleanup deleted files in the URL's org. b6p 0.9 still takes the destination from the folder's sync record, not from draft/.git. One org per folder, push with --file"
+description: "b6p 0.8.x sent a push to the org named by the local U###### folder, not to the org in a target URL: a push or deploy aimed at another org wrote into the folder's own org (or into a different component there), and its cleanup deleted files in the URL's org. b6p 1.0 still takes the destination from the folder's sync record, not from draft/.git. One org per folder, push with --file"
 ---
 
 # A push never crosses orgs
@@ -15,7 +15,7 @@ when targets failed.
 
 ## Cause
 
-The causes below were found with b6p 0.8.x, which pushed over WebDAV. b6p 0.9 pushes over git to
+The causes below were found with b6p 0.8.x, which pushed over WebDAV. b6p 1.0 pushes over git to
 a repository address it builds from the folder's sync record (`<org host>/git/<script id>`), not to
 the `origin` of `draft/.git`; whether a URL from another org is still mapped the way 0.8.x did has
 not been checked, so the rule stands. A `draft/.git` copied from another folder does not move the
@@ -31,7 +31,7 @@ about every file that differs.
 - **The cleanup step uses the URL.** After uploading, the push lists the target URL's files and,
   on a yes, deletes the platform-only ones there, in the other org.
 - **`deploy` swallowed failures** (b6p 0.8.x). Each target's error was logged and the loop moved on;
-  the command still ended with "Deploy complete!" and exit 0. b6p 0.9 prints one line per target
+  the command still ended with "Deploy complete!" and exit 0. b6p 1.0 prints one line per target
   and exits 1 when any target failed.
 
 ## Rule
@@ -40,7 +40,7 @@ about every file that differs.
   own `U<other-org>/<Component>/` folder, make the change there, and push with `--file` from
   that folder. Both copies can sit side by side in one workspace.
 - **Never** push a URL from another org, use `--root` with another org's URL, or use
-  `b6p deploy` to roll a change out across orgs.
+  `b6p script deploy` to roll a change out across orgs.
 - **Before a push to a specific org,** check that the folder's `U######` is that org's
   U-number, not its host: one org can answer on several hosts.
 - **Never copy, move or replace a `draft/.git/` folder** between components or orgs: the push then

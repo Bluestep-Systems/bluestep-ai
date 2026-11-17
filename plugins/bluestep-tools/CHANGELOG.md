@@ -11,54 +11,62 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
-## [plugin 0.51.0] — unreleased (merge only once the git-only web release is in production)
+## [plugin 0.51.0] — unreleased (merge only once the git-only web release is on every namespace)
 
-> **b6p 0.9 and git-only scripts.** The web release that makes BSJS scripts git-only refuses every
+> **b6p 1.0 and git-only scripts.** The web release that makes BSJS scripts git-only refuses every
 > WebDAV write to a script's source (HTTP 403), so b6p 0.8.x can no longer push. This release needs
-> b6p 0.9.0: a push is a git commit with an author, a publish checks a build manifest, and moving a
-> script from WebDAV to git is one-way, so no skill does it without the user's yes. **Two hooks
-> changed** (`block-generated-files`, `change-log`), so Codex users re-trust bluestep-tools' hooks
-> once: open the plugin's page and **Review → trust**. The machine bootstrap moves to 1.2.0.
+> b6p 1.0.0, and users should update only once their namespace has the release (it reaches
+> namespaces one at a time). A push is a git commit with an author, the platform builds every push,
+> commands live under `b6p script`, and moving a script from WebDAV to git is one-way, so no skill
+> does it without the user's yes. **Two hooks changed** (`block-generated-files`, `change-log`), so
+> Codex users re-trust bluestep-tools' hooks once: open the plugin's page and **Review → trust**. The
+> machine bootstrap moves to 1.2.0.
 
 ### Changed
 
-- **b6p 0.9.0 is the minimum and the pinned version** (`tool-versions.json`): Windows x64 and both
-  macOS binaries with their SHA-256, and npm `@bluestep-systems/b6p-cli@0.9.0`. There is no Linux
-  binary in 0.9.0; Linux and WSL install through npm, as before. The bootstrap also brings
-  bluestep-tools up to 0.51.0. `/b6p-setup` points at `bootstrap-v1.2.0`, which CI tags when this
-  merges.
+- **b6p 1.0.0 is the minimum and the pinned version** (`tool-versions.json`): Windows x64 and both
+  macOS binaries with their SHA-256, and npm `@bluestep-systems/b6p-cli@1.0.0` (an npm install needs
+  Node.js 24 or newer; the binaries bundle their own). There is no Linux binary; Linux and WSL
+  install through npm. The bootstrap also brings bluestep-tools up to 0.51.0. `/b6p-setup` points at
+  `bootstrap-v1.2.0`, which CI tags when this merges.
+- **Commands** move to `b6p script push|pull|audit|deploy` in every skill and reference file (the old
+  top-level forms still work in 1.0.0 but print a deprecation warning). The shipped `AGENTS.md`
+  template still says `b6p push` / `b6p pull`; it changes with the next template marker.
+- **Login checks** use `b6p --json auth status`, which never prompts, instead of looking for the
+  secrets file.
 - **`/b6p-push`**: a preflight checks the commit author; `git -C <component>/draft status` replaces a
-  root `git status`; the result table follows the 0.9 `--json` (`commitSha`, `publishedSha`,
-  `publishError`, `publishRefusal`, `switchedToGit`, `typeCheckErrors`; no `historyRecorded`), so a
-  publish counts only when `publishedSha` is set. New rows for a missing author, a script still on
-  WebDAV, the wrong branch checked out, a refused publish (`BUILD_STALE`,
-  `BUILD_MANIFEST_MISSING`, `BUILD_MANIFEST_INVALID`) and `DRAFT_MOVED`. Type errors are warnings. A file deleted locally is
-  now deleted on the platform with no question, so the skill names it before the push; kept
-  platform-only files are copied into the local draft, and deleting them takes one more push.
-  `--externally-built` is never added by default (it only skips the local manifest; the platform
-  setting decides). The VS Code extension is no longer a fallback (it is not updated for git-only
-  scripts); the platform's BSJS editor is a supported path.
+  root `git status`. The result table follows the 1.0 `--json`: the `error` field
+  (`{ kind, message, howTo }`, or `null`) carries the verdict, with rows for each kind — no author, a
+  script still on WebDAV, the wrong branch, a server without the git build (`SNAPSHOT_REFUSED`), a
+  refused or lost build (`BUILD_REFUSED`, `BUILD_NOT_REQUESTED`, `BUILD_REQUEST_FAILED`,
+  `BUILD_OUTCOME_UNKNOWN`, `BUILD_INCOMPLETE`), local files blocking the build (`BUILD_BLOCKED`), a
+  refused publish, a draft that moved. A publish counts only when `publishedSha` is set. The
+  platform's build moves the local draft to its "Build draft" commit. A file deleted locally is
+  deleted on the platform with no question, so the skill names it before the push; kept
+  platform-only files are copied into the local draft, and deleting them takes one more push. The
+  VS Code extension is no longer a fallback; the platform's BSJS editor is a supported path.
 - **`/b6p-pull`**: a pull clones the draft. A script still on WebDAV is never switched without the
-  user's yes, and never on a pull that is only for reading. A declined switch exits `0` with
-  nothing written, so the skill reads stderr, and it names the read-only route (the gateway's
-  `read_script_draft`).
+  user's yes, and never on a pull that is only for reading; a declined switch exits `1` with nothing
+  written, and the skill names the read-only route (the gateway's `read_script_draft`).
 - **`/b6p-audit`**: needs a pulled git working copy and compares with the platform's `draft` branch.
 - **`/b6p-propagate`**: pulls never pass `--enable-git` on their own; a target's switch to git is its
-  own yes. The backup and the mirror leave out `draft/.git/` and `.b6p-build.json`. A folder pulled
-  before git is copied aside before its pull, since `b6p audit` cannot compare it. Restore points are
-  commits (`publishedSha`).
+  own yes. The backup and the mirror leave out `draft/.git/` and `.b6p-build.json`. A folder last
+  pulled with b6p 0.8 is copied aside before its pull, since `b6p script audit` cannot compare it.
+  Restore points are commits (`publishedSha`).
 - **`/bluestep-vite-report` and the deploy-lib reference**: deploy-lib's WebDAV upload is refused,
-  so a Vite SPA report is built into the pulled report's `draft/static/` and published with
-  `b6p push --snapshot`.
-- **Reference**: `server-side-compile.md` (git commits, build manifest, publish refusals,
-  `compileDraft` on git scripts), `mcp-platform-authoring.md` (`write_script_draft` moves a script
-  to git, one-way, and commits), `b6p-platform.md`, `bsjs-development.md`, `cross-org-push.md`,
-  `gql-in-a-tab.md`, `file-execution.md`, `third-party-lib-type-noise.md`, the `/b6p-push`
-  references, `platform-token.md` (the "b6p CLI" scope preset), `build-sourcemap-embeds-source.md`
-  (pushed commits stay in the platform's history).
+  so a Vite SPA report is built into the pulled report's `draft/static/` and published with a plain
+  `b6p script push --snapshot`. The platform reads a script's own `externallyBuilt` setting; b6p
+  1.0 has no flag for it.
+- **Reference**: `server-side-compile.md` (git commits, the platform's build of every push, build
+  manifest, publish refusals), `mcp-platform-authoring.md` (`write_script_draft` moves a script to
+  git, one-way, and commits), `b6p-platform.md`, `bsjs-development.md`, `single-script.md`,
+  `cross-org-push.md`, `gql-in-a-tab.md`, `file-execution.md`, `third-party-lib-type-noise.md`, the
+  `/b6p-push` references, `platform-token.md`, `build-sourcemap-embeds-source.md` (pushed commits stay
+  in the platform's history). The hand-written `static/script.ts` model is now called
+  "platform-compiled".
 - **`change-log` hook**: a b6p push is logged as `publish` only when its result names
-  `publishedSha` (a refused publish is a `draft`), and the entry records `commitSha` and
-  `publishedSha`.
+  `publishedSha` (a refused build or publish is a `draft`), and the entry records `commitSha`,
+  `buildCommitSha` and `publishedSha`.
 - **`block-generated-files` hook**: also blocks hand edits to `.b6p-build.json` and to files under a
   component's `draft/.git/`.
 

@@ -10,12 +10,13 @@
 # What it logs (in an org listed in project.json):
 #   - a gateway invoke_org_tool call whose inner tool is not a read (PostToolUse only: an MCP error
 #     result goes to PostToolUseFailure and wrote nothing);
-#   - a `b6p ... push` run through Bash or PowerShell whose --json result says pushed:true. It is a
-#     publish only when the result names the published commit (publishedSha); a push whose publish
-#     was refused or failed still committed the draft, so it is logged as a draft. Also on
-#     PostToolUseFailure: b6p 0.9 exits 1 when a snapshot was pushed but not published (or read
-#     back at another commit), and Claude Code reports any non-zero exit there, with the output
-#     inside `error` after an `Exit code N` line;
+#   - a `b6p ... push` (`b6p script push`, or the deprecated top-level `b6p push`) run through Bash
+#     or PowerShell whose --json result says pushed:true. It is a publish only when the result
+#     names the published commit (publishedSha); a push whose build or publish was refused or failed
+#     still committed the draft, so it is logged as a draft. Also on PostToolUseFailure: b6p 1.0
+#     exits 1 when the draft was pushed but not built or not published, and Claude Code reports any
+#     non-zero exit there, with the output inside `error` after an `Exit code N` line. A failed
+#     command's {"error","errors"} document has no pushed key and is not logged;
 #   - a browser javascript_tool script holding a GraphQL mutation (org mapped later by host).
 #
 # Needs node (the machine setup installs it). Without node, or on any parse or write error, it
@@ -136,7 +137,7 @@ function run(d) {
 
   const tool = String(d.tool_name || "");
   const input = d.tool_input || {};
-  // A failed call wrote nothing, except a b6p push that exited 1 after going live.
+  // A failed call wrote nothing, except a b6p script push that exited 1 after going live.
   if (d.hook_event_name === "PostToolUseFailure" && tool !== "Bash" && tool !== "PowerShell") return;
   let e = null;
   let more = [];
@@ -191,12 +192,12 @@ function run(d) {
     const filePath = full.split("\\").join("/");
     const m = filePath.match(/(?:^|\/)(U\d+)\/([^/]+)/);
     if (!m || !roles[m[1]]) return;
-    // b6p 0.9: only a non-null publishedSha means something went live (a refused publish still
+    // b6p 0.9+: only a non-null publishedSha means something went live (a refused publish still
     // reports pushed:true, and --message alone implies a snapshot).
     const sha = (v) => (typeof v === "string" && v ? v : null);
     e = { org: m[1], source: "b6p", tool: "b6p push", op: sha(out.publishedSha) ? "publish" : "draft",
       type: "script", objId: null, name: m[2], fid: null,
-      commitSha: sha(out.commitSha), publishedSha: sha(out.publishedSha) };
+      commitSha: sha(out.commitSha), buildCommitSha: sha(out.buildCommitSha), publishedSha: sha(out.publishedSha) };
   } else if (/__(javascript_tool|browser_batch)$/.test(tool)) {
     const js = String(input.text || "") + (Array.isArray(input.actions) ? input.actions
       .filter((a) => a && a.name === "javascript_tool").map((a) => String((a.input && a.input.text) || "")).join("\n") : "");

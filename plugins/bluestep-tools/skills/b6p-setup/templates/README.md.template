@@ -2,7 +2,7 @@
 
 ## Layout
 
-A project is a collection of B6P components, organised by Unit. `b6p pull "<DAV URL>"` creates the `U######/` folder and the component skeleton on first pull — you do not create Unit folders by hand. A single project commonly spans multiple Unit folders, and each Unit folder holds components of different types (Endpoint, MergeReport, Formula, etc.).
+A project is a collection of B6P components, organised by Unit. `b6p script pull "<DAV URL>"` creates the `U######/` folder and the component skeleton on first pull — you do not create Unit folders by hand. A single project commonly spans multiple Unit folders, and each Unit folder holds components of different types (Endpoint, MergeReport, Formula, etc.).
 
 ## Tooling
 
@@ -22,18 +22,18 @@ Store your BlueStep platform access token (`b6pt_…`) once per machine:
 b6p auth set
 ```
 
-Without it, the first `b6p pull` prompts for the token interactively, which the agent cannot answer — the call fails with exit `1`. Run `auth set` before invoking `/b6p-pull`. If you used `b6p` before version 0.6.0 you will be asked once more even though you set it up already: bearer auth replaced the old username + password and a token cannot be derived from them.
+Without it, the first `b6p script pull` prompts for the token interactively, which the agent cannot answer — the call fails with exit `1`. Run `auth set` before invoking `/b6p-pull`. If you used `b6p` before version 0.6.0 you will be asked once more even though you set it up already: bearer auth replaced the old username + password and a token cannot be derived from them.
 
 Once the plugin is installed (Tooling above), the `/b6p-setup` skill checks the rest of the once-per-machine setup — this CLI, its token, and the **required** `B6PT_TOKEN` that the platform gateway MCP needs to start (it calls the gateway to prove it answers) — and skips what is done. You will rarely type it: `/b6p-pull` and the other daily skills run it first when something is missing. `B6PT_TOKEN` takes the same kind of `b6pt_` token as the CLI, and one token can serve both.
 
-The DAV URL passed to `b6p pull` is copied from the component's page in the BlueStep platform UI; `b6p pull` does **not** accept display names.
+The DAV URL passed to `b6p script pull` is copied from the component's page in the BlueStep platform UI; `b6p script pull` does **not** accept display names.
 
 ## Daily workflow
 
-1. **Pull a component:** `/b6p-pull <DAV URL>` (Claude skill — also scaffolds `draft/README.md` from metadata + code when missing) or `b6p pull "<DAV URL>"`. The Unit folder is created automatically if it does not exist yet.
+1. **Pull a component:** `/b6p-pull <DAV URL>` (Claude skill — also scaffolds `draft/README.md` from metadata + code when missing) or `b6p script pull "<DAV URL>"`. The Unit folder is created automatically if it does not exist yet.
 2. **Read the component's `draft/README.md`** before editing.
 3. **Edit code** under `U######/<component>/draft/scripts/` — never `declarations/`.
-4. **Push back:** `/b6p-push <component>` (Claude skill) or `b6p push --file "U######/<component>/draft/scripts/app.ts"`.
+4. **Push back:** `/b6p-push <component>` (Claude skill) or `b6p script push --file "U######/<component>/draft/scripts/app.ts"`.
 
 ## New feature workflow
 

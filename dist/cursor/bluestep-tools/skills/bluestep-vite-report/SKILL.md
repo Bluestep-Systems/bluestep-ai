@@ -1,13 +1,13 @@
 ---
 name: bluestep-vite-report
-description: Scaffold an off-platform Vite/Preact SPA merge-report project — check Node 20, run create-vite (preact-ts), set base "./", add the repository field, then print the [PLATFORM] report-creation, GitHub-repo and b6p deploy steps for the human to execute. Use when starting a new Vite/Preact single-page-app merge report (the report serves a bundled static/index.html built off-platform and published with b6p, not the CLI-compiled static/script.ts path).
+description: Scaffold an off-platform Vite/Preact SPA merge-report project — check Node 20, run create-vite (preact-ts), set base "./", add the repository field, then print the [PLATFORM] report-creation, GitHub-repo and b6p script deploy steps for the human to execute. Use when starting a new Vite/Preact single-page-app merge report (the report serves a bundled static/index.html built off-platform and published with b6p, not the platform-compiled static/script.ts path).
 ---
 
 # /bluestep-vite-report — Scaffold a Vite/Preact SPA merge report
 
 This skill scaffolds an **off-platform Vite/Preact SPA merge report** in-session: it checks Node 20, drives `create-vite` (the `preact-ts` template) live, sets the load-bearing `base: './'`, adds the `repository` field to `package.json`, and then **prints** — does not run — the `[PLATFORM]` report-creation, GitHub-repo and deploy steps for the human to execute. Since the web release that makes scripts git-only, the deploy is a b6p publish: the platform refuses deploy-lib's WebDAV upload (HTTP 403). It **guides** the outward steps (create the platform report, create the GitHub repo, deploy) the same way `/b6p-setup` hands over `b6p auth set`.
 
-For the pattern itself — what this build model is, when to pick it over the CLI-compiled `static/script.ts` path, the two data models — this skill **points at** the `bluestep-reference` files rather than restating them (see [Point at the reference](#5-point-at-the-reference)).
+For the pattern itself — what this build model is, when to pick it over the platform-compiled `static/script.ts` path, the two data models — this skill **points at** the `bluestep-reference` files rather than restating them (see [Point at the reference](#5-point-at-the-reference)).
 
 This is a **separate, focused** skill from `/b6p-setup` (machine and project setup). Run `/b6p-setup` first if you are setting up a brand-new BlueStep project; run this when you specifically want a Vite/Preact SPA merge report.
 
@@ -114,10 +114,10 @@ Print these as a clear checklist the **human** executes — this skill does not 
 5. Create the **GitHub repo (public)**, and set the `repository` `url` in `package.json` to it.
 6. Pull the report with `/b6p-pull <its DAV URL>` (copy the URL from the report's page in the platform UI), so `U######/<Report>/draft/` is a git clone of it.
 7. In `vite.config.ts`, set `build.outDir` to the report's `draft/static/` (a path relative to this project, e.g. `../U######/<Report>/draft/static`) and `build.emptyOutDir: true`, then `npm run build`.
-8. Publish with `/b6p-push` on the report (a plain publish; no `--externally-built`, which would get it refused on a new report):
+8. Publish with `/b6p-push` on the report (a plain publish; the platform builds `scripts/` and leaves the Vite output as it is):
 
    ```bash
-   b6p --yes --json push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>"
+   b6p --yes --json script push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>"
    ```
 
    Full mechanics are in the deploy workflow file linked in step 5.

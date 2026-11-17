@@ -10,7 +10,7 @@ Every plan ends with the restore points for its target. The report repeats them.
 
 - **Backup folder:** per component, `.bluestep/backups/<U>/<Component>/<stamp>/`, a copy of the
   target `draft/` taken before the mirror (`plan.md`, section 9).
-- **b6p history:** the script's history is its git history (b6p 0.9.0). The restore point is the
+- **b6p history:** the script's history is its git history. The restore point is the
   commit live before this move: the `master` branch in the target's fresh clone
   (`git -C "U<target>/<Component>/draft" log -1 --format=%H origin/master`, or `master` when the
   clone has no `origin/master`). A publish in this move adds its own commit, with the description the user

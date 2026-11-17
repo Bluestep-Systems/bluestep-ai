@@ -120,7 +120,7 @@ deeper is read on demand.
 | --- | --- | --- |
 | `/b6p-setup` | Check the machine, write the missing project files, bring an old project up to date; `--all` for every project on the machine. | A new machine, a new or existing folder, after a plugin update — or never, because the skills below run it for you. |
 | `/b6p-preferences` | Your own settings for these tools in one place: how Claude answers you (short and plain, or complete and technical), when a long conversation is summarized, the client-data guard. Changes only your git-ignored `.claude/settings.local.json`. | When answers are too long, too short or too technical, or to see what you can change. |
-| `/bluestep-vite-report` | Scaffold an **off-platform** Vite/Preact single-page-app merge report (a bundled `static/index.html` built off-platform and published with `b6p push --snapshot`). | A merge report that needs a real SPA build rather than the hand-written `static/script.ts` path. |
+| `/bluestep-vite-report` | Scaffold an **off-platform** Vite/Preact single-page-app merge report (a bundled `static/index.html` built off-platform and published with `b6p script push --snapshot`). | A merge report that needs a real SPA build rather than the hand-written `static/script.ts` path. |
 | `/spec-create` | Plan a feature — `requirements.md`, then `design.md`, then `tasks.md`, with approval between each. | A non-trivial change worth designing before coding. |
 | `/spec-execute` | Implement **one** approved task and tick it; delegates to `b6p-task-implementer` by default, `--inline` to stay in the session. | After `/spec-create`, once per task. |
 | `/spec-status` | Progress across all specs in `.claude/specs/`. | A quick tally of what is in flight. |
