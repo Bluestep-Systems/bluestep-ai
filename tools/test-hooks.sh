@@ -35,6 +35,11 @@ t "blocks declarations/ via relative_workspace_path (Cursor key)" block-generate
 t "allows app.ts (backslashes)" block-generated-files.sh file_path 'C:\x\U129161\Comp\draft\scripts\app.ts' 0
 t "allows README" block-generated-files.sh file_path '/x/draft/README.md' 0
 t "allows a path with 'declarations' as a filename part" block-generated-files.sh file_path '/x/draft/scripts/declarations-helper.ts' 0
+t "blocks the build manifest .b6p-build.json (backslashes)" block-generated-files.sh file_path 'C:\x\U129161\Comp\draft\.build\.b6p-build.json' 2
+t "blocks a file inside draft/.git (backslashes)" block-generated-files.sh file_path 'C:\x\U129161\Comp\draft\.git\config' 2
+t "blocks draft/.git relative to the component folder" block-generated-files.sh file_path 'draft/.git/info/exclude' 2
+t "allows the project's own .git (hooks)" block-generated-files.sh file_path 'C:\x\proj\.git\hooks\pre-commit' 0
+t "allows a .gitignore in draft/" block-generated-files.sh file_path '/x/U129161/Comp/draft/.gitignore' 0
 
 echo "=== fail closed ==="
 out=$(printf '%s' 'not json at all' | bash "$H/block-generated-files.sh" 2>&1); rc=$?
@@ -564,6 +569,55 @@ for f in $SCRIPTS; do
   else echo "  FAIL  $f line 2 is '$m', expected '$M0'"; fail=$((fail+1)); fi
 done
 
+echo "=== pick-cli.sh (which b6p a pull or push of one org needs) ==="
+PICK="$ROOT/plugins/bluestep-tools/skills/b6p-push/assets/pick-cli.sh"
+PK=$(mktemp -d)
+# A pretty-printed store, as b6p writes it: the host of U111 is new.example, of U222 old.example.
+cat > "$PK/state.json" <<'STATEEOF'
+{
+  "b6p:u_cache": {
+    "U111": [
+      {
+        "host": "new.example",
+        "lastAccess": 1
+      }
+    ],
+    "U222": [
+      {
+        "host": "old.example",
+        "lastAccess": 2
+      }
+    ]
+  },
+  "b6p:script_metadata": { "all": [] }
+}
+STATEEOF
+mkdir -p "$PK/ws/U111/Comp/draft/.git" "$PK/ws/U111/Plain/draft" "$PK/ws/U222/Old/draft" "$PK/ws/U333/Gone/draft"
+pk() { # name expected_line expected_exit [env assignments...] -- args...
+  local name="$1" want="$2" wantrc="$3"; shift 3
+  local envs=()
+  while [ "$1" != "--" ]; do envs+=("$1"); shift; done
+  shift
+  local out rc
+  out=$(env B6P_STATE_FILE="$PK/state.json" "${envs[@]}" bash "$PICK" "$@" 2>&1); rc=$?
+  if [ "$rc" = "$wantrc" ] && [[ "$out" == $want ]]; then echo "  PASS  $name"; pass=$((pass+1))
+  else echo "  FAIL  $name — exit $rc (want $wantrc), output: $out (want $want)"; fail=$((fail+1)); fi
+}
+pk "pull: an org on the release → b6p" "b6p bk.example 26.11.17.01" 0 B6P_SERVER_VERSION=26.11.17.01 -- --url "https://bk.example/files/12/draft/"
+pk "pull: the first release that carries it → b6p" "b6p bk.example 26.11.17.00" 0 B6P_SERVER_VERSION=26.11.17.00 -- --url "https://bk.example/files/12/draft/"
+pk "pull: an org without it → b6p-legacy" "b6p-legacy ta.example 26.10.26.13" 0 B6P_SERVER_VERSION=26.10.26.13 -- --url "https://ta.example/files/9/draft/"
+pk "pull: the release before it → b6p-legacy" "b6p-legacy ta.example 26.11.16.99" 0 B6P_SERVER_VERSION=26.11.16.99 -- --url "https://ta.example/files/9/draft/"
+pk "pull: a version that is not a release tag → ask" "ask bk.example not-a-release-tag:dev" 2 B6P_SERVER_VERSION=dev -- --url "https://bk.example/files/12/draft/"
+pk "push: a draft that is a git clone → b6p, no lookup" "b6p - git-clone" 0 B6P_SERVER_VERSION=26.10.26.13 -- --folder "$PK/ws/U111/Comp"
+pk "push: a 0.8 folder on an org with the release → b6p (it will ask to switch)" "b6p new.example 26.11.17.01" 0 B6P_SERVER_VERSION=26.11.17.01 -- --folder "$PK/ws/U111/Plain"
+pk "push: a 0.8 folder on an org without it → b6p-legacy" "b6p-legacy old.example 26.10.26.13" 0 B6P_SERVER_VERSION=26.10.26.13 -- --folder "$PK/ws/U222/Old"
+pk "push: backslash path to the folder → host found" "b6p-legacy old.example 26.10.26.13" 0 B6P_SERVER_VERSION=26.10.26.13 -- --folder "$(printf '%s' "$PK/ws/U222/Old" | tr '/' '\\')"
+pk "push: a unit with no host in the store → ask" "ask - U333 has no host in*" 2 B6P_SERVER_VERSION=26.11.17.01 -- --folder "$PK/ws/U333/Gone"
+pk "push: no U###### in the path → ask" "ask - no U###### folder in the path*" 2 B6P_SERVER_VERSION=26.11.17.01 -- --folder "$PK/ws"
+pk "no store file → ask" "ask - no b6p store at*" 2 B6P_SERVER_VERSION=26.11.17.01 B6P_STATE_FILE="$PK/none.json" -- --folder "$PK/ws/U222/Old"
+pk "bad arguments → usage, exit 64" "usage:*" 64 -- --host x
+rm -rf "$PK"
+
 echo "=== exec bits in the index ==="
 # Claude Code runs the source scripts directly; an edit from Windows over a UNC path has reset
 # a mode to 100644 before. core.fileMode may be off, so ask the index, not the filesystem.
@@ -714,13 +768,32 @@ elif kind == "gw_error":
          "tool_response": text({"error": "refused"})}
 elif kind == "b6p":
     tool, cmd, pushed = a[0], a[1], a[2] == "true"
-    out = "[WARN] noise\n" + json.dumps({"pushed": pushed, "historyRecorded": pushed, "files": {"n": 1}}, indent=2)
+    # b6p 1.0 --json: publishedSha is set only when a snapshot (--snapshot, or --message alone) published.
+    snap = "--snapshot" in cmd or "--message" in cmd
+    out = "[WARN] noise\n" + json.dumps({"pushed": pushed, "commitSha": "c" * 40 if pushed else None,
+        "publishedSha": "p" * 40 if pushed and snap else None, "publishError": None, "publishRefusal": None,
+        "switchedToGit": False, "route": {"mode": "server-build"}, "snapshotRefused": None,
+        "buildCommitSha": "b" * 40 if pushed else None, "buildVouched": True, "buildError": None,
+        "buildFastForward": {"state": "fast-forwarded"}, "typeCheckDiagnostics": 0, "typeCheckErrors": [],
+        "error": None if pushed else {"kind": "NOTHING_PUSHED", "message": "Nothing was pushed.", "howTo": ""}}, indent=2)
     if len(a) > 3: out += "\n" + a[3] + "\n"
+    d = {"tool_name": tool, "tool_input": {"command": cmd}, "tool_response": {"stdout": out, "stderr": ""}}
+elif kind == "b6p_legacy":
+    # b6p 0.8.2 (b6p-legacy) --json: historyRecorded, no publishedSha and no error field.
+    tool, cmd, pushed = a[0], a[1], a[2] == "true"
+    out = json.dumps({"pushed": pushed, "historyRecorded": pushed, "typeCheckDiagnostics": 0, "liveVerified": True,
+        "liveMismatches": [], "keptPlatformOnly": [], "declinedOverwrites": []}, indent=2)
     d = {"tool_name": tool, "tool_input": {"command": cmd}, "tool_response": {"stdout": out, "stderr": ""}}
 elif kind == "b6p_fail":
     # PostToolUseFailure: a non-zero exit; the output sits in `error` after an "Exit code N" line.
+    # b6p 1.0: a snapshot that pushed the draft but whose publish the platform refused.
     tool, cmd, pushed = a[0], a[1], a[2] == "true"
-    out = "Exit code 1\n[WARN] type check found 3 diagnostics\n" + json.dumps({"pushed": pushed, "typeCheckDiagnostics": 3})
+    out = "Exit code 1\nThe draft was pushed but not published: its compiled output is older than its sources.\n" + json.dumps({
+        "pushed": pushed, "commitSha": "c" * 40 if pushed else None, "publishedSha": None, "publishError": "refused",
+        "publishRefusal": {"reason": "BUILD_STALE", "withheld": ["scripts/app.ts"]}, "buildCommitSha": "b" * 40 if pushed else None,
+        "typeCheckDiagnostics": 0, "error": {"kind": "PUBLISH_REFUSED", "message": "refused", "howTo": ""}})
+    if not pushed:
+        out = "Exit code 1\n" + json.dumps({"error": "Nothing was pushed.", "errors": ["Nothing was pushed."]})
     d = {"tool_name": tool, "tool_input": {"command": cmd}, "error": out, "is_interrupt": False,
          "hook_event_name": "PostToolUseFailure"}
 elif kind == "gw_view_create":
@@ -804,15 +877,33 @@ else echo "  FAIL  form line content: $(tail -n 1 "$LOG" | cut -c1-200)"; fail=$
 cl "gateway write from a subfolder of the workspace → one line" 1 "$(pl gw_write "$W_SUB" 222)"
 cl "gateway write to an org not in project.json → nothing" 0 "$(pl gw_write "$W_CL" U999)"
 cl "gateway call whose body is a platform error → nothing" 0 "$(pl gw_error "$W_CL" U111)"
-cl "b6p publish via Bash (forward slashes) → one line" 1 "$(pl b6p "$W_CL" Bash 'b6p --yes --json push --file "U222/My Comp/draft/scripts/app.ts" --snapshot --message "x"' true)"
+cl "b6p publish via Bash (forward slashes) → one line" 1 "$(pl b6p "$W_CL" Bash 'b6p --yes --json script push --file "U222/My Comp/draft/scripts/app.ts" --snapshot --message "x"' true)"
 if tail -n 1 "$LOG" | grep -q '"op":"publish"' && tail -n 1 "$LOG" | grep -q '"name":"My Comp"' && tail -n 1 "$LOG" | grep -q '"target":"Tgt"'; then
   echo "  PASS  the b6p line names the component, the target and publish"; pass=$((pass+1))
 else echo "  FAIL  b6p line content: $(tail -n 1 "$LOG" | cut -c1-160)"; fail=$((fail+1)); fi
-cl "b6p draft push via PowerShell (backslashes) → one line" 1 "$(pl b6p "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts"' true)"
+cl "b6p draft push via PowerShell (backslashes) → one line" 1 "$(pl b6p "$W_CL" PowerShell 'b6p --yes --json script push --file "U111\Comp\draft\scripts\app.ts"' true)"
+if tail -n 1 "$LOG" | grep -q '"op":"draft"' && tail -n 1 "$LOG" | grep -q '"buildCommitSha":"bbbb'; then
+  echo "  PASS  a b6p 1.0 draft push records the platform's build commit"; pass=$((pass+1))
+else echo "  FAIL  build commit line: $(tail -n 1 "$LOG" | cut -c1-220)"; fail=$((fail+1)); fi
 cl "b6p publish with an EXIT= line after the JSON → one line" 1 "$(pl b6p "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts" --snapshot --message "x"; "EXIT=$LASTEXITCODE"' true 'EXIT=0')"
 cl "b6p push that says pushed:false → nothing" 0 "$(pl b6p "$W_CL" Bash 'b6p --yes --json push --file U111/Comp/draft/scripts/app.ts' false)"
+cl "b6p-legacy publish (0.8 result) → one line" 1 "$(pl b6p_legacy "$W_CL" Bash 'b6p-legacy --yes --json push --file "U222/Old/draft/scripts/app.ts" --snapshot --message "x"' true)"
+if tail -n 1 "$LOG" | grep -q '"op":"publish"' && tail -n 1 "$LOG" | grep -q '"org":"U222"' && tail -n 1 "$LOG" | grep -q '"publishedSha":null'; then
+  echo "  PASS  a b6p 0.8 publish is read from the command, since its result has no publishedSha"; pass=$((pass+1))
+else echo "  FAIL  legacy publish line: $(tail -n 1 "$LOG" | cut -c1-220)"; fail=$((fail+1)); fi
+cl "b6p-legacy draft push (0.8 result) → one line" 1 "$(pl b6p_legacy "$W_CL" PowerShell 'b6p-legacy --yes --json push --file "U222\Old\draft\scripts\app.ts"' true)"
+if tail -n 1 "$LOG" | grep -q '"op":"draft"'; then echo "  PASS  a b6p 0.8 plain push is a draft"; pass=$((pass+1))
+else echo "  FAIL  legacy draft line: $(tail -n 1 "$LOG" | cut -c1-220)"; fail=$((fail+1)); fi
+cl "b6p-legacy push that says pushed:false → nothing" 0 "$(pl b6p_legacy "$W_CL" Bash 'b6p-legacy --yes --json push --file U222/Old/draft/scripts/app.ts --snapshot' false)"
 cl "a Bash call that is not a b6p push → nothing" 0 "$(pl b6p "$W_CL" Bash 'echo b6p is great' true)"
-cl "publish that exits 1 but went live (PostToolUseFailure) → one line" 1 "$(pl b6p_fail "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts" --snapshot --message "x"' true)"
+cl "publish refused after the draft was pushed (PostToolUseFailure) → one line" 1 "$(pl b6p_fail "$W_CL" PowerShell 'b6p --yes --json script push --file "U111\Comp\draft\scripts\app.ts" --snapshot --message "x"' true)"
+if tail -n 1 "$LOG" | grep -q '"op":"draft"' && tail -n 1 "$LOG" | grep -q '"publishedSha":null' && tail -n 1 "$LOG" | grep -q '"commitSha":"cccc'; then
+  echo "  PASS  a refused publish is logged as a draft with its commit, not as a publish"; pass=$((pass+1))
+else echo "  FAIL  refused-publish line: $(tail -n 1 "$LOG" | cut -c1-220)"; fail=$((fail+1)); fi
+cl "--message without --snapshot publishes → one line" 1 "$(pl b6p "$W_CL" Bash 'b6p --yes --json push --file U111/Comp/draft/scripts/app.ts --message "x"' true)"
+if tail -n 1 "$LOG" | grep -q '"op":"publish"' && tail -n 1 "$LOG" | grep -q '"publishedSha":"pppp'; then
+  echo "  PASS  a publish is read from publishedSha, not from the --snapshot flag"; pass=$((pass+1))
+else echo "  FAIL  --message line: $(tail -n 1 "$LOG" | cut -c1-220)"; fail=$((fail+1)); fi
 cl "push that exits 1 and says pushed:false (PostToolUseFailure) → nothing" 0 "$(pl b6p_fail "$W_CL" Bash 'b6p --yes --json push --file U111/Comp/draft/scripts/app.ts' false)"
 cl "a failed gateway call (PostToolUseFailure) → nothing" 0 "$(pl gw_fail "$W_CL" U111)"
 cl "GraphQL mutation from a browser tab → one line" 1 "$(pl gql "$W_CL")"

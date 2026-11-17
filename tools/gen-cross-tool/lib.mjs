@@ -473,9 +473,9 @@ export function checkPluginStructure(tree, prefix = '') {
 // The prose that states the floor keeps the literal version (a skill cannot
 // read another file for free), and this lint fails when any statement of it
 // names another version. To raise the floor: change this, then fix what it
-// flags. Why 0.8.1: docs/decisions/b6p-cli-distribution.md, "Minimum CLI
+// flags. Why 1.0.0: docs/decisions/b6p-cli-distribution.md, "Minimum CLI
 // version".
-export const B6P_CLI_FLOOR = '0.8.1';
+export const B6P_CLI_FLOOR = '1.0.0';
 
 // Repo files outside the linted plugin view (skills/, agents/, hooks/) that
 // state the floor. A plugin's README is outside that view, so it is listed here.

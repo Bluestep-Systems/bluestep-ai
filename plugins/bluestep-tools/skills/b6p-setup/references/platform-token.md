@@ -99,6 +99,10 @@ across every org. Handle it accordingly, and be honest with the user about its l
   Expires columns; a never-expiring, unscoped global-super token is the riskiest shape. Setting an expiry
   and scopes — and questioning whether it needs to be a global-super token at all — reduces risk more than
   anything about where the token is stored.
+- **The "b6p CLI" scope preset.** The Access Tokens dialog offers a "b6p CLI" preset (`mcp`,
+  `tokens:self`, `kb:read`, `kb:push`, `registry:read`). Script pulls and pushes over the platform's git
+  proxy check the user's own read and edit rights, not token scopes (read in the web code, not
+  tested); `b6p auth token` needs `tokens:self`, and `b6p kb` the `kb:` scopes.
 - **Never print, echo, or leak the token.** Never paste it into chat, never write the literal value into a
   committed file, never send it anywhere other than the gateway's `Authorization` header over HTTPS (which
   the bundled MCP config does via the env var). It grants global admin — a leaked value is a full platform

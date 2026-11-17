@@ -43,7 +43,7 @@ has no legacy merge report), except where a line says verified.
 
 - **Where the code lives.** The report's RelateScript sits in its **merge content** as
   `<img bsid="...">` markers. These are not Formula objects: they never show in Relate Structure →
-  Formulas, the `editformuladetails.jsp` wizard above does not apply, and `b6p pull` cannot fetch
+  Formulas, the `editformuladetails.jsp` wizard above does not apply, and `b6p script pull` cannot fetch
   them (they are not a BsJs script).
 - **Finding the report.** Relate → Admin → Merge Reports is
   `relatestructure.jsp?_event=view&_id=<relateAppId>&_show=DR` (`_show=F` forms, `_show=S` formulas,

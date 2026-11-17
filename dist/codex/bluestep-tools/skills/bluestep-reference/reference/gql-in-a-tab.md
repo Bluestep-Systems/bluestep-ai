@@ -35,7 +35,9 @@ Before reaching for GraphQL, use the gateway's own tool when one covers the read
 
 No gateway tool reads these, so they go through GraphQL (the route below):
 
-- **published** BsJs code: `b6p pull`, or `contents` over `/gql`;
+- **published** BsJs code: the `master` branch in a b6p pull's `draft/.git` (a pull clones the
+  `draft` branch and every other branch; it does not refresh the local `snapshot/`). Reading
+  `contents` over `/gql` is discouraged: a `contents` *write* moves a script to git (one-way);
 - a field's `listOptions`, a form's `formLayout`, an alias resolved to its `topId`, or a
   component's `publishedSha`, all through `remoteObjects`;
 - a site's pages and menus (its `children` tree);

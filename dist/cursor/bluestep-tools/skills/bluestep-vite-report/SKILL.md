@@ -1,13 +1,13 @@
 ---
 name: bluestep-vite-report
-description: Scaffold an off-platform Vite/Preact SPA merge-report project — check Node 20, run create-vite (preact-ts), set base "./", wire the deploy-lib config block + repository field, then print the [PLATFORM] report-creation and GitHub-repo steps for the human to execute. Use when starting a new Vite/Preact single-page-app merge report (the report serves a bundled static/index.html deployed via deploy-lib, not the CLI-compiled static/script.ts path).
+description: Scaffold an off-platform Vite/Preact SPA merge-report project — check Node 20, run create-vite (preact-ts), set base "./", add the repository field, then print the [PLATFORM] report-creation, GitHub-repo and b6p script deploy steps for the human to execute. Use when starting a new Vite/Preact single-page-app merge report (the report serves a bundled static/index.html built off-platform and published with b6p, not the platform-compiled static/script.ts path).
 ---
 
 # /bluestep-vite-report — Scaffold a Vite/Preact SPA merge report
 
-This skill scaffolds an **off-platform Vite/Preact SPA merge report** in-session: it checks Node 20, drives `create-vite` (the `preact-ts` template) live, sets the load-bearing `base: './'`, wires the deploy-lib `config` block + `repository` field into `package.json`, and then **prints** — does not run — the `[PLATFORM]` report-creation and GitHub-repo steps for the human to execute. It **guides** the outward steps (create the platform report, create the GitHub repo, deploy) the same way `/b6p-setup` hands over `b6p auth set`.
+This skill scaffolds an **off-platform Vite/Preact SPA merge report** in-session: it checks Node 20, drives `create-vite` (the `preact-ts` template) live, sets the load-bearing `base: './'`, adds the `repository` field to `package.json`, and then **prints** — does not run — the `[PLATFORM]` report-creation, GitHub-repo and deploy steps for the human to execute. Since the web release that makes scripts git-only, the deploy is a b6p publish: the platform refuses deploy-lib's WebDAV upload (HTTP 403). It **guides** the outward steps (create the platform report, create the GitHub repo, deploy) the same way `/b6p-setup` hands over `b6p auth set`.
 
-For the pattern itself — what this build model is, when to pick it over the CLI-compiled `static/script.ts` path, the two data models — this skill **points at** the `bluestep-reference` files rather than restating them (see [Point at the reference](#5-point-at-the-reference)).
+For the pattern itself — what this build model is, when to pick it over the platform-compiled `static/script.ts` path, the two data models — this skill **points at** the `bluestep-reference` files rather than restating them (see [Point at the reference](#5-point-at-the-reference)).
 
 This is a **separate, focused** skill from `/b6p-setup` (machine and project setup). Run `/b6p-setup` first if you are setting up a brand-new BlueStep project; run this when you specifically want a Vite/Preact SPA merge report.
 
@@ -31,7 +31,7 @@ node -v
 
 Node **20 or newer is required**. If it prints a version below 20 (or `node` is not found), **STOP** — do **not** attempt to install Node, and do **not** run any `create-vite`/`npm`/deploy step. Tell the user:
 
-> This skill needs **Node 20+** (yours is `<version>`). `create-vite` / Vite 7 / deploy-lib / the b6p-cli all require it — on Node 18 the deploy fails with `crypto is not defined` (Web Crypto isn't a global until Node 20). Install Node 20 (e.g. via `nvm`: `nvm install 20 && nvm use 20`), then re-run `/bluestep-vite-report`.
+> This skill needs **Node 20+** (yours is `<version>`). `create-vite` and Vite 7 require it. Install Node 20 (e.g. via `nvm`: `nvm install 20 && nvm use 20`), then re-run `/bluestep-vite-report`.
 
 Only continue past this step once `node -v` reports 20+.
 
@@ -51,7 +51,7 @@ Resolve the target:
 
 The **project name** is the target folder name resolved above — do not ask separately.
 
-**Do not ask for the deploy URL here.** The report's WebDAV deploy URL is deferred: the report doesn't exist yet, so it can't be known. It is written into `package.json` as a placeholder now and filled in by the human after the `[PLATFORM]` step (step 4).
+**Do not ask for the report's URL here.** The report doesn't exist yet, so it can't be known. The human pulls the report with `/b6p-pull` after the `[PLATFORM]` step (step 4), and the build output path is set then.
 
 ### 3. Scaffold the Vite project locally
 
@@ -77,38 +77,24 @@ Drive `create-vite` **live** — this skill does **not** vendor a template tree;
 
    For why this matters, see the gotchas file linked in step 5.
 
-3. **Install deploy-lib** from git (it is not on npm):
+3. **Do not install deploy-lib.** It deploys over WebDAV, which the git-only web release refuses. The deploy is a b6p publish (step 4); b6p is a standalone binary, not a project dependency.
 
-   ```bash
-   npm install git+https://github.com/BlueStep-Platform/deploy-lib.git
-   ```
-
-4. **Edit `package.json`** — add the deploy-lib `config` block, the `repository` field, and the `deploy` script. Read the generated `package.json`, then merge in (do not clobber the scaffold's existing fields):
+4. **Edit `package.json`** — add the `repository` field. Read the generated `package.json`, then merge in (do not clobber the scaffold's existing fields):
 
    ```json
    {
      "repository": {
        "type": "git",
        "url": "git+https://github.com/<owner>/<repo>.git"
-     },
-     "config": {
-       "deployUrl": "https://<org>.bluestep.net/files/<id>/",
-       "deploypathsuffix": "static",
-       "builddir": "dist"
-     },
-     "scripts": {
-       "deploy": "deploy-lib"
      }
    }
    ```
 
    Critical details:
-   - **`config.deployUrl` is camelCase** — a placeholder for now. deploy-lib reads `npm_package_config_deployUrl`; the README's lowercase `deployurl` silently fails. Leave a note next to it (e.g. a `// TODO` in your working notes, since JSON has no comments): **replace this with the report's WebDAV folder after you create the report in step 4.**
-   - `"deploypathsuffix": "static"` and `"builddir": "dist"` are lowercase (in both code and README) — uploads land under the report's `static/` folder; `dist` is Vite's default build output.
    - The `repository` `url` is a `git+https://github.com/<owner>/<repo>.git` placeholder — fill in after creating the GitHub repo in step 4.
    - **Keep the default `build` script** the `preact-ts` template ships (`tsc -b && vite build`). Do **not** strip the `tsc -b`. The always-on "never run `tsc` locally" rule is about component drafts, which have no declarations wired up locally; this off-platform bundle is an ordinary Node project and type-checking it is what its build is for — see the gotchas file linked in step 5.
 
-5. **Protect the deploy token.** deploy-lib reads a bearer token from `.env-local` (hyphen) in the project root. `create-vite`'s default `.gitignore` uses `*.local`, which does **not** match `.env-local` — so append a line `.env-local` to the project's `.gitignore` so the token file can never be committed. (Full auth options are in the deploy-lib workflow file linked in step 5.)
+5. **No deploy token in the project.** b6p signs in with its own stored login (`b6p auth set`, once per machine), so nothing token-like belongs in this folder.
 
 6. **Non-destructive.** If any file you would write/edit already exists with real content that isn't the fresh scaffold output (e.g. you're re-running in a populated dir), skip it and report it as skipped rather than overwriting.
 
@@ -125,21 +111,23 @@ Print these as a clear checklist the **human** executes — this skill does not 
 
 **Repo + deploy:**
 
-5. Create the **GitHub repo (public)**. Then update `package.json`: set the `repository` `url` to your repo and set `config.deployUrl` to the report's WebDAV folder (its `.../files/<id>/` root — copy it from the report's page in the platform UI).
-6. Deploy:
+5. Create the **GitHub repo (public)**, and set the `repository` `url` in `package.json` to it.
+6. Pull the report with `/b6p-pull <its DAV URL>` (copy the URL from the report's page in the platform UI), so `U######/<Report>/draft/` is a git clone of it.
+7. In `vite.config.ts`, set `build.outDir` to the report's `draft/static/` (a path relative to this project, e.g. `../U######/<Report>/draft/static`) and `build.emptyOutDir: true`, then `npm run build`.
+8. Publish with `/b6p-push` on the report (a plain publish; the platform builds `scripts/` and leaves the Vite output as it is):
 
    ```bash
-   npm run deploy -- --build --clean
+   b6p --yes --json script push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>" --enable-git
    ```
 
-   `--build` builds a fresh `dist/`; `--clean` removes stale remote files. deploy-lib uploads to both `draft/static/` and `snapshot/static/`. Full mechanics (auth resolution, config keys) are in the deploy-lib workflow file linked in step 5.
+   Full mechanics are in the deploy workflow file linked in step 5.
 
 ### 5. Point at the reference
 
 Do **not** restate the pattern here — send the user to the three `bluestep-reference` files for the details:
 
 - **The pattern / architecture / when to use it (and React as an alternative):** `../bluestep-reference/reference/vite-spa-merge-report.md` (relative to this file)
-- **The deploy workflow (install deploy-lib, the `config` keys, auth, `npm run deploy -- --build --clean`):** `../bluestep-reference/conventions/deploy-lib-workflow.md`
+- **The deploy workflow (the b6p publish since the git-only release; deploy-lib for a server without it):** `../bluestep-reference/conventions/deploy-lib-workflow.md`
 - **The sharp edges (`base: './'`, `<head>` stripping, mount-id match, Node 20+, config-key casing, `Swal`/site-CSS in local dev, the `build` script):** `../bluestep-reference/gotchas/vite-merge-report-gotchas.md`
 
 Note the relationship to `/b6p-setup`: that skill sets up the machine and bootstraps a whole BlueStep project; this one is the focused Vite/Preact SPA merge-report scaffold. They are separate skills.
@@ -148,7 +136,7 @@ Note the relationship to `/b6p-setup`: that skill sets up the machine and bootst
 
 Summarize:
 
-- **What was scaffolded** (local, done by this skill): the `preact-ts` Vite project in `<target dir>`, `base: './'` set in `vite.config.ts`, deploy-lib installed, and `package.json` wired with the `config` block (`deployUrl` placeholder), `repository` placeholder, and `deploy` script — plus any files skipped because they already existed.
-- **What the human must still do** (printed in step 4, not run here): create the `[PLATFORM]` MergeReport (`language: mjs`, `main: ../scripts/app`, `sandbox: SMALL`, `propagationBehavior: REQUIRED`, no-op `app.ts`, individual/view flags, **snapshot before first deploy**); create the GitHub repo; fill in the real `repository` URL and `config.deployUrl`; then `npm run deploy -- --build --clean`.
+- **What was scaffolded** (local, done by this skill): the `preact-ts` Vite project in `<target dir>`, `base: './'` set in `vite.config.ts`, and the `repository` placeholder in `package.json` — plus any files skipped because they already existed.
+- **What the human must still do** (printed in step 4, not run here): create the `[PLATFORM]` MergeReport (`language: mjs`, `main: ../scripts/app`, `sandbox: SMALL`, `propagationBehavior: REQUIRED`, no-op `app.ts`, individual/view flags, **snapshot before first deploy**); create the GitHub repo and fill in the real `repository` URL; pull the report, point `build.outDir` at its `draft/static/`, build, and publish with `/b6p-push`.
 
 If a new subfolder was created, tell the user the project is in `./<name>` and to open a session rooted there to work in it. Point them at the three reference files (step 5) for anything they hit along the way.

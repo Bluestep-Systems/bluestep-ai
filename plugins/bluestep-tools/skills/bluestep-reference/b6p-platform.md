@@ -45,7 +45,8 @@ The workspace is a **local copy** of components that live on the BlueStep platfo
 
 - New B6P components (MergeReport, Endpoint, Formula) are created **on the platform**, never locally.
 - Inside an existing component, creating new `.ts` files locally is fine — they ship to the platform on `push`.
-- With b6p 0.8.x, what goes live is compiled by the **b6p CLI** on a publish push (`b6p push --snapshot`); a plain push uploads the source as-is, and the platform compiles nothing it receives over WebDAV. Since web 26.11.09 the platform also compiles on its own when a script is saved through the gateway MCP, GraphQL or its editor, and on a GraphQL publish — see `reference/server-side-compile.md`. Never run `tsc` by hand.
+- A script's draft is a **git repository** on the platform (b6p 1.0 and the web release that makes scripts git-only). `draft/` is a clone of it with its own `draft/.git`; a push is a commit, a publish moves the live branch (`master`) to that commit, and the script's history is its git history. The platform refuses every older WebDAV write into `draft/` or `snapshot/` (HTTP 403), so b6p 0.8.x and hand uploads no longer work.
+- The **platform** builds every b6p push (b6p 1.0 bundles no compiler): it adds a "Build draft" commit with the output, plus a build manifest when the build is clean, and b6p moves the local `draft/` to it. A publish push (`b6p script push --snapshot`) publishes that build; a plain push leaves the live version alone. The platform also compiles when a script is saved through the gateway MCP, GraphQL or its editor — see `reference/server-side-compile.md`. Never run `tsc` by hand.
 
 ## Data hierarchy
 
@@ -58,9 +59,9 @@ Organization
                 └── Field
 ```
 
-Queries, scripts, and permissions are scoped per Unit by default. A local project may pull components from multiple Units; each lives under its own `U######/` folder created by `b6p pull` on first pull.
+Queries, scripts, and permissions are scoped per Unit by default. A local project may pull components from multiple Units; each lives under its own `U######/` folder created by `b6p script pull` on first pull.
 
-<!-- CONFLICT: U###### identity — this overview treats U###### as the Unit folder created by `b6p pull` (nested under an Organization). Another platform-overview source labels U###### as the Organization's own ID. Needs human resolution. -->
+<!-- CONFLICT: U###### identity — this overview treats U###### as the Unit folder created by `b6p script pull` (nested under an Organization). Another platform-overview source labels U###### as the Organization's own ID. Needs human resolution. -->
 
 ## Script types
 
@@ -121,15 +122,15 @@ b6p <subcommand> ...
 ### Pull a component
 
 ```
-b6p pull "<DAV URL>"
+b6p script pull "<DAV URL>"
 ```
 
-**`b6p pull` takes a DAV URL, not a display name.** The URL is copied from the component's page in the BlueStep platform UI. There is no name-based lookup; the CLI has no way to find a component by its label.
+**`b6p script pull` takes a DAV URL, not a display name.** The URL is copied from the component's page in the BlueStep platform UI. There is no name-based lookup; the CLI has no way to find a component by its label.
 
-`b6p pull --help` reference:
+`b6p script pull --help` reference:
 
 ```
-Usage: b6p pull [options] [formula-url]
+Usage: b6p script pull [options] [formula-url]
 
 Pull a script from a WebDAV location
 
@@ -141,11 +142,11 @@ Options:
 A successful first pull:
 
 - Creates the `U######/` folder (if not present) and the `<ComponentName>/` subfolder under it
-- Populates `draft/scripts/` and (in older modules) `draft/objects/`; `draft/info/` is **legacy and usually absent** — see below. Its absence is normal, not a broken pull
+- Clones the script's git draft into `draft/` (with `draft/.git`): `draft/scripts/` and (in older modules) `draft/objects/`; `draft/info/` is **legacy and usually absent** — see below. Its absence is normal, not a broken pull. A script still on WebDAV is moved to git by the pull when it runs with `--enable-git`; without the flag the pull asks, and `--yes` declines and writes nothing (the `b6p-pull` skill, step 2)
 - Populates `declarations/` with the platform-generated `.d.ts` files, including `declarations/index.d.ts` (field/query/form declarations)
 - Records the component's sync metadata (WebDAV id, file hashes, script key) so future pulls/pushes can resolve it
 
-Subsequent pulls verify per-file integrity and only rewrite files whose content changed — and since b6p-cli 0.6.0 they **keep** a file you edited locally instead of overwriting it, listing every kept file in one warning at the end. The guard compares against a recorded last-sync hash; that record is machine-local, so a first pull on a fresh clone (no record) still writes the platform copy over local content.
+Subsequent pulls fetch and fast-forward the clone. A local edit to a file the platform also changed is **kept**, and every kept file is listed in one warning at the end (`keptLocalPaths`). The local `snapshot/` folder is no longer refreshed: the published code is the `master` branch in `draft/.git`. A folder pulled before git (files, no `draft/.git`) is bound to the repository in place; a file that differs is replaced unless its old, machine-local sync record says it was edited here.
 
 ### `draft/info/` is deprecated — read it, never expect it
 
@@ -162,18 +163,18 @@ Tracked as ClickUp 86bb91km5 (platform-side; the CLI is faithfully mirroring wha
 The cleanest way to push an already-pulled component is `--file`, which lets the CLI derive the destination DAV URL from the recorded sync metadata:
 
 ```
-b6p push --file "U######/<Component>/draft/scripts/app.ts"
+b6p script push --file "U######/<Component>/draft/scripts/app.ts"
 ```
 
-Any file inside the component works as the `--file` argument; the CLI walks up to find the component root and looks up its recorded sync metadata. Same per-file integrity check applies — only changed files are uploaded. A plain push uploads the draft source **as-is** — it does **not** compile and does **not** change the live version. Only a **publish/snapshot** (`b6p push --snapshot --message "…"`) runs the TypeScript build — in the CLI, before upload, covering `scripts/` and any `static/` bundle — and ships the emitted JS together with the source.
+Any file inside the component works as the `--file` argument; the CLI walks up to find the component root and looks up its recorded sync metadata. A push commits the working tree of `draft/` and pushes the `draft` branch; it needs a commit author (`b6p config set author "Name <email>"`, or `git config user.name`/`user.email`). The **platform builds every push**, plain or publish (b6p 1.0 bundles no compiler): from each `tsconfig.json` in the draft (`scripts/` and any `static/` bundle), it adds a "Build draft" commit with the emitted JS, plus the build manifest `.b6p-build.json` when the build is clean, and b6p moves the local `draft/` to that commit. A plain push does **not** change the live version; only a **publish/snapshot** (`b6p script push --snapshot --message "…"`) publishes the build. The build's diagnostics are warnings unless `--fail-on-type-errors`; the `/b6p-push` skill reads the result.
 
-### Fallback: VS Code extension
+### No VS Code fallback
 
-If the `b6p` CLI fails (network, lock, auth), the VS Code **b6p extension** is an equivalent fallback for pull/push operations.
+The VS Code b6p extension has **not** been updated for git-only scripts: do not use it to pull or push. The other supported way to change a script is the platform's own BSJS editor, which commits to the same repository; pull before the next push after anyone saves there.
 
 ## Sync metadata
 
-Auto-managed by the CLI and stored internally (no longer a `.b6p_metadata.json` file in the workspace; legacy files are migrated on first run). Tracks WebDAV IDs, last-pull / last-push timestamps, file hashes, and script keys, so pull/push/audit can resolve each component. Not something you edit.
+Auto-managed by the CLI and stored internally (no longer a `.b6p_metadata.json` file in the workspace; legacy files are migrated on first run). Tracks WebDAV IDs, last-pull / last-push timestamps, file hashes, and script keys, so pull/push/audit can resolve each component. The history of the files themselves is in `draft/.git`. Not something you edit, and neither is anything under `draft/.git/` or a `.b6p-build.json`.
 
 ## Files Claude must never edit
 
@@ -181,6 +182,7 @@ Enforced by the `block-generated-files` hook:
 
 - Anything under `declarations/`
 - `B.d.ts`, `scriptlibrary.d.ts`, `Globals.d.ts`
+- `.b6p-build.json` (the build manifest the platform writes after a clean build) and anything under `draft/.git/`
 - (Treat `declarations/index.d.ts` as platform-generated — it regenerates on pull. `draft/objects/imports.ts` is a legacy artifact in older modules; do not edit it either.)
 
 If declarations are wrong, fix it on the platform and pull, not by editing locally.
@@ -195,12 +197,12 @@ Before referencing a query/form/field in code:
 2. In older modules, `draft/objects/imports.ts` may also exist as a legacy artifact — ignore it for verification; new declarations land in `declarations/index.d.ts`.
 3. If missing:
    - Add the field to **this component's** form-import config on the platform.
-   - `b6p pull "<DAV URL>"` to regenerate this component's declarations.
+   - `b6p script pull "<DAV URL>"` to regenerate this component's declarations.
    - Then write the TypeScript reference.
 
 If N components all need the same new field, each one needs its own import-config update on the platform and a separate pull.
 
-Hallucinated names are caught at publish only after they ship: the publish type-check runs with the component's `declarations/`, so a fabricated name shows up as a `Cannot find name` diagnostic and the push exits `1` — but the code is live by then (see the `/b6p-push` skill's `references/type-check-diagnostics.md`). The only gate before that is checking `declarations/index.d.ts` before writing the reference.
+Hallucinated names are caught at publish only after they ship: the publish type-check runs with the component's `declarations/`, so a fabricated name shows up as a `Cannot find name` diagnostic from the platform's build — a warning, so the push exits `0` and the code is live (see the `/b6p-push` skill's `references/type-check-diagnostics.md`). The only gate before that is checking `declarations/index.d.ts` before writing the reference.
 
 ## When the CLI fails
 
@@ -208,12 +210,13 @@ Common causes:
 
 - `b6p` cannot be found — the b6p-cli standalone binary isn't installed or isn't on `PATH`. Install it from its release.
 - Network/auth issue with the platform. Re-authenticate with `b6p auth set`.
-- Local file lock. Close VS Code, retry.
+- Local file lock. Close the editor that holds the file, retry.
+- No commit author. `b6p config set author "Name <email>"`, once.
 
 Fallbacks:
 
-1. The VS Code b6p extension provides the same pull/push operations through the editor UI.
-2. As a last resort, the platform UI lets you download/upload component files manually — but manual uploads bypass the CLI's recorded sync metadata, making future CLI sync fragile.
+1. The platform's BSJS editor works on the same git repository; after a save there, pull before the next push.
+2. Manual uploads (WebDAV, the platform's file screens) into `draft/` or `snapshot/` are refused with HTTP 403 since the git-only release. The VS Code b6p extension is not a fallback: it has not been updated for git-only scripts.
 
 ## When `B.commit()` is required
 

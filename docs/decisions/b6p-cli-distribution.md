@@ -16,14 +16,22 @@ workaround (Option E). This ADR is now historical — kept for the rationale tra
 > on PATH (installed separately). The npm-devDependency model described in this ADR's "Cleanup" section
 > is retired along with the bspecs npm CLI path.
 
-> **Minimum CLI version (2026-09-29, plugin 0.38.0):** the skills rely on **b6p CLI 0.8.1 or
-> later**. 0.8.0 reversed what `--yes` does on a push: it takes the safe answer of the overwrite and
+> **Minimum CLI version raised (plugin 0.51.0, for the web release that makes scripts git-only):**
+> the skills now rely on **b6p CLI 1.0.0 or later**. That release refuses every WebDAV write to a
+> script's source with HTTP 403, so 0.8.x cannot push any script. b6p 0.9 moved to git (a commit
+> with an author, a one-way switch from WebDAV that `--yes` declines) but failed its first platform
+> request on a CSRF token; 1.0.0 fixes that, lets the platform build every push, and moves the
+> commands under `b6p script`. `/b6p-pull` and `/b6p-audit` say 1.0.0 too. The checks below are
+> unchanged in where they run. Users update only once their namespace has the release.
+>
+> **Minimum CLI version (2026-09-29, plugin 0.38.0):** the skills relied on **b6p CLI 0.8.1** then.
+> 0.8.0 reversed what `--yes` does on a push: it takes the safe answer of the overwrite and
 > delete questions (Cancel / No) and prints the command that would do either. On 0.7.0 and older,
 > `--yes` overwrites platform edits and deletes platform-only files without asking, so the
 > stop-and-ask flow `/b6p-push` teaches would be false there. 0.8.1 takes back 0.8.0's refusal of
 > `b6pt_` tokens in `b6p auth set`: that is the platform access token the CLI signs in with, so on
-> 0.8.0 a machine with no stored token cannot sign in. Where it is checked: `/b6p-push` step 0 runs
-> `b6p --version` and stops before any push below 0.8.1; `/b6p-setup` step 1 checks the same and
+> 0.8.0 a machine with no stored token cannot sign in. Where it was checked: `/b6p-push` step 0 ran
+> `b6p --version` and stopped before any push under 0.8.1; `/b6p-setup` step 1 checks the same and
 > hands over the update; README prompt 1 step 3 checks it on a new machine. `/b6p-pull` and
 > `/b6p-audit` do not gate; on 0.7.0 and older they work, but `--yes` does not print its answers.
 > The skills never run the update; they hand over `npm i -g @bluestep-systems/b6p-cli@latest` or

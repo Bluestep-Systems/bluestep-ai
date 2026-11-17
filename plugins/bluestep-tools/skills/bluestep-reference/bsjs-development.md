@@ -23,7 +23,7 @@ Deep reference for BlueStep TypeScript development. Critical rules live in `AGEN
 
 ```
 <project-root>/
-└── U######/                       ← Unit folder, created by `b6p pull`
+└── U######/                       ← Unit folder, created by `b6p script pull`
     └── ComponentName/
         ├── declarations/          ← platform-generated, DO NOT EDIT
         │   ├── B.d.ts
@@ -45,7 +45,7 @@ Deep reference for BlueStep TypeScript development. Critical rules live in `AGEN
 
 A project may contain multiple Unit folders, each with multiple components of varying types. **Module split convention:** split complex logic into focused files under `scripts/`. `app.ts` is the entry point.
 
-**Multi-file components with ES imports are supported — and the import is the whole condition** (verified on a MergeReport, and again 2026-09 on an endpoint). A sibling file `export`s a symbol and `app.ts` pulls it in with a standard relative ES import (no file extension); the CLI compiles each file to its own `.build/scripts/*.js` at publish/snapshot and the platform resolves the import at runtime. What does **not** work is a sibling that only declares top-level functions or consts and is never imported: TypeScript treats it as a script sharing globals with `app.ts`, so the code compiles and pushes clean, but the platform never loads that file and the first call fails at runtime with `… is not defined` — no earlier signal. Every runtime sibling must be reached through an `import` (type-only files are safe either way; see `conventions/single-script.md`). Use imports to split a large `app.ts` into focused modules:
+**Multi-file components with ES imports are supported — and the import is the whole condition** (verified on a MergeReport, and again 2026-09 on an endpoint). A sibling file `export`s a symbol and `app.ts` pulls it in with a standard relative ES import (no file extension); the platform's build compiles each file to its own `.build/scripts/*.js` on every push and resolves the import at runtime. What does **not** work is a sibling that only declares top-level functions or consts and is never imported: TypeScript treats it as a script sharing globals with `app.ts`, so the code compiles and pushes clean, but the platform never loads that file and the first call fails at runtime with `… is not defined` — no earlier signal. Every runtime sibling must be reached through an `import` (type-only files are safe either way; see `conventions/single-script.md`). Use imports to split a large `app.ts` into focused modules:
 
 ```typescript
 // scripts/cleanupDuplicates.ts
@@ -514,7 +514,7 @@ annotations. The main settings of a pulled one:
 }
 ```
 
-Do not run `tsc` locally. With b6p 0.8.x the build that goes live is the CLI's, made at **publish/snapshot** (`b6p push --snapshot`) — a **plain push skips the TypeScript build entirely**, and the platform does not compile what arrives over WebDAV, so the draft's `.build/` stays as it was. A save through the gateway MCP (`write_script_draft`), GraphQL or the platform editor is compiled by the platform since web 26.11.09, behind a save gate that can hold the new output back: `reference/server-side-compile.md`.
+Do not run `tsc` locally. With b6p 1.0 the **platform** builds every push, plain or publish, and b6p moves the local `draft/` to the build commit; only a publish (`b6p script push --snapshot`) makes that build live. Diagnostics are warnings (exit `0`) unless `--fail-on-type-errors`. A save through the gateway MCP (`write_script_draft`), GraphQL or the platform editor is compiled by the platform since web 26.11.09, behind a save gate that can hold the new output back: `reference/server-side-compile.md`.
 
 ### Graal compatibility (server-side)
 
@@ -531,10 +531,10 @@ Server-side `B.net.fetch` is **synchronous** — no `await`/Promise round-trip (
 Query, form, and field references must exist in **the component you are editing**'s `declarations/index.d.ts` **before** you reference them in code. Form-field imports are per-component — another component's declarations file tells you nothing about this one. If a name is missing:
 
 1. Add it to **this component's** form-import config on the platform.
-2. Run `b6p pull "<DAV URL>"` to update this component's declarations.
+2. Run `b6p script pull "<DAV URL>"` to update this component's declarations.
 3. Then reference it in TypeScript.
 
-Hallucinating an import name is **not** caught at publish either: the push transpile runs without `declarations/`, so the fabricated name just joins the benign `Cannot find name` noise and the broken code ships. Verify every name against `declarations/index.d.ts` before using it — that check is the only gate.
+Hallucinating an import name is **not** caught at publish either: the build's `Cannot find name` diagnostics are warnings, so the fabricated name just joins the benign noise and the broken code ships. Verify every name against `declarations/index.d.ts` before using it — that check is the only gate.
 
 ## TS narrowing pitfalls (Graal/Java types)
 
@@ -590,7 +590,7 @@ TypeScript cannot guarantee that the captured variable is still non-null when th
 
 ## Porting from RelateScript
 
-Some RelateScript names do not exist in BsJs, and the publish transpile does not catch them — they
+Some RelateScript names do not exist in BsJs, and the publish build does not catch them — they
 fail only at runtime:
 - `log` → `console` (see Error handling below).
 - `isGlobalUser()` → `isGlobalSuper()` for a global super user, or `isGlobal()` for any global

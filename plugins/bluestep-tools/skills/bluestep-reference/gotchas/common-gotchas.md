@@ -28,7 +28,7 @@ A merge report's `static/index.html` is embedded into an existing page — never
 
 ## Query access
 
-A query is only a top-level variable in `app.ts` if it is in the component's platform form-import config (regenerated into `declarations/index.d.ts` on pull); otherwise the variable is `not defined` — configure it on the platform and `b6p pull`. The hand-written `objects/imports.ts` registration is legacy and not used in current modules. For an ad-hoc, read-only query use `B.queries.byFID['fid'].query()`.
+A query is only a top-level variable in `app.ts` if it is in the component's platform form-import config (regenerated into `declarations/index.d.ts` on pull); otherwise the variable is `not defined` — configure it on the platform and `b6p script pull`. The hand-written `objects/imports.ts` registration is legacy and not used in current modules. For an ad-hoc, read-only query use `B.queries.byFID['fid'].query()`.
 
 → Full query patterns: [api-patterns](../reference/api-patterns.md#query-access-patterns), [file-execution](../reference/file-execution.md#query-access-pattern).
 

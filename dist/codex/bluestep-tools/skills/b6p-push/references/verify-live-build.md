@@ -4,7 +4,7 @@ A draft and the live version are separate. After a draft-only push the platform 
 
 Confirm what is live concretely, not by assumption:
 
-- **Restore-point history.** After a publish, the new restore point sits at the top of the component's version history with the description just used.
+- **The published commit.** A publish reports `publishedSha`, the commit now live, and `liveVerified: true` means the platform's live branch (`master`) reads back at that commit. The script's history is its git history: after a pull, `git -C "U######/<ComponentName>/draft" log origin/master` (or `master`) shows the published commits with the descriptions used.
 - **The running build of a BSJS formula.** Through the `bluestep-gateway` MCP server's `invoke_org_tool`, call the inner `read_log` tool with `scope: SCRIPT` (`read_script_log` on an org on the older platform release — `list_org_tools(org)` shows which it serves; `read_log` needs the `ORG_LOGS` endorsement, and its refusal says so — that means "can't read the log", not "no live build"): the build's own `console.log` output identifies it. A `java.nio.file.NoSuchFileException: …/scripts/app` there means the script has no live build yet. For a **MergeReport**, a missing line proves nothing: its console output is written only on the pod that rendered it, and a pagelet embed may write none, so check what the page renders instead (the `bluestep-reference` skill's `gotchas/merge-report-console-logs.md`). How to reach inner tools: the `bluestep-reference` skill's `conventions/mcp-platform-authoring.md`.
 - **Not the inner `read_script_draft` tool.** It reads the draft source, so it confirms the platform received the push but can never confirm what is live.
 

@@ -29,16 +29,25 @@
       }
     },
     "b6p": {
-      "min": "0.8.1",
+      "min": "1.0.0",
+      "pinned": "1.0.0",
+      "assets": {
+        "windows-x64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v1.0.0/b6p-windows-x64.exe", "sha256": "ac31093dd7b403d89d3e8f734aba92ae4f05f071afc83a344a443d968a0577df" },
+        "macos-arm64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v1.0.0/b6p-macos-arm64", "sha256": "e11b52127b08f21536e7b1b0a73d77a95bb4fa455639d7217d2e1193f9dd2290" },
+        "macos-x64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v1.0.0/b6p-macos-x64", "sha256": "0619abc6b249696876d121df1838925159f70f6824567872be7fd37f8bda8bb3" }
+      },
+      "npm": {
+        "package": "@bluestep-systems/b6p-cli",
+        "version": "1.0.0",
+        "integrity": "sha512-1Gdw6sGpd/CVmSR2Q+Thfc5pkPczCPHJPXyIzeGxC3KcErCZZwMZ9HYvPzUyhTAe5LLJxBlFx4ZYRIq4bxQttg=="
+      }
+    },
+    "b6p-legacy": {
+      "min": "0.8.2",
       "pinned": "0.8.2",
       "assets": {
         "windows-x64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.8.2/b6p-windows-x64.exe", "sha256": "2169bcc7c7fc75a9d341c7f0d1d9381a6147ea7e7374ced9232caeb1e8adf573" },
         "macos-arm64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.8.2/b6p-macos-arm64", "sha256": "7b0fb12539d1b0d35ada7708cad8d7ec5c8b65697d77fa19feacc4b269fae19d" }
-      },
-      "npm": {
-        "package": "@bluestep-systems/b6p-cli",
-        "version": "0.8.2",
-        "integrity": "sha512-c1sLCHP5xG1N8+KaQ8Er+hrf9uq86QheKXab8NZaaTPQiQwEAUDqxN+v6VzNyWVWHKrpGKOjoAurXM7PLhmkGA=="
       }
     },
     "claude": {
@@ -53,7 +62,7 @@
     }
   },
   "plugins": {
-    "bluestep-tools": { "id": "bluestep-tools@bluestep", "min": "0.46.0" },
+    "bluestep-tools": { "id": "bluestep-tools@bluestep", "min": "0.51.0" },
     "bluestep-one": { "id": "bluestep-one@bluestep", "requires": ["bluestep-tools"] },
     "one-tools": {
       "id": "one-tools@bluestep-internal",

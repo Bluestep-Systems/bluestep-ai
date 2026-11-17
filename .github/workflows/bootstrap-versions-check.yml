@@ -204,7 +204,7 @@ jobs:
                 return {
                   latest, tag: rel.tag_name, releaseUrl: rel.html_url,
                   hashFrom: [`the \`.sha256\` sidecar next to each binary: https://github.com/Bluestep-Systems/b6p-cli/releases/download/${rel.tag_name}/<asset>.sha256`],
-                  hashes: digests(rel, [/^b6p-windows-x64\.exe$/, /^b6p-macos-arm64$/]),
+                  hashes: digests(rel, [/^b6p-windows-x64\.exe$/, /^b6p-macos-arm64$/, /^b6p-macos-x64$/]),
                 };
               },
             },

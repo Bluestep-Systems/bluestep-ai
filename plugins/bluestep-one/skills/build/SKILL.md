@@ -15,7 +15,7 @@ browser pane; without the desktop app, the run stops after gate 4.
 Read `.claude/bluestep-one.json` (missing: "run `/bluestep-one:setup` first", stop). Find the
 component in `components[]` by name or id; take its `id` and `repo`. A build or publish runs only
 on an id there. Work is done in the component repo, under the repo's own `AGENTS.md` where it has
-one. Never `b6p push`; never edit `types/`.
+one. Never `b6p script push` (or the older `b6p push`); never edit `types/`.
 
 With `--clone` on a component already in `components[]`: if its `repo` folder has no checkout,
 clone it (`types.md` › *Clone, then register*, steps 1–2; the entry is already there, so write

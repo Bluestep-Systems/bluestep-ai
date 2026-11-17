@@ -1,20 +1,21 @@
 ---
-description: "Off-platform Vite/Preact SPA merge report — build a full single-page app with Node + npm off-platform, deploy the minified dist/ into the report's static/ folder via deploy-lib (the CLI's static build is bypassed). Covers when to use this vs the CLI-compiled static/script.ts path, the architecture (SPA in static/, report serves index.html, app.ts is a no-op or a B.out window-bootstrap), the two data models (endpoint fetch carrying the session vs. server bootstrap needing an objects/imports.ts round-trip), history in GitHub via package.json repository, and Preact-default/React-alternative."
+description: "Off-platform Vite/Preact SPA merge report — build a full single-page app with Node + npm off-platform, deploy the minified dist/ into the report's static/ folder (with b6p script push --snapshot since the git-only web release; deploy-lib before it — the platform's `static/` build is bypassed). Covers when to use this vs the platform-compiled static/script.ts path, the architecture (SPA in static/, report serves index.html, app.ts is a no-op or a B.out window-bootstrap), the two data models (endpoint fetch carrying the session vs. server bootstrap needing an objects/imports.ts round-trip), history in GitHub via package.json repository, and Preact-default/React-alternative."
 ---
 
 A BlueStep merge report can ship its `static/` bundle two different ways. This file describes the
 **off-platform Vite/Preact SPA** model: you build a full single-page app off-platform (Node 20 + npm, any
-package), producing a minified `dist/`, and deploy that `dist/` into the report's `static/` folder with
-**deploy-lib**. The CLI's static build is bypassed entirely. See
+package), producing a minified `dist/`, and deploy that `dist/` into the report's `static/` folder — with
+`b6p script push --snapshot` since the web release that makes scripts git-only (it refuses **deploy-lib**'s
+WebDAV upload), with deploy-lib before it. The platform's `static/` build is bypassed entirely. See
 [`docs/decisions/off-platform-bundler-build-model.md`](../../../../docs/decisions/off-platform-bundler-build-model.md)
 for the "why two models" rationale.
 
-## When to use this vs. the CLI-compiled path
+## When to use this vs. the platform-compiled path
 
 - **Off-platform Vite/Preact bundle (this file)** — the report is a real SPA that needs npm packages
   (Preact, a charting library, etc.), hot-reload local dev, or source history in git. Build/deploy/history
   all live off-platform.
-- **CLI-compiled `static/script.ts` (the existing docs)** — a simple report with hand-written client
+- **platform-compiled `static/script.ts` (the existing docs)** — a simple report with hand-written client
   JS and no npm dependency. BlueStep compiles root `static/script.ts` → `.build/script.js` on the platform;
   nothing to install, no off-platform toolchain. See
   [merge report static index](merge-report-static-index.md) and
@@ -25,13 +26,13 @@ for the "why two models" rationale.
 
 The two are distinct architectures with different toolchains and failure modes — pick one, don't mix.
 `single-script.md`'s rule (only root `static/script.ts` compiles) does **not** apply to a Vite bundle,
-because Vite does the bundling off-platform and the CLI's static build never runs.
+because Vite does the bundling off-platform and the platform's `static/` build never runs.
 
 ## Architecture
 
 - **The SPA lives in `static/`.** You develop it as an ordinary Vite project; the built `dist/` (a
-  minified `index.html` + content-hashed `assets/`) is deployed into the report's `static/` folder via
-  deploy-lib (see [deploy-lib workflow](../conventions/deploy-lib-workflow.md)).
+  minified `index.html` + content-hashed `assets/`) is deployed into the report's `static/` folder (see
+  [deploy-lib workflow](../conventions/deploy-lib-workflow.md) for the b6p route and the older deploy-lib one).
 - **The report serves `static/index.html` as the page body.** `scripts/app.ts` does **not** render the
   SPA — it is either:
   - a **no-op** (`const a = 1;` then `B.out = "";`), or
@@ -73,12 +74,12 @@ Two ways to get server data to the SPA:
 
 Both models are commonly combined: bootstrap the record id via `B.out`, then fetch the rest from the
 endpoint. For a related-but-different build model (a `B.out` JSON island + endpoint on a
-**CLI-compiled** bundle, not an off-platform one), see [crm dashboard inspo](crm-dashboard-inspo.md).
+**platform-compiled** bundle, not an off-platform one), see [crm dashboard inspo](crm-dashboard-inspo.md).
 
 ## History in GitHub
 
-deploy-lib does not preserve BlueStep's per-snapshot history — the **source of truth is git, not BlueStep
-snapshots**. Link the report back to its source via the `package.json` `repository` field so anyone who
+The Vite project's own repository is the **source of truth** for the SPA's code. (A b6p publish also
+records each deploy as a commit in the report's own git history; deploy-lib kept no history.) Link the report back to its source via the `package.json` `repository` field so anyone who
 sees the deployed bundle can find where the code is maintained:
 
 ```json
@@ -94,15 +95,15 @@ sees the deployed bundle can find where the code is maintained:
 
 **Preact is the default** for this pattern (it matches the reference apps and the `/bluestep-vite-report`
 scaffold, which uses the `preact-ts` template). **React is a valid alternative** — the architecture is
-identical (SPA in `static/`, `base: './'`, deploy via deploy-lib, same two data models); only the
+identical (SPA in `static/`, `base: './'`, same deploy, same two data models); only the
 framework and the `create-vite` template differ. Nothing in the off-platform model is Preact-specific.
 
 ## See also
 
-- [deploy-lib workflow](../conventions/deploy-lib-workflow.md) — how to install deploy-lib, the
-  `package.json` `config` keys, and running `npm run deploy -- --build --clean`.
+- [deploy-lib workflow](../conventions/deploy-lib-workflow.md) — the b6p publish since the git-only
+  release, and deploy-lib (install, `package.json` `config` keys, `npm run deploy -- --build --clean`) before it.
 - [vite merge report gotchas](../gotchas/vite-merge-report-gotchas.md) — the sharp edges (`base: './'`,
   `<head>` stripping, mount-id match, Node 20+, deploy-lib config-key casing, `Swal`/site-CSS absent in
   local dev).
 - [merge report static index](merge-report-static-index.md) and
-  [single script](../conventions/single-script.md) — the CLI-compiled `static/script.ts` path.
+  [single script](../conventions/single-script.md) — the platform-compiled `static/script.ts` path.

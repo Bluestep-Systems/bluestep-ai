@@ -74,7 +74,7 @@ specifically `mcp__plugin_bluestep-tools_bluestep-gateway__available_tenants` an
   **not** expose the platform MCP (commonly the case for customer / non-BlueStep-internal orgs). This is a
   per-org exposure gap, **not** a gateway-connection problem — do **not** retry. Request MCP enablement for
   that org from BlueStep; until then fall back to the human hand-back (author in the BlueStep UI, then
-  `b6p pull`).
+  `b6p script pull`).
 - **Connected, but an org's op fails with a `403` whose body says `AI tools are disabled for this organization`** →
   an **org-level setting**, not a credential fault (surfaces as a gateway `DOWNSTREAM_ERROR`: `The org at
   <host> answered HTTP 403: {"error":"AI tools are disabled for this organization"}`; verified live
@@ -110,7 +110,7 @@ The `org` param is a **U-number** orgKey (`U` plus digits) or a bare number. Res
    the `schema=U…` line of `read_log` with `scope: ORGANIZATION`, which needs the `ORG_LOGS`
    endorsement — see Read-only discovery below), then relay. Only a `defaultHost: null` on a **listed**
    tenant means genuinely unreachable — don't `invoke_org_tool`; request MCP enablement for that org from
-   BlueStep, and until then fall back to the human hand-back (author in the BlueStep UI, then `b6p pull`),
+   BlueStep, and until then fall back to the human hand-back (author in the BlueStep UI, then `b6p script pull`),
    same as the 404 case in step 2.
 
 If ambiguous or multiple candidates → **ask**; never guess which org to mutate.
@@ -200,10 +200,10 @@ Run the op via `invoke_org_tool(org, tool, arguments)`; the org authorizes on it
 the op wired an import**, call **`invoke_org_tool(org, tool:"get_script_declarations", …)`** and read the
 result. The read-back proves the **platform** is wired — the dependency exists on the script and the generated
 declarations name the accessors a `[CODE]` task will use — so that task can be written against them right away.
-It does **not** refresh the local `declarations/` tree, and `b6p push` type-checks against that local tree: the
+It does **not** refresh the local `declarations/` tree, and `b6p script push` type-checks against that local tree: the
 sequence grant → read-back → code → push publishes with stale-declaration diagnostics (`Property 'x' does not
 exist on type …`, "Published WITHOUT a passing type-check") that look exactly like a real type error. So
-**`b6p pull` the affected components before their first push** — a normal step after any wiring op a `[CODE]`
+**`b6p script pull` the affected components before their first push** — a normal step after any wiring op a `[CODE]`
 task builds on, not a fallback. Commit or back up unpushed local edits first: b6p-cli 0.6+ keeps a locally
 edited, previously synced file and lists it at the end of the pull; older CLIs overwrite it.
 
@@ -225,8 +225,8 @@ edited, previously synced file and lists it at the end of the pull; older CLIs o
   created without the `permissions` argument lands with **none**, so it is not a testable component until
   the read-back shows the intended subjects. See the `create_script` bullet under [Known authoring quirks](#known-authoring-quirks).
 - **`get_script_declarations` may be absent from a given org's toolset** (confirm via `list_org_tools`).
-  When it is, the declaration read-back step is impossible — fall back to a `b6p pull` to refresh the
-  script's `declarations/`. Treat `b6p pull` as the **norm** for declaration refresh wherever this tool is
+  When it is, the declaration read-back step is impossible — fall back to a `b6p script pull` to refresh the
+  script's `declarations/`. Treat `b6p script pull` as the **norm** for declaration refresh wherever this tool is
   missing.
 
 ### 7 — Bookkeeping (per entry point)
@@ -375,7 +375,7 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
 > access / declarations; reading MEFR entry data through a proper `List` view:
 > [gotchas/relate-query-over-mefr.md](../gotchas/relate-query-over-mefr.md). (verified 2026-08)
 >
-> Design pointer: import config is **per-org** — it does not travel with `b6p push` — so a code-only
+> Design pointer: import config is **per-org** — it does not travel with `b6p script push` — so a code-only
 > design often beats import expansion.
 
 **Schema authoring**
@@ -664,6 +664,12 @@ verified — the dating key at the top of this page says how to read the markers
   category argument): `MUST_HAVE` adds a category, `NONE` takes it off, and `get_script` reads them
   back as `mustHaveCategories`. Read its schema first: it has conditions of its own on the formula's
   record-type scope and primary form. (verified 2026-11 on the newer release)
+- **`write_script_draft` moves the script to git, one-way, and commits** (since the web release that
+  makes scripts git-only; as reported, web #1994). On a script still on WebDAV it first moves the script to
+  git, as every write path on an org with the release does. Never write to a script of an org this
+  task only reads. Each write is one commit to the `draft` branch, and the response carries
+  `draftCommit`. Anyone with a local copy must `b6p script pull` before their next `b6p script push`, or the push
+  stops at its overwrite question.
 - **`write_script_draft` compiles the draft on the server** (since web 26.11.09): read the
   `compile` block of its response. `COMPILED` means the draft's `.build/` was rebuilt;
   `GATE_TRIPPED` means the source was saved but output was held back and the old build still runs —

@@ -1,12 +1,12 @@
 ---
-description: "A MergeReport whose static/script.ts uses a third-party client-side global (e.g. GridStack) prints a wall of advisory type errors on every b6p push — harmless (the emit succeeds and the library exists at runtime in the browser), silence locally with an ambient .d.ts stub"
+description: "A MergeReport whose static/script.ts uses a third-party client-side global (e.g. GridStack) prints a wall of advisory type errors on a build — harmless (the emit succeeds and the library exists at runtime in the browser), silence locally with an ambient .d.ts stub"
 ---
 
-# Third-party client-lib type noise on `b6p push`
+# Third-party client-lib type noise on `b6p script push`
 
 ## Symptom
 
-Every `b6p push --snapshot` of a MergeReport whose `static/script.ts` references a third-party
+Every `b6p script push --snapshot` of a MergeReport whose `static/script.ts` references a third-party
 client-side library prints a wall of TypeScript diagnostics unrelated to whatever actually changed:
 
 ```
@@ -27,16 +27,15 @@ downstream of it as `never`.
 
 ## Safe to ignore — with one real risk
 
-These diagnostics are **advisory only**: the transpile's emit continues through them, the snapshot
-ships correctly, and the library genuinely exists at runtime in the browser — so nothing is
-actually wrong. They come from a **client-bundle** sub-project (`static/`, its own `tsconfig.json`),
-which `b6p push` deliberately **excludes from `typeCheckDiagnostics`** — so a wall of them never
-raises the count, never trips the "published without a passing type-check" warning, and never fails
-the push (exit stays `0`). That gating applies only to the platform code (`scripts/app.ts`), whose
-diagnostics — unlike these — now DO fail the push. (With b6p 0.8.x no later compile replaces it: the
-CLI's local transpile is the build that goes live, and the platform does not recompile what the
-CLI uploads. See the `/b6p-push` skill's `references/type-check-diagnostics.md` for the full
-picture, and `reference/server-side-compile.md` for the platform's own compile on other saves.)
+These diagnostics are **advisory only**: the build's emit continues through them, and the library
+genuinely exists at runtime in the browser — so nothing is actually wrong. They come from a
+**client-bundle** sub-project (`static/`, its own `tsconfig.json`). A type-checker finding is a
+warning for the platform's build too, so it still gets a build manifest and publishes (web release
+notes). With b6p 0.8 and 0.9 the CLI built locally and left these out of `typeCheckDiagnostics`.
+Since b6p 1.0 the platform builds, and `typeCheckDiagnostics` is its whole ERROR + WARNING count, so
+these may now raise it; whether they do has not been checked. They fail a push only with
+`--fail-on-type-errors`. See the `/b6p-push` skill's `references/type-check-diagnostics.md` and
+`reference/server-side-compile.md`.
 
 The real risk is masking: the noise repeats on every push of the affected component and can bury a
 **genuine new** diagnostic introduced by the session's actual change. Don't skim past the wall —

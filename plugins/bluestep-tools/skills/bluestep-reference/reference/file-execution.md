@@ -72,7 +72,7 @@ compiles and uploads fine, and is `undefined` at runtime (verified 2026-09). Typ
 
 ### Query access pattern
 
-Which queries are available in `app.ts` is set by the component's **form-import config on the platform**, regenerated into `declarations/index.d.ts` on `b6p pull`. A configured query is a **bare top-level variable** named after the query FID — directly iterable, no `.query()` call:
+Which queries are available in `app.ts` is set by the component's **form-import config on the platform**, regenerated into `declarations/index.d.ts` on `b6p script pull`. A configured query is a **bare top-level variable** named after the query FID — directly iterable, no `.query()` call:
 
 ```typescript
 // app.ts — query is a top-level variable (no .query() needed)
@@ -85,7 +85,7 @@ The legacy `objects/imports.ts` `.require()` registration did this in code; it i
 
 ## Workspace Sync
 
-The b6p CLI tracks sync state between the local workspace and the BlueStep server — script metadata (name, org ID, WebDAV ID), per-file last-sync timestamps, and build state — in its own internal store (no longer a `.b6p_metadata.json` file in the workspace). The `draft/` directory holds the working version of the code; the `.build/` directories hold the compiled JavaScript output from the TypeScript source.
+The b6p CLI tracks sync state between the local workspace and the BlueStep server — script metadata (name, org ID, WebDAV ID), per-file last-sync timestamps, and build state — in its own internal store (no longer a `.b6p_metadata.json` file in the workspace). The `draft/` directory holds the working version of the code — a git clone of the script's repository, with its own `draft/.git`; the `.build/` directories hold the compiled JavaScript output from the TypeScript source.
 
 ## Common Mistakes
 

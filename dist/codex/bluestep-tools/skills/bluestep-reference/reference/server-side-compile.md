@@ -1,25 +1,39 @@
 ---
-description: "Since web 26.11.09 the platform compiles BsJs TypeScript itself: a GraphQL, MCP or editor save recompiles the draft behind a save gate, and a GraphQL publish compiles and can refuse. On 26.11.09.x, WebDAV writes (b6p 0.8.x) compile nothing, so a b6p 0.8.x publish goes live with the CLI's build."
+description: "Since web 26.11.09 the platform compiles BsJs TypeScript itself, and since the release that makes scripts git-only every script write is a git commit. A gateway write_script_draft moves a WebDAV script to git (one-way) and commits the source with the server's build; every b6p 1.0 push is built by the platform (a Build draft commit) and a publish publishes that build; the platform refuses a stale or missing manifest (BUILD_STALE, BUILD_MANIFEST_MISSING, BUILD_MANIFEST_INVALID) or a moved draft (DRAFT_MOVED). The save gate and the compile block apply to server compiles."
 ---
 
 # The platform's own TypeScript compile
 
-Since web release 26.11.09 the platform compiles a BsJs script's TypeScript on the server. Which
-write reaches that compile decides what you see:
+Since web release 26.11.09 the platform compiles a BsJs script's TypeScript on the server. Since
+the web release that makes scripts git-only, a script's draft is a git repository: every write is a
+commit to its `draft` branch, a publish moves `master` to a draft commit, and the platform refuses
+every WebDAV write into `draft/` or `snapshot/` (HTTP 403). Which write reaches which compile
+decides what you see:
 
 | Write | What compiles | Status |
 |---|---|---|
-| `b6p push` without `--snapshot` (b6p 0.8.x, WebDAV) | Nothing. The source is saved; the draft's `.build/` stays as it was. | verified 2026-11 |
-| `b6p push --snapshot` (b6p 0.8.x) | The CLI compiles locally and PUTs its own `.build/` and every other file into `draft/` and `snapshot/` over WebDAV. WebDAV writes compile nothing, so what goes live is the CLI's build (verified 2026-11: the live endpoint served the CLI's build). On 26.11.09.x a PUT into `snapshot/` also skips the publish gate below (as reported); a later web release may route these publishes through it. | verified / as reported |
-| MCP `write_script_draft` of a source file | The whole draft, on the server, in the same write. The response carries a `compile` block (below); the draft's `.build/` holds the server's output. | verified 2026-11 |
-| MCP `write_script_draft` of a file under `.build/` only | Nothing: a write into the output folder is not a compile trigger, and the response has no `compile` block. | verified 2026-11 |
-| A save in the platform's script editor, or a GraphQL script write | The whole draft, as for an MCP write. | as reported |
-| GraphQL `compileDraft: true` on a script update | The whole script, every source counted as the author's, so no output is held back for differing. A project is still held back for an existing output it cannot parse, a configuration the server cannot honour, or a build that would delete the output of a source still in the script. b6p 0.9 sends this after every push. | as reported |
-| GraphQL `takeSnapshot` (publish) | The whole script, against the published (snapshot) copies of the scripts it imports, then publishes or refuses (below). b6p 0.9 publishes this way. | as reported |
+| `b6p script push` (b6p 1.0), plain or `--snapshot` | b6p commits and pushes the sources, then asks the platform to build that commit (`compileDraft`). When the output changes, the platform adds a "Build draft" commit (with the manifest only when it vouches for the build) and b6p moves the local `draft/` to it (`buildFastForward`). `--snapshot` then publishes that build. On a server whose release predates 26.11.16.00 b6p pushes without the build and cannot publish. | release notes; run live 2026-11-17 on a playground org |
+| `b6p push` of any kind with b6p 0.8.x | Refused: its WebDAV PUTs get HTTP 403 ("This script is edited through git; use the BSJS editor or the b6p CLI.") on every script. | as reported (web #2000) |
+| MCP `write_script_draft` of a source file | First a script still on WebDAV is **moved to git — one-way**. Then one commit to `draft` holds the source and the server's compiled `.build/` output, with a manifest when the compile vouches for it. The response carries `draftCommit` and a `compile` block (below). | compile verified 2026-11 on 26.11.09; the git part as reported (web #1994) |
+| MCP `write_script_draft` of a file under `.build/` only | Nothing: a write into the output folder is not a compile trigger, and the response has no `compile` block. | verified 2026-11 on 26.11.09 |
+| A save in the platform's BSJS editor | The git-only editor commits to `draft` through the platform's git proxy, under the user's own name and e-mail. | as reported (web #1992, #2000) |
+| GraphQL `contents` or `applyCompileFix` (both discouraged) | Moves a WebDAV script to git first (one-way), then one commit to `draft`, compiled. | as reported (web #1994) |
+| GraphQL `compileDraft: true` on a git script | The server builds the `draft` branch: a "Build draft" commit authored by the caller, with the manifest only when the build vouches for it. Optional `expectedDraftSha`; refusals `DRAFT_MOVED`, `BUILD_OUTCOME_UNKNOWN`, `DRAFT_TOO_LARGE`, `REPO_MISSING`, `DRAFT_BRANCH_MISSING`. This is what b6p 1.0 calls after every push. | as reported (web #2022), b6p-core 1.0 notes |
+| GraphQL `takeSnapshot` (publish) of a git script | Checks the draft commit's build manifest, then moves `master` to it (below). | as reported (web #1994, #1992) |
 
-Never compiled, on save or publish (as reported): a script with no `tsconfig.json` and one set
-`externallyBuilt` (its output is built somewhere else, such as a Vite bundle) are copied as they
-are; a git-managed script is not compiled on save, and its publish works as before.
+Exempt from the manifest check, and never compiled on save or publish (as reported): a script with
+no `tsconfig.json`, a draft with no TypeScript source (a `.d.ts` does not count), and a script set
+`externallyBuilt` (its output is built somewhere else, such as a Vite bundle). That setting is the
+script's own, on the platform (set over `/gql`); b6p 1.0 has no flag for it and refuses an
+`externallyBuilt` key in a deploy config.
+
+Type errors without `noEmitOnError` are warnings: the build still gets a manifest and publishes. An
+error in a `.d.ts` file never counts. b6p 1.0 reports the build's diagnostics as
+`typeCheckDiagnostics` (ERROR + WARNING count) and `typeCheckErrors`.
+
+**A server write is a commit you do not have locally.** After a `write_script_draft`, an editor save
+or a server build, run `b6p script pull` before the next `b6p script push`, or the push stops at its overwrite
+question.
 
 Never run `tsc` locally either way: it has no declarations wired up and leaves stray `.js` files.
 
@@ -75,12 +89,26 @@ Rewriting the same source again trips again.
 
 A draft write is still a draft: nothing is live until the script is published.
 
-## Publish refusals (GraphQL `takeSnapshot`)
+## Publish refusals
 
-A publish through GraphQL compiles first and publishes only when that compile is clean. Otherwise it
-fails with the GraphQL error code `PUBLISH_REFUSED`, its reason in `extensions.reason`, and changes
-nothing — snapshot and script row stay as they were. The reasons are the org's
-`PublishRefusalReason` enum (read on an org 2026-11; when each one fires is as reported):
+A publish that is refused fails with the GraphQL error code `PUBLISH_REFUSED`, its reason in
+`extensions.reason`, and changes nothing: `master`, `snapshot/` and the live version stay as they
+were. b6p shows the reason in `publishRefusal` and `error` (the `b6p-push` skill, step 5).
+
+**A git script** (every script, once the git-only release is live) publishes the draft commit it is
+given (as reported, web #1994 and #1992):
+
+| Reason | Meaning | What to do |
+|---|---|---|
+| `BUILD_STALE` | a source changed after the build in the manifest; `extensions.publish.withheld` lists the stale files | push again: the platform rebuilds on every push |
+| `BUILD_MANIFEST_MISSING` | the draft has TypeScript sources but no `.b6p-build.json`, or the build was not clean enough to get one | fix the build's ERROR diagnostics and publish again; a script built outside b6p needs its platform `externallyBuilt` setting |
+| `BUILD_MANIFEST_INVALID` | the manifest cannot be read | push again: the platform writes a fresh one; never edit it by hand |
+| `DRAFT_MOVED` | someone pushed to `draft` between the commit and the publish (`expectedDraftSha`) | pull, look at what came in, then publish again (the `b6p-push` skill, "Draft moved") |
+
+**A WebDAV script** (only on a server without the git-only release) compiles first, against the
+published copies of the scripts it imports, and publishes only when that compile is clean. The
+reasons are the org's `PublishRefusalReason` enum (read on an org 2026-11; when each one fires is as
+reported):
 
 | Reason | Meaning |
 |---|---|
@@ -89,6 +117,3 @@ nothing — snapshot and script row stay as they were. The reasons are the org's
 | `ENTRYPOINT_MISSING` | the main entrypoint runs a compiled file today and the publish would leave none |
 | `OUTPUT_SHADOWS` | new output would replace a file the script runs today (see the save gate) |
 | `COMPILER_UNAVAILABLE`, `BUSY`, `INPUT_INCOMPLETE`, `WRITE_FAILED`, `NOT_PERMITTED` | the compile could not run through, or the user may not edit the script |
-
-On 26.11.09.x a b6p 0.8.x publish does not go through `takeSnapshot`, so it meets none of these (first
-table).

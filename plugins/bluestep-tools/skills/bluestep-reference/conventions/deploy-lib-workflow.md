@@ -1,5 +1,5 @@
 ---
-description: "deploy-lib workflow for an off-platform Vite/Preact SPA merge report — install deploy-lib from git, wire the package.json config block (config.deployUrl is camelCase, config.deploypathsuffix/config.builddir are lowercase), add the deploy script, and run npm run deploy -- --build --clean to upload the built dist/ to the report's draft/static/ and snapshot/static/. Covers the auth resolution order (--token-file → BLUESTEP_TOKEN → .env-local → interactive, Authorization: Bearer) and the Node 20+ requirement. Owns the config-casing issue link (deploy-lib issue #30)."
+description: "Deploying an off-platform Vite/Preact SPA merge report. Since the web release that makes scripts git-only, deploy-lib's WebDAV upload into draft/static/ and snapshot/static/ is refused (HTTP 403): build Vite into the pulled report's draft/static/ and publish with b6p script push --snapshot. Keeps the deploy-lib notes for a server without that release: install from git, the package.json config block (config.deployUrl is camelCase, config.deploypathsuffix/config.builddir are lowercase), npm run deploy -- --build --clean, the auth resolution order (--token-file → BLUESTEP_TOKEN → .env-local → interactive, Authorization: Bearer) and Node 20+. Owns the config-casing issue link (deploy-lib issue #30)."
 ---
 
 This is the deploy half of the off-platform Vite/Preact SPA merge-report pattern — see
@@ -7,7 +7,38 @@ This is the deploy half of the off-platform Vite/Preact SPA merge-report pattern
 **deploy-lib** takes the built `dist/` and uploads it into the report's `static/` folder, so the platform
 compiler is never involved.
 
-## Install deploy-lib from git
+## Since the git-only release: deploy with b6p
+
+deploy-lib uploads over WebDAV. Once a server has the web release that makes scripts git-only, every
+WebDAV write into a script's `draft/` or `snapshot/` is refused with HTTP 403 ("This script is edited
+through git; use the BSJS editor or the b6p CLI."), so `npm run deploy` can no longer reach the report.
+Whether deploy-lib gets a git-based release is not known yet. Until it does, deploy with b6p 1.0 or later:
+
+1. **Pull the report once** with `/b6p-pull`, so `U######/<Report>/draft/` is a git clone of it. If the
+   report still publishes over WebDAV, the pull moves it to git (`/b6p-pull` step 2).
+2. **Build into the report's `draft/static/`.** Point Vite's `build.outDir` at that folder (a path
+   relative to the Vite project, e.g. `../U######/<Report>/draft/static`) with `build.emptyOutDir: true`,
+   so stale content-hashed assets are removed (what deploy-lib's `--clean` did). Or copy `dist/` into it.
+   Keep `base: './'` ([vite merge report gotchas](../gotchas/vite-merge-report-gotchas.md)).
+3. **Publish with b6p**, through `/b6p-push` (it asks before it publishes):
+
+   ```bash
+   b6p --yes --json script push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>" --enable-git
+   ```
+
+   The platform builds the push from each `tsconfig.json` in the draft (`scripts/`), writes the build
+   manifest, and publishes; the Vite output in `static/` holds no TypeScript and no `tsconfig.json`,
+   so the platform's build leaves it as it is. A script whose platform `externallyBuilt` setting is on
+   (the release's one-time cutover set it on existing bundler-built scripts) skips the build check
+   altogether; b6p has no flag for it. The publish is a commit, so the report's history is its git
+   history, next to the Vite project's own repository.
+
+This route follows the b6p 1.0 and web release notes; it has not yet been run end to end on a live
+report.
+
+## deploy-lib (servers without the git-only release)
+
+### Install deploy-lib from git
 
 deploy-lib is not on npm — install it straight from the upstream git repo:
 
@@ -17,7 +48,7 @@ npm install git+https://github.com/BlueStep-Platform/deploy-lib.git
 
 Upstream: [github.com/BlueStep-Platform/deploy-lib](https://github.com/BlueStep-Platform/deploy-lib).
 
-## package.json config block — CRITICAL casing
+### package.json config block — CRITICAL casing
 
 deploy-lib reads its settings from npm's `config` env vars. There is **one non-obvious trap**:
 
@@ -54,7 +85,7 @@ The `deployUrl` is the report's WebDAV folder (its `.../files/<id>/` root). Keep
 that the `preact-ts` template ships (`tsc -b && vite build`) — deploy-lib runs it for you when you pass
 `--build`.
 
-## Running the deploy
+### Running the deploy
 
 ```bash
 npm run deploy -- --build --clean
@@ -65,9 +96,10 @@ npm run deploy -- --build --clean
   previous deploy don't accumulate under `static/`.
 
 deploy-lib uploads to **both** `draft/static/` and `snapshot/static/` in one run — the draft copy for
-working/testing and the snapshot copy for the served report.
+working/testing and the snapshot copy for the served report. That is exactly the WebDAV write the
+git-only release refuses.
 
-## Auth resolution order
+### Auth resolution order
 
 deploy-lib resolves its credential in this order and stops at the first one it finds:
 
@@ -87,7 +119,7 @@ works as the bearer token. **Never commit a token or echo its value.**
 
 ## Node 20+ required
 
-deploy-lib is ESM and uses Web Crypto, which is not a global until Node 20. On Node 18 the deploy fails with
+Vite 7 and deploy-lib need Node 20+ (b6p itself needs 18+). deploy-lib is ESM and uses Web Crypto, which is not a global until Node 20. On Node 18 the deploy fails with
 `crypto is not defined`. Run all `npm`/build/deploy steps under Node 20+ (e.g. via `nvm`). See
 [vite merge report gotchas](../gotchas/vite-merge-report-gotchas.md) for this and the other sharp edges.
 

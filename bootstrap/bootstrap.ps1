@@ -142,7 +142,7 @@ function Invoke-BlueStepBootstrap {
     )
 
     # Keep in step with bootstrap/version.json (the script cannot read that file under iex).
-    $ScriptVersion = '1.1.0'
+    $ScriptVersion = '1.2.0'
     $RepoSlug = 'Bluestep-Systems/bluestep-ai'
     $VersionsPathInRepo = 'plugins/bluestep-tools/skills/b6p-setup/assets/tool-versions.json'
     $GatewayUrl = 'https://gateway.bluestep.net/mcp'
@@ -758,6 +758,9 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
             git    = @{ Exe = 'git.exe';    Kind = 'installer'; OurDir = (Join-Path $env:LOCALAPPDATA 'Programs\Git\cmd'); Label = 'Git';             DlEta = 'about a minute' }
             gh     = @{ Exe = 'gh.exe';     Kind = 'zip';       OurDir = (Join-Path $toolsRoot 'gh');                    Label = 'GitHub CLI (gh)'; DlEta = 'under a minute' }
             b6p    = @{ Exe = 'b6p.exe';    Kind = 'exe';       OurDir = (Join-Path $toolsRoot 'b6p');                   Label = 'b6p';             DlEta = 'under a minute' }
+            # Temporary: b6p 0.8.2 for orgs without the git-only web release; removed once every
+            # namespace has it. Its own name, so it never shadows b6p 1.0.
+            'b6p-legacy' = @{ Exe = 'b6p-legacy.exe'; Kind = 'exe'; OurDir = (Join-Path $toolsRoot 'b6p-legacy');  Label = 'b6p-legacy (b6p 0.8.2)'; DlEta = 'under a minute' }
             claude = @{ Exe = 'claude.exe'; Kind = 'claude';    OurDir = (Join-Path $env:USERPROFILE '.local\bin');      Label = 'Claude Code CLI'; DlEta = 'one to three minutes' }
         }[$Tool]
         $min = [string]$Spec.min
@@ -2229,7 +2232,7 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         }
 
         # Step 3: tools, in order. Node first: the guardrail hooks need a JSON parser.
-        foreach ($tool in @('node', 'git', 'gh', 'b6p', 'claude')) {
+        foreach ($tool in @('node', 'git', 'gh', 'b6p', 'b6p-legacy', 'claude')) {
             $spec = $versions.tools.PSObject.Properties[$tool]
             if (-not $spec) { Add-Result $tool 'failed' 'missing from tool-versions.json'; continue }
             if ($tool -eq 'claude') {

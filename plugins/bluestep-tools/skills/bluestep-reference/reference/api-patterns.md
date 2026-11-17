@@ -315,7 +315,7 @@ designs and the DateTime/Signature caveats.
 
 ## Query Access Patterns
 
-Which queries, forms, and fields a script can use are defined by the component's **form-import config on the platform**, regenerated into `declarations/index.d.ts` on `b6p pull`. A configured query is available in `app.ts` as a **bare top-level variable** named after the query FID — directly iterable, no `.query()` call:
+Which queries, forms, and fields a script can use are defined by the component's **form-import config on the platform**, regenerated into `declarations/index.d.ts` on `b6p script pull`. A configured query is available in `app.ts` as a **bare top-level variable** named after the query FID — directly iterable, no `.query()` call:
 
 ```typescript
 // app.ts — the query is a top-level variable (configured on the platform, generated into declarations)
@@ -324,7 +324,7 @@ const unitName = unit.forms.unitInformation.fields.unitName.opt().orElse('');
 topLevelUnit.forEach((record: Record_topLevelUnit) => { /* ... */ });
 ```
 
-To add a query/field, or make a form writable, update the form-import config **on the platform** and `b6p pull` — do not hand-edit `declarations/index.d.ts`. A configured query's top-level variable carries the writable transaction context, so writes go through it directly (writable access is set per form in the import config, not chained in code).
+To add a query/field, or make a form writable, update the form-import config **on the platform** and `b6p script pull` — do not hand-edit `declarations/index.d.ts`. A configured query's top-level variable carries the writable transaction context, so writes go through it directly (writable access is set per form in the import config, not chained in code).
 
 For an ad-hoc query that is *not* in the import config, run it explicitly. This is a fresh **read-only** execution — use it for reads only; writes against it fail:
 

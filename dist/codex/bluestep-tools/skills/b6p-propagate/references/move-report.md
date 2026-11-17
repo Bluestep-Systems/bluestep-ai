@@ -10,9 +10,11 @@ Every plan ends with the restore points for its target. The report repeats them.
 
 - **Backup folder:** per component, `.bluestep/backups/<U>/<Component>/<stamp>/`, a copy of the
   target `draft/` taken before the mirror (`plan.md`, section 9).
-- **b6p history:** the newest entry in the component's version history before this move, the one
-  to roll back to. A publish in this move adds its own entry, labeled with the description the user
-  chose.
+- **b6p history:** the script's history is its git history. The restore point is the
+  commit live before this move: the `master` branch in the target's fresh clone
+  (`git -C "U<target>/<Component>/draft" log -1 --format=%H origin/master`, or `master` when the
+  clone has no `origin/master`). A publish in this move adds its own commit, with the description the user
+  chose, and reports it as `publishedSha`.
 - **Before-values of config writes:** for every config write, the item, its value before, and the
   new value. Gateway writes keep no history, so this list is the only record of what was there:
   write it to `.bluestep/backups/<U>/<stamp>-config-before.json` before the first config write of
@@ -27,7 +29,7 @@ Every plan ends with the restore points for its target. The report repeats them.
 
 Read everything back before reporting it as done:
 
-- **Code:** the push's own live check (`/b6p-push` step 5: `liveVerified`, `historyRecorded`), then
+- **Code:** the push's own live check (`/b6p-push` step 5: `publishedSha` set, `liveVerified`), then
   which build is live (the `b6p-push` skill's `references/verify-live-build.md`).
 - **Config:** a fresh read of each item in that org, through its read route in `config-matrix.md`. A
   value that does not match the plan did not land.

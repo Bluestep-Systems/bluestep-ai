@@ -12,7 +12,7 @@ On Windows, start here. Open **Windows PowerShell** (normally, not as administra
 line and press Enter:
 
 ```powershell
-irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.1.0/bootstrap/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.2.0/bootstrap/bootstrap.ps1 | iex
 ```
 
 It installs, for your user only and without admin rights, the tools the plugins need (Git,
@@ -84,13 +84,17 @@ Code, Cursor or Codex) in any folder, paste this, press enter:
 >    from the marketplace and trust its hook; on the Claude desktop app give me the clicks
 >    (Customize → Plugins → Browse plugins → phi-guard → Install); on Cursor tell me to install
 >    phi-guard from the imported marketplace. If I say no, skip it.
-> 4. Check whether the `b6p` command is on my PATH and, if it is, that `b6p --version` is 0.8.1 or
->    later. If it is missing or older and Node.js is installed, run
+> 4. Check whether the `b6p` command is on my PATH and, if it is, that `b6p --version` is 1.0.0 or
+>    later, and that `b6p-legacy --version` is 0.8.2 (b6p 0.8.2 under its own name, for orgs that do
+>    not have the git-only web release yet; my setup installs it). If `b6p` is missing or older and
+>    Node.js 24 or newer is installed, run
 >    `npm i -g @bluestep-systems/b6p-cli@latest` (if my old `b6p` is a downloaded binary, give me
->    the new download instead); if Node is not installed, give me the download
->    link `https://github.com/Bluestep-Systems/b6p-cli/releases` for my OS (binaries exist for macOS
->    arm64 and Windows x64 — on Linux, WSL or an Intel Mac tell me to install Node first).
-> 5. Tell me to run `b6p auth set` in my own terminal — never ask me for the token.
+>    the new download instead); otherwise give me the download
+>    link `https://github.com/Bluestep-Systems/b6p-cli/releases` for my OS (binaries exist for
+>    Windows x64 and macOS — on Linux or WSL tell me to install Node.js 24 first).
+> 5. Tell me to run `b6p auth set` in my own terminal — never ask me for the token — and, if
+>    `git config --global user.name` or `user.email` is empty, to run
+>    `b6p config set author "My Name <me@example.com>"` once (every push is a git commit).
 > 6. Check whether `B6PT_TOKEN` is set (`test -n "$B6PT_TOKEN" && echo OK`). The plugin's gateway MCP
 >    needs it. If it is missing, tell me where to create my `b6pt_` token (BlueStep → Tools →
 >    Organization Admin → Super tab → Global Users → my account → Access Tokens; if I have no Super

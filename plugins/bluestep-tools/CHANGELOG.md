@@ -11,6 +11,80 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.51.0] — unreleased
+
+> **b6p 1.0 and git-only scripts.** The web release that makes BSJS scripts git-only refuses every
+> WebDAV write to a script's source (HTTP 403), so b6p 0.8.x can no longer push there. The release
+> reaches namespaces one at a time, so this plugin installs both b6p 1.0.0 (`b6p`) and b6p 0.8.2 (as
+> `b6p-legacy`) and picks one per org from the org's release. On b6p 1.0 a push is a git commit with an author, the platform builds every push,
+> commands live under `b6p script`, and a script still on WebDAV is moved to git by its first write
+> (the skills pass `--enable-git`; on an org with the release every write path does that). **Two hooks changed** (`block-generated-files`, `change-log`), so
+> Codex users re-trust bluestep-tools' hooks once: open the plugin's page and **Review → trust**. The
+> machine bootstrap moves to 1.2.0.
+
+### Changed
+
+- **b6p per org, temporary.** `/b6p-pull`, `/b6p-push` and `/b6p-audit` run
+  `skills/b6p-push/assets/pick-cli.sh` first: it reads the org's host (from the DAV URL, or b6p's own
+  store `~/.b6p/state.json`, `b6p:u_cache`) and its release from `/appinfo/version`, and picks `b6p`
+  for 26.11.17.00 or later (and for any folder whose `draft/` is a git clone), `b6p-legacy` for an
+  earlier release, or asks. The 0.8.2 commands and result table are in
+  `skills/b6p-push/references/legacy-082.md`; b6p 0.8.2's printed commands start with `b6p`, so the
+  skill changes that word to `b6p-legacy`. A read-only pull of a script still on WebDAV uses
+  `b6p-legacy`, which switches nothing. `tool-versions.json` gains `b6p-legacy` (0.8.2, Windows x64
+  and macOS arm64), and the bootstrap installs it beside `b6p`. All of it goes once every namespace
+  has the release.
+- **b6p 1.0.0 is the minimum and the pinned version** (`tool-versions.json`): Windows x64 and both
+  macOS binaries with their SHA-256, and npm `@bluestep-systems/b6p-cli@1.0.0` (an npm install needs
+  Node.js 24 or newer; the binaries bundle their own). There is no Linux binary; Linux and WSL
+  install through npm. The bootstrap also brings bluestep-tools up to 0.51.0. `/b6p-setup` points at
+  `bootstrap-v1.2.0`, which CI tags when this merges.
+- **Commands** move to `b6p script push|pull|audit|deploy` in every skill and reference file (the old
+  top-level forms still work in 1.0.0 but print a deprecation warning).
+- **Shipped `AGENTS.md` (template marker 7):** rule 8 now says the platform builds every push (it said
+  the b6p CLI runs the only build), and the file names the `b6p script` commands. Every project on
+  marker 6 or below detects `rules-template` on its next `/b6p-setup` (or `/b6p-push` / `/b6p-pull`
+  preflight). The `b6p-task-implementer` subagent, `quick-task`, `client-data.md` and the
+  multi-file note in `bsjs-development.md` say the same.
+- **Login checks** use `b6p --json auth status`, which never prompts, instead of looking for the
+  secrets file.
+- **`/b6p-push`**: a preflight checks the commit author; `git -C <component>/draft status` replaces a
+  root `git status`. The result table follows the 1.0 `--json`: the `error` field
+  (`{ kind, message, howTo }`, or `null`) carries the verdict, with rows for each kind — no author, a
+  script still on WebDAV, the wrong branch, a server without the git build (`SNAPSHOT_REFUSED`), a
+  refused or lost build (`BUILD_REFUSED`, `BUILD_NOT_REQUESTED`, `BUILD_REQUEST_FAILED`,
+  `BUILD_OUTCOME_UNKNOWN`, `BUILD_INCOMPLETE`), local files blocking the build (`BUILD_BLOCKED`), a
+  refused publish, a draft that moved. A publish counts only when `publishedSha` is set. The
+  platform's build moves the local draft to its "Build draft" commit. A file deleted locally is
+  deleted on the platform with no question, so the skill names it before the push; kept
+  platform-only files are copied into the local draft, and deleting them takes one more push. The
+  VS Code extension is no longer a fallback; the platform's BSJS editor is a supported path.
+- **`/b6p-pull`**: a pull clones the draft and passes `--enable-git`, so a script still on WebDAV
+  moves to git without a question. A pull that only reads leaves the flag out and, for a script still
+  on WebDAV, uses `b6p-legacy`, so nothing changes on that org.
+- **`/b6p-audit`**: needs a pulled git working copy and compares with the platform's `draft` branch.
+- **`/b6p-propagate`**: a script the move writes to is pulled and pushed with `--enable-git`; a
+  script it only reads is pulled without it (with `b6p-legacy` while it is on WebDAV). The backup and the mirror leave out `draft/.git/` and `.b6p-build.json`. A folder last
+  pulled with b6p 0.8 is copied aside before its pull, since `b6p script audit` cannot compare it.
+  Restore points are commits (`publishedSha`).
+- **`/bluestep-vite-report` and the deploy-lib reference**: deploy-lib's WebDAV upload is refused,
+  so a Vite SPA report is built into the pulled report's `draft/static/` and published with a plain
+  `b6p script push --snapshot`. The platform reads a script's own `externallyBuilt` setting; b6p
+  1.0 has no flag for it.
+- **Reference**: `server-side-compile.md` (git commits, the platform's build of every push, build
+  manifest, publish refusals), `mcp-platform-authoring.md` (`write_script_draft` moves a script to
+  git, one-way, and commits), `b6p-platform.md`, `bsjs-development.md`, `single-script.md`,
+  `cross-org-push.md`, `gql-in-a-tab.md`, `file-execution.md`, `third-party-lib-type-noise.md`, the
+  `/b6p-push` references, `platform-token.md`, `build-sourcemap-embeds-source.md` (pushed commits stay
+  in the platform's history). The hand-written `static/script.ts` model is now called
+  "platform-compiled".
+- **`change-log` hook**: a b6p 1.0 push is logged as `publish` only when its result names
+  `publishedSha` (a refused build or publish is a `draft`); a `b6p-legacy` (0.8) result, which has
+  no `publishedSha`, is a publish when the command asked for one, and the entry records `commitSha`,
+  `buildCommitSha` and `publishedSha`.
+- **`block-generated-files` hook**: also blocks hand edits to `.b6p-build.json` and to files under a
+  component's `draft/.git/`.
+
 ## [plugin 0.50.0] — 2026-11-16
 
 > **The reference fills gaps reported from production, and `/b6p-setup` recognizes a one-tools

@@ -4,7 +4,7 @@
  * editor tooling (`node typecheck.mjs my-component`).
  *
  * Why a script and not a hand-run `tsc`: in a B6P merge-report workspace the
- * b6p CLI's transpile is the only build, and a hand-run tsc there has no
+ * platform builds every push, and a hand-run tsc there has no
  * declarations wired up. A BlueStep One component repo is different: its
  * `tsconfig.json` paths resolve the seven downloaded `.d.ts`, and the build
  * skill requires a type check against fresh types before every publish. This

@@ -133,7 +133,7 @@ jobs:
 
           const FILE = 'plugins/bluestep-tools/skills/b6p-setup/assets/tool-versions.json';
           const PUSH = 'plugins/bluestep-tools/skills/b6p-push/SKILL.md';
-          const TOOLS = ['node', 'git', 'gh', 'b6p', 'claude'];
+          const TOOLS = ['node', 'git', 'gh', 'b6p', 'b6p-legacy', 'claude'];
           const PLATFORMS = ['windows-x64', 'macos-arm64', 'macos-x64', 'linux-x64'];
           const VERSION = /^\d+(\.\d+){2,3}$/;
           const SHA256 = /^[0-9a-f]{64}$/;
