@@ -3,7 +3,7 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
-## [0.3.1] — unreleased (ships with bluestep-tools 0.51.0)
+## [0.3.1] — 2026-11-17
 
 ### Changed
 
