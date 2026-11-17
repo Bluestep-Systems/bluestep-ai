@@ -55,7 +55,8 @@ Then start a **new** session in the folder where your components will live and r
   push to `draft`, build from a signed-in tab, publish (only a new commit that built green, and
   only after you say yes), served-commit check after a full reload, a measured UX check, a live
   check on your own test record, and for a UI change a design check against an approved canvas
-  export. `--clone` sets up a new component repo first; `--no-publish` stops before the publish.
+  export. `--clone` first looks up, creates or registers the component (a create only after you
+  say yes) and sets up its repo; `--no-publish` stops before the publish.
 - **`/bluestep-one:reference`** — the on-demand reference: build and publish steps, the checks,
   rules, patterns, and gotchas of the host, the kit, `/gql` reads and writes, rights, pages and
   tooling. Its `SKILL.md` lists one line per file; an agent reads only the file a task needs.

@@ -1,6 +1,6 @@
 ---
 name: reference
-description: "On-demand reference for building BlueStep One custom components — the type files and a component repo's setup, the type, copies and required-fields checks, build and publish from a signed-in tab, the served and UX checks, the design check, and the rules, patterns and gotchas of the host, the kit, /gql reads and writes, rights, pages and tooling. This file is the manifest, one line per file with a \"Load when\" trigger; read it first, then only the file you need. Use when building, reviewing or planning a BlueStep One component."
+description: "On-demand reference for building BlueStep One custom components — the type files, creating a component and setting up its repo, the type, copies and required-fields checks, build and publish from a signed-in tab, the served and UX checks, the design check, and the rules, patterns and gotchas of the host, the kit, /gql reads and writes, rights, pages and tooling. This file is the manifest, one line per file with a \"Load when\" trigger; read it first, then only the file you need. Use when building, reviewing or planning a BlueStep One component."
 ---
 
 # BlueStep One reference
@@ -17,9 +17,9 @@ same query runs unchanged as a `/gql` POST from a signed-in tab.
 
 ## Building and publishing
 
-- [build/types.md](build/types.md) — the seven BlueStep One type files and a component repo's setup. Load when setting up a repo, when a type error says the host lost a member, or before any publish.
+- [build/types.md](build/types.md) — the seven BlueStep One type files, and a new component: the lookup, the create from a signed-in tab with its catalog fields and seed files, the repo-name rules, clone then register, and the set-up of a new or existing repo. Load when a component is not in `components[]` yet, when setting up a repo, when a type error says the host lost a member, or before any publish.
 - [build/typecheck.md](build/typecheck.md) — the type check, the copies check and the required-fields check (and where to run it from). Load before a push to `draft`, and when a check fails.
-- [build/publish.md](build/publish.md) — build and publish, from a signed-in tab or the *Build* tab. Load before building or publishing, and when a build fails.
+- [build/publish.md](build/publish.md) — build and publish, from a signed-in tab or the *Build* tab, and the row's catalog fields a publish does not copy (set by an update). Load before building or publishing, when a build fails, and when setting a component's summary, description or use cases.
 - [build/served-check.md](build/served-check.md) — whether the published commit is the one served. Load after every publish, before any live check.
 - [build/ux-check.md](build/ux-check.md) — the measured UX check of the served screen: timings, `/gql` calls, layout shift, errors and duplicate control names against the project's thresholds. Load after the served check, before the live check, and when the UX check stops.
 - [build/design-check.md](build/design-check.md) — a canvas export beside the live screen. Load after a UI publish has passed the served check, and when writing a change's `design-audit.md`.
@@ -27,7 +27,7 @@ same query runs unchanged as a `/gql` POST from a signed-in tab.
 ## Rules and patterns
 
 - [rules.md](rules.md) — rules for any component: no private data in placement props or repos, one data path per piece of data, branching on a refusal's code, rights-refusal wording, slow-work states in the design check, settings an org can change, required fields read from the form definition, one control per Manage field type. Load when designing a component, and before deciding what a screen may show or do.
-- [patterns.md](patterns.md) — patterns for a component's data, saves, states, opening times and tests (rights up front, group-keyed rules, one component bound to many forms, links to a page hidden from the menu, read-only field maps over `/gql`, links to an entry held by its `/gql` id), plus kit and layout idioms (tables as CSS grids, kit tabs, links and dialogs, focus rings, focus moves) and checking a page at 1440 px. Load when designing a component's data, saves, states, layout or tests.
+- [patterns.md](patterns.md) — patterns for a component's data, saves, states, opening times and tests (rights up front, group-keyed rules, one component bound to many forms, links to a page hidden from the menu, read-only field maps over `/gql`, links to an entry held by its `/gql` id, the built-in entry screen plus something as a fork), plus kit and layout idioms (tables as CSS grids, kit tabs, links and dialogs, focus rings, focus moves) and checking a page at 1440 px. Load when designing a component's data, saves, states, layout or tests, and before forking a form's built-in entry screen.
 
 ## Gotchas
 
