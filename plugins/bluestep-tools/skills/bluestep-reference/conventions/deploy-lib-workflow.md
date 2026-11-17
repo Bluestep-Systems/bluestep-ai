@@ -15,7 +15,7 @@ through git; use the BSJS editor or the b6p CLI."), so `npm run deploy` can no l
 Whether deploy-lib gets a git-based release is not known yet. Until it does, deploy with b6p 1.0 or later:
 
 1. **Pull the report once** with `/b6p-pull`, so `U######/<Report>/draft/` is a git clone of it. If the
-   report still publishes over WebDAV, the pull asks to move it to git first (one-way; `/b6p-pull` step 2).
+   report still publishes over WebDAV, the pull moves it to git (`/b6p-pull` step 2).
 2. **Build into the report's `draft/static/`.** Point Vite's `build.outDir` at that folder (a path
    relative to the Vite project, e.g. `../U######/<Report>/draft/static`) with `build.emptyOutDir: true`,
    so stale content-hashed assets are removed (what deploy-lib's `--clean` did). Or copy `dist/` into it.
@@ -23,7 +23,7 @@ Whether deploy-lib gets a git-based release is not known yet. Until it does, dep
 3. **Publish with b6p**, through `/b6p-push` (it asks before it publishes):
 
    ```bash
-   b6p --yes --json script push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>"
+   b6p --yes --json script push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>" --enable-git
    ```
 
    The platform builds the push from each `tsconfig.json` in the draft (`scripts/`), writes the build

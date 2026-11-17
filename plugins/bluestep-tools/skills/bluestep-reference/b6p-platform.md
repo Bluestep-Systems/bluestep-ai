@@ -142,7 +142,7 @@ Options:
 A successful first pull:
 
 - Creates the `U######/` folder (if not present) and the `<ComponentName>/` subfolder under it
-- Clones the script's git draft into `draft/` (with `draft/.git`): `draft/scripts/` and (in older modules) `draft/objects/`; `draft/info/` is **legacy and usually absent** — see below. Its absence is normal, not a broken pull. A script still on WebDAV must be moved to git first (one-way); the pull asks, and `--yes` declines and writes nothing (the `b6p-pull` skill, step 2)
+- Clones the script's git draft into `draft/` (with `draft/.git`): `draft/scripts/` and (in older modules) `draft/objects/`; `draft/info/` is **legacy and usually absent** — see below. Its absence is normal, not a broken pull. A script still on WebDAV is moved to git by the pull when it runs with `--enable-git`; without the flag the pull asks, and `--yes` declines and writes nothing (the `b6p-pull` skill, step 2)
 - Populates `declarations/` with the platform-generated `.d.ts` files, including `declarations/index.d.ts` (field/query/form declarations)
 - Records the component's sync metadata (WebDAV id, file hashes, script key) so future pulls/pushes can resolve it
 

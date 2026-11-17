@@ -10,14 +10,14 @@ compatibility: Needs the b6p CLI 1.0.0 or later on PATH, a b6p access token stor
 
 A script's draft is a git repository on the platform, and `draft/` is a clone of it (it holds its own `draft/.git`). A push commits `draft/` and pushes it to the `draft` branch. **The platform then builds that commit** (b6p 1.0 bundles no compiler): when the build changes the output, the platform adds a "Build draft" commit and b6p moves the local `draft/` to it. A publish (`--snapshot`) publishes that build. The script's history is its git history. The platform refuses every older (WebDAV) write to a script's source with HTTP 403.
 
-**Only on a namespace that has the git-only web release.** The release reaches namespaces one at a time. Until the user's namespace has it, b6p 1.0 pushes without the platform build and cannot publish (step 5, `SNAPSHOT_REFUSED`).
+**Two b6p binaries, picked per org (temporary).** The git-only web release reaches namespaces one at a time. An org that has it (from web release 26.11.17.00 on) takes `b6p` (1.0); an org that does not has no git publishing for scripts and still takes `b6p-legacy` (b6p 0.8.2, installed beside it by `/b6p-setup`). Step 0 picks one before anything else. `b6p-legacy` and the pick go away once every namespace has the release.
 
 ## Steps
 
 Copy this checklist and tick it off as you go:
 
 ```
-- [ ] 0. Preflight: CLI at or above the minimum, login stored, commit author set, folder set up
+- [ ] 0. Preflight: b6p or b6p-legacy picked for this org, CLI version, login stored, commit author set, folder set up
 - [ ] 1. Component identified
 - [ ] 2. Diff scope shown
 - [ ] 3. User chose Publish or Save draft only (and the description)
@@ -27,11 +27,25 @@ Copy this checklist and tick it off as you go:
 
 ### 0. Preflight (before any other `b6p` call)
 
-**CLI version.** Run `b6p --version`; it prints the bare version (e.g. `1.0.0`). The minimum is `tools.b6p.min` in `../b6p-setup/assets/tool-versions.json` (relative to this file) — read it there, never from memory.
+**Pick the CLI for this org.** Run:
+
+```
+bash "assets/pick-cli.sh" --folder "U######/<ComponentName>"
+```
+
+It reads the org's host from b6p's own store (`~/.b6p/state.json`, `b6p:u_cache` → the `U######` entry) and the org's release from `https://<host>/appinfo/version` (no sign-in), and prints one line:
+
+- `b6p …` → use `b6p` (1.0) and this file. A folder whose `draft/` is a git clone always gets `b6p` (`b6p - git-clone`).
+- `b6p-legacy <host> <version>` → the org does not have the git-only release. Steps 1–3 below are the same; for steps 4–5 read `references/legacy-082.md` (relative to this file), and skip the commit-author check.
+- `ask …` → the release could not be read, or is not a release tag. Say what the line says and ask the user which org this is on; do not guess.
+
+**A folder pulled with b6p 0.8 on an org that now has the release** (the pick says `b6p`, but `draft/` has no `.git`): push it with `b6p` as step 4 says. b6p binds the folder to the script's repository in place, moving the script to git if it is still on WebDAV, and pushes the local edits, asking before it overwrites a file the platform changed. Re-pulling first also works, but a re-pull can replace a local edit this machine has no sync record for: use it only when the folder has no local edits.
+
+**CLI version.** Run `b6p --version` (or `b6p-legacy --version` when step 0 picked it); it prints the bare version. The minimum is `tools.b6p.min` in `../b6p-setup/assets/tool-versions.json` (for `b6p-legacy`, `tools.b6p-legacy.pinned`, a 0.8 version) — read it there, never from memory. `b6p-legacy` missing → `/b6p-setup` hands over its install.
 
 - **At or above the minimum** → continue.
-- **Older** → STOP. Do **not** run the push. b6p 0.8.x is refused by the platform (HTTP 403), and 0.9.0 fails its first platform request on a CSRF token. Tell the user:
-  > Your `b6p` CLI is <version>; this skill needs <minimum> or later. Update it once your namespace has the git-only web release — installed with npm (needs Node.js 24 or newer): `npm i -g @bluestep-systems/b6p-cli@latest`; a downloaded binary: get the new one from https://github.com/Bluestep-Systems/b6p-cli/releases — then retry `/b6p-push <component>`.
+- **Older** → STOP. Do **not** run the push. On an org with the git-only release b6p 0.8.x is refused (HTTP 403), and 0.9.0 fails its first platform request on a CSRF token. Tell the user:
+  > Your `b6p` CLI is <version>; this skill needs <minimum> or later. Update it — installed with npm (needs Node.js 24 or newer): `npm i -g @bluestep-systems/b6p-cli@latest`; a downloaded binary: get the new one from https://github.com/Bluestep-Systems/b6p-cli/releases — then retry `/b6p-push <component>`.
 - **Not a version number** (no output, an error, a wrapper's own text) → say so and ask the user which version they have before pushing; do not guess. `command not found` → see "If the CLI fails".
 
 **Login.** Run `b6p --json auth status`. It never prompts and prints `{"authenticated": true}` or `false`.
@@ -40,7 +54,7 @@ Copy this checklist and tick it off as you go:
   > `b6p` has no BlueStep platform access token on this machine yet. Run `b6p auth set` once in your own terminal, then retry `/b6p-push <component>`.
 - `true` → continue.
 
-**Commit author.** Every push is a git commit, and b6p never commits as nobody: with no author it exits `1` before touching the platform. It takes the first of `--author "Name <email>"`, the stored default (`b6p config set author "Name <email>"`), `git config user.name` and `user.email` for the script folder, then `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`. Check: `git -C "U######/<ComponentName>/draft" config user.name` and `git -C "U######/<ComponentName>/draft" config user.email` (they fall back to the global values).
+**Commit author** (b6p 1.0 only). Every push is a git commit, and b6p never commits as nobody: with no author it exits `1` before touching the platform. It takes the first of `--author "Name <email>"`, the stored default (`b6p config set author "Name <email>"`), `git config user.name` and `user.email` for the script folder, then `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`. Check: `git -C "U######/<ComponentName>/draft" config user.name` and `git -C "U######/<ComponentName>/draft" config user.email` (they fall back to the global values).
 
 - Both print something → continue; the push carries that name and e-mail.
 - Either is empty → the author may still be stored with `b6p config set author` (b6p has no command that prints it). Run the push; if it stops with `No commit author found`, step 5 says what to hand over. Never invent a name or e-mail, and never pass `--author` with a value the user did not give.
@@ -82,20 +96,19 @@ Most users are non-technical, so present the choice in **plain language — avoi
 **Publish:**
 
 ```
-b6p --yes --json script push --file "U######/<ComponentName>/draft/scripts/app.ts" --snapshot --message "<description>"
+b6p --yes --json script push --file "U######/<ComponentName>/draft/scripts/app.ts" --snapshot --message "<description>" --enable-git
 ```
 
 **Save draft only:**
 
 ```
-b6p --yes --json script push --file "U######/<ComponentName>/draft/scripts/app.ts"
+b6p --yes --json script push --file "U######/<ComponentName>/draft/scripts/app.ts" --enable-git
 ```
 
-Any existing file inside the component works for `--file`; `app.ts` is the usual one. A plain push with no `--message` gets the commit message "Push from b6p". A publish with nothing new to commit makes no commit: it publishes the current draft head.
+Any existing file inside the component works for `--file`; `app.ts` is the usual one. `--enable-git` moves a script still on WebDAV to git as part of the push; on an org with the release every write path does that, so it is not a question for the user. A plain push with no `--message` gets the commit message "Push from b6p". A publish with nothing new to commit makes no commit: it publishes the current draft head.
 
-`--yes` is **required**: without it b6p may ask a question you cannot answer and exit `1`. It takes the **safe answer of every question** — **Cancel** to overwriting, **No** to deleting, **Cancel** to switching a script to git — and prints each one on stderr (`[Cancel] / Overwrite all: Cancel  (answered by --yes: …)`); those lines are not errors. An overwrite, a delete or a switch to git happens only on the user's yes (step 5). `--json` puts the result on stdout as one object — step 5's success test.
+`--yes` is **required**: without it b6p may ask a question you cannot answer and exit `1`. It takes the **safe answer of every question** — **Cancel** to overwriting, **No** to deleting — and prints each one on stderr (`[Cancel] / Overwrite all: Cancel  (answered by --yes: …)`); those lines are not errors. An overwrite or a delete happens only on the user's yes (step 5). `--json` puts the result on stdout as one object — step 5's success test.
 
-- **Never add `--enable-git` on the first run.** A script that still publishes over WebDAV must be switched to git before it can take a push, and the switch is **one-way**. Under `--yes` the push declines it and exits `1`; step 5 says how to ask.
 - Do not add `--fail-on-type-errors` unless the user asks for it; step 5 reads the diagnostics either way.
 - **`Missing metadata`** from `--file` means the component was never pulled with the CLI: read `references/root-fallback.md` for the `--root` push. The step-3 choice still applies.
 
@@ -108,12 +121,12 @@ Find the row by `error.kind` (or, for the second shape, by the error text), then
 | Exit | `error.kind` / text | What happened | What to do |
 |---|---|---|---|
 | `1` | `NOTHING_PUSHED`, files in `declinedOverwrites` | Stopped before pushing: those files changed on the platform | **Stop and ask**, below |
-| `1` | text: `To switch it, run the same command with --enable-git` | The script still publishes over WebDAV; `--yes` declined the switch. Nothing changed | **Switch to git?**, below |
+| `1` | text: `To switch it, run the same command with --enable-git` | The command was run without `--enable-git` | Run step 4 again as written, with `--enable-git` |
 | `1` | text: `No commit author found` | No author; nothing was pushed or touched | Hand over `b6p config set author "Your Name <you@example.com>"` for the user to run with their own name and e-mail, then re-run step 4 |
 | `1` | text: `git -C <script>/draft checkout draft` | `draft/` has another branch checked out | Tell the user. Do not switch branches yourself: commits on the other branch are not lost, and they may want them merged into `draft` first |
 | `1` | text names a symbolic link outside the draft folder | Refused, nothing changed; the message says how to fix it | Show the message; let the user decide |
 | `1` | `NOTHING_PUSHED`, `declinedOverwrites: []` | Nothing pushed: a wrong `--root`, an empty `draft/`, an upload refused | Show `error.message`; fix the cause, re-run |
-| `1` | `SNAPSHOT_REFUSED` (`snapshotRefused`: `too-old`, `unknown` or `floor-unset`) | The draft is saved, but the server is older than the git build (`route.serverVersion`), so nothing was built or published (`cannot snapshot, only push saves`) | Say the namespace does not have the release yet; the draft is saved. Do not retry until it does |
+| `1` | `SNAPSHOT_REFUSED` (`snapshotRefused`: `too-old`, `unknown` or `floor-unset`) | The draft is saved, but the server is older than the git build (`route.serverVersion`), so nothing was built or published (`cannot snapshot, only push saves`) | The org does not have the git-only release, so step 0 should have picked `b6p-legacy`: the draft is saved. Run step 0's pick again and say what it prints |
 | `1` | `BUILD_REFUSED` (`buildErrorReason`: `DRAFT_MOVED`, `DRAFT_TOO_LARGE`, `REPO_MISSING`, `DRAFT_BRANCH_MISSING`) | The draft was pushed, but the platform refused to build it | Show `error.message` and `error.howTo`. `DRAFT_MOVED` → **Draft moved**, below. `DRAFT_TOO_LARGE` → ask the user which large files to remove. `REPO_MISSING` / `DRAFT_BRANCH_MISSING` → a platform problem: report it, do not retry |
 | `1` | `BUILD_NOT_REQUESTED` | The platform's draft moved after this push, so no build was asked for | **Draft moved**, below |
 | `1` | `BUILD_REQUEST_FAILED` | The draft was pushed; the build request failed | Re-run step 4 once, unchanged (the next push takes in a build that landed after all); then stop |
@@ -127,11 +140,11 @@ Find the row by `error.kind` (or, for the second shape, by the error text), then
 | `1` | `LIVE_MISMATCH` (`liveVerified: false`) | Published, but the live branch reads back at another commit | Say the live version may not be this push; offer to re-run the publish |
 | `1` | `TYPE_ERRORS` | Only with `--fail-on-type-errors`: the build reported diagnostics in the script's own sources | As the `typeCheckDiagnostics` row |
 | `1` | `{"error", "errors"}` shape, none of the above | The command failed before it had a result (a question with no input, a network or git error) | Read the text; "If the CLI fails" |
-| also | `route.mode: push-only` on exit `0` | The server is older than the git build: the draft is saved, but the platform did not build it | Say the namespace does not have the release yet |
+| also | `route.mode: push-only` on exit `0` | The server is older than the git build: the draft is saved, but the platform did not build it | Run step 0's pick again; say what it prints |
 | also | `buildVouched: false` on exit `0` | Pushed; the build is not clean. A publish will be refused until it is | Say so; show the diagnostics; publishing waits for a fix |
 | also | `typeCheckDiagnostics` above `0` | The platform's build reported ERROR and WARNING diagnostics (count); `typeCheckErrors` lists up to 20 in the script's own sources, with `severity` | Treat them as real: read `references/type-check-diagnostics.md` |
 | also | `buildFastForward.state: fast-forwarded` | The local `draft/` now holds the platform's build commit (`buildCommitSha`) | Say so: the build output in `draft/` came from the platform |
-| also | `switchedToGit: true` | This push moved the script from WebDAV to git, one-way (the user said yes to it) | Say so in the report |
+| also | `switchedToGit: true` | This push moved the script to git | Say one line in the report: "This script now publishes through git." |
 | also | files in `keptPlatformOnly` | Pushed; platform-only files kept | Report, then **Kept files**, below |
 | also | `liveVerified: null` on a publish | Published; the read-back of the live branch could not run | Say so; confirm which build is live (Report) |
 | `0` | `{"cancelled": true}` | Target-URL question cancelled | Nothing pushed; say so |
@@ -161,13 +174,6 @@ After checking them, overwrite them with your local files with:
    - `Check them first (Recommended)` — "Nothing is pushed. Look at the differences first, then push again."
    - `Overwrite them with my local files` — "Replaces the platform copy of every file listed with yours. The platform's version stays in the history."
 5. Only on *Overwrite*: run the printed command **exactly as printed** — same directory, nothing edited, added or removed; it repeats this push's arguments (publish choice and description included) plus one `--overwrite` per file. Read its result from the top of this step; if it stops on other files, the platform moved again — same flow. The CLI pushes all or nothing: if the user wants only some overwritten, the push waits until the rest are settled (pulled, merged or confirmed).
-
-**Switch to git?** (exit `1`, the text says the script still publishes over WebDAV). Nothing changed. The script must move to git before b6p can push it, and the move cannot be undone. Ask one structured question — **"This script has not moved to the new git-based publishing yet. Move it now?"**:
-
-- `Not now (Recommended)` — "Nothing changes. The script cannot take this push until it moves."
-- `Move it to git and push` — "Moves the script to git publishing for good, then pushes. Its draft and live version then refuse the old upload route, so anyone still on an older b6p or the VS Code extension can no longer push it, and its history is the git history from here on."
-
-Only on *Move it*: re-run the step-4 command with `--enable-git` added, nothing else changed, and read its result from the top of this step. Never add `--enable-git` without this yes for *this* script, never on an org the user only reads from, and an earlier yes for another script does not carry over.
 
 **Draft moved** (`BUILD_REFUSED` with `DRAFT_MOVED`, `BUILD_NOT_REQUESTED`, or a `PUBLISH_REFUSED` whose reason is `DRAFT_MOVED`). Someone else pushed to the draft in between; the live version did not change. The CLI's `howTo` says to pull and push again. Run `/b6p-pull`, show the user what it brought in (`git -C … log` of the new commits, and any kept files), and only then re-run step 4 with the same choice: a publish after the pull also publishes the other person's change.
 
@@ -201,11 +207,10 @@ To delete it from the platform, run the push again without --yes and answer Yes 
 
 ## What this skill must NOT do
 
-- Do NOT invoke `b6p` any way other than the bare `b6p` binary, and use `b6p script push`, not the deprecated top-level `b6p push`.
-- Do NOT push with a `b6p` CLI below the minimum in `tool-versions.json` (step 0), and do NOT run the update yourself — hand it over.
+- Do NOT invoke `b6p` any way other than the bare `b6p` binary, or the bare `b6p-legacy` binary when step 0 picks it for the org; with `b6p`, use `b6p script push`, not the deprecated top-level `b6p push`.
+- Do NOT push with a `b6p` CLI below the minimum in `tool-versions.json` (step 0), do NOT use `b6p-legacy` on an org step 0 did not pick it for, and do NOT run an install or update yourself — hand it over.
 - Do NOT push without showing the user the diff scope and getting an explicit selection for *this* push (step 3). Publish is recommended and pre-selected, never performed on its own — not on task completion, and `/spec-execute` offers no publish mid-task.
 - Do NOT overwrite or delete anything on the platform without the user's yes for *this* push (step 5): no answer, or anything short of a clear yes, means no, and an earlier yes does not carry over.
-- Do NOT pass `--enable-git`, or answer "Switch to git", without the user's yes for *this* script (step 5, **Switch to git?**). The switch is one-way.
 - Do NOT edit the command the CLI printed or pipe answers into `b6p` yourself: run it exactly as printed, and never add an `--overwrite` for a file the user did not confirm.
 - Do NOT commit, reset or change branches inside `draft/.git`, and do NOT hand-edit `.b6p-build.json`.
 - Do NOT loop on CLI failures.
@@ -213,9 +218,9 @@ To delete it from the platform, run the push again without --yes and answer Yes 
 ## If the CLI fails
 
 - **`command not found`** — the b6p-cli binary is not installed or not on `PATH`. Do NOT retry; tell the user to install it (`/b6p-setup` hands over the command), then retry `/b6p-push <component>`.
-- **Exit `1` from the push itself** (a stop at the overwrite question, a declined switch, no author, a refused build or publish, a live copy at another commit) — **not** a CLI failure and **not** a reason to change tools: handle it by the step-5 table.
+- **Exit `1` from the push itself** (a stop at the overwrite question, no author, a refused build or publish, a live copy at another commit) — **not** a CLI failure and **not** a reason to change tools: handle it by the step-5 table.
 - **Exit `1` naming a question it could not ask here** (`No input available for prompt: "…"`) — **not** a tool failure. Relay it. `Enter your access token` → tell the user to run `b6p auth set`, then retry. `Could not determine script URL`, or `Paste in the target formula URI` → the `--file` path is not inside a `U######/<ComponentName>/draft/` folder, or a `--root` push was run without its target URL: fix the path, or use the `--root` push from step 4's `Missing metadata` bullet with its URL. Any other question → show it to the user and ask; `b6p auth set` is only for the token.
-- **`Could not switch the script to git publishing: HTTP <code>`** — b6p puts this prefix on any failed call about the script's git mode: the read it makes before every pull and push, and, with `--enable-git`, the switch itself. Without `--enable-git` nothing was switched. The cause is not in the message (the token's rights, or the server); tell the user, do not retry in a loop, and do not add `--enable-git`.
+- **`Could not switch the script to git publishing: HTTP <code>`** — b6p puts this prefix on any failed call about the script's git mode: the read it makes before every pull and push, and the switch itself. The cause is not in the message: the org may not have git publishing (step 0 should then have picked `b6p-legacy`; run it again), or the token may lack a right. Tell the user; do not retry in a loop.
 - **Any other error** (network, a real auth *rejection* by the platform) — stop and show it. The other supported way to change a script is the platform's own BSJS editor, which works on the same git repository: after anyone saves there, run `/b6p-pull` before the next push. The VS Code b6p extension is **not** a fallback: it has not been updated for git-only scripts.
 
 **Never upload files by hand** (WebDAV PUT, a file manager, the platform's file browser) into a script's `draft/` or `snapshot/` folder: the platform refuses those writes with HTTP 403 since the git-only release (the `bluestep-reference` skill's `b6p-platform.md`, sync-failure fallbacks).

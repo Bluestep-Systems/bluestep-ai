@@ -10,7 +10,8 @@ It does not need admin rights, and it never asks for an admin password.
 1. **Looks at your computer:** which AI apps you have (Claude, Cursor, Codex) and which tools are
    already there.
 2. **Installs the tools** the BlueStep plugins need, for your user only: Git, Node.js, the GitHub
-   CLI (`gh`), the `b6p` CLI, and the Claude Code CLI when you use Claude. Each one is a version we
+   CLI (`gh`), the `b6p` CLI, `b6p-legacy` (b6p 0.8.2, for orgs that do not have the git-only web
+   release yet; removed once they all do), and the Claude Code CLI when you use Claude. Each one is a version we
    tested, and the script checks every download against a known fingerprint (SHA-256) before it
    uses it. A tool you already have that works and is new enough is left alone.
 3. **Signs you in to GitHub** in your browser, so your computer can download the plugins.
@@ -168,7 +169,7 @@ There is no automatic undo. To remove what the script added:
    ```
 
    If you will not use the token again, also revoke it in BlueStep (the same Access Tokens screen).
-5. **The tools:** delete the folder `%LOCALAPPDATA%\BlueStep\tools` (Node.js, gh and `b6p`). Do
+5. **The tools:** delete the folder `%LOCALAPPDATA%\BlueStep\tools` (Node.js, gh, `b6p` and `b6p-legacy`). Do
    this after steps 2 and 3, which need `b6p` and `gh`.
 6. **Git:** Settings → Apps → Installed apps → Git → Uninstall. This is the copy in
    `%LOCALAPPDATA%\Programs\Git`, installed for your user only.

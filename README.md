@@ -85,8 +85,9 @@ Code, Cursor or Codex) in any folder, paste this, press enter:
 >    (Customize → Plugins → Browse plugins → phi-guard → Install); on Cursor tell me to install
 >    phi-guard from the imported marketplace. If I say no, skip it.
 > 4. Check whether the `b6p` command is on my PATH and, if it is, that `b6p --version` is 1.0.0 or
->    later. If it is missing or older, tell me to update it only once my namespace has the git-only
->    web release (it reaches namespaces one at a time). Then, if Node.js 24 or newer is installed, run
+>    later, and that `b6p-legacy --version` is 0.8.2 (b6p 0.8.2 under its own name, for orgs that do
+>    not have the git-only web release yet; my setup installs it). If `b6p` is missing or older and
+>    Node.js 24 or newer is installed, run
 >    `npm i -g @bluestep-systems/b6p-cli@latest` (if my old `b6p` is a downloaded binary, give me
 >    the new download instead); otherwise give me the download
 >    link `https://github.com/Bluestep-Systems/b6p-cli/releases` for my OS (binaries exist for

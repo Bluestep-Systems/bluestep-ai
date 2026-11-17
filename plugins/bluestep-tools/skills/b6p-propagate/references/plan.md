@@ -218,16 +218,17 @@ a valid alternate host stops the step and the user signs in on the host named.
 
 Code is the last step, after the wiring, so the target's `declarations/` show the new wiring.
 
-Every pull below runs **without** `--enable-git`. When b6p prints `Pull aborted: … switching it to
-git was not confirmed` (exit `1`), the script still publishes over WebDAV and the pull wrote
-nothing (the `b6p-pull` skill, step 2):
+Every pull, push and audit below first picks its b6p for that org (`/b6p-pull` step 1b, `/b6p-push`
+step 0): while the git-only web release reaches namespaces one at a time, the source and a target can
+be on different releases, so one move can use `b6p` on one side and `b6p-legacy` (b6p 0.8.2) on the
+other. The steps are the same; the commands and results are the ones each skill gives for its pick.
 
-- **A script this move only reads** (a move's source; a refresh's target, section 12): never
-  switch it. Stop that component and offer the read-only routes from `/b6p-pull` step 2.
-- **A script this move writes to** (a move's target; a refresh's source): b6p cannot push it
-  until it moves to git, and the move is one-way. Ask as `/b6p-push` step 5 ("Switch to git?") says, for that script and that
-  org only; a yes is its own step in the plan, never covered by the plan's yes. Only then pull it
-  with `--enable-git`.
+- **A script this move only reads** (a move's source; a refresh's target, section 12): pull it as
+  `/b6p-pull` step 2 says for a pull that only reads — without `--enable-git`, and with
+  `b6p-legacy` if the script is still on WebDAV — so nothing changes in that org.
+- **A script this move writes to** (a move's target; a refresh's source): pull and push it with
+  `--enable-git`, as `/b6p-pull` and `/b6p-push` do; a script still on WebDAV moves to git with its
+  first write, as every write path on an org with the release does.
 
 1. **Audit the source folder, then pull it fresh.** When `U<source>/<Component>/` is already here,
    run `/b6p-audit` on it first: a pull keeps a local file that is newer than the platform's, so a
@@ -311,8 +312,8 @@ only one, when there is just one) to the source. The steps are the ones above wi
 swapped: the target is read, the source is written.
 
 - Pull both fresh, back up the source `draft/`, and mirror target to source, with the same
-  exclusions as section 9 (`draft/.git/`, `.b6p-build.json`). The target is only read here: never
-  switch it to git (`--enable-git`) to pull it.
+  exclusions as section 9 (`draft/.git/`, `.b6p-build.json`). The target is only read here: pull it
+  as a pull that only reads (`/b6p-pull` step 2).
 - Objects the components need that the source lacks are created in the same order.
 - Config differences follow the refresh defaults in `config-matrix.md`. `schedule`, `disabled`,
   `runImmediate`, `formulaType` and `legacyPermissions` stay as they are in the source. Each changes only on its own yes,

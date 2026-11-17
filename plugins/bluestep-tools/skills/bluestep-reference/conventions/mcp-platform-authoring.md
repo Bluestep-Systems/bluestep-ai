@@ -665,11 +665,9 @@ verified — the dating key at the top of this page says how to read the markers
   back as `mustHaveCategories`. Read its schema first: it has conditions of its own on the formula's
   record-type scope and primary form. (verified 2026-11 on the newer release)
 - **`write_script_draft` moves the script to git, one-way, and commits** (since the web release that
-  makes scripts git-only; as reported, web #1994). On a script still on WebDAV it first switches the
-  script to git publishing for good: after that, b6p 0.8.x and the VS Code extension can no longer
-  push it. A local `draft/.git` for the script means it is already on git (b6p clones only a
-  git script). Without one, ask the user before the first write, and never write to a script of an
-  org this task only reads. Each write is one commit to the `draft` branch, and the response carries
+  makes scripts git-only; as reported, web #1994). On a script still on WebDAV it first moves the script to
+  git, as every write path on an org with the release does. Never write to a script of an org this
+  task only reads. Each write is one commit to the `draft` branch, and the response carries
   `draftCommit`. Anyone with a local copy must `b6p script pull` before their next `b6p script push`, or the push
   stops at its overwrite question.
 - **`write_script_draft` compiles the draft on the server** (since web 26.11.09): read the

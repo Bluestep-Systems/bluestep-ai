@@ -11,19 +11,29 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
-## [plugin 0.51.0] — unreleased (merge only once the git-only web release is on every namespace)
+## [plugin 0.51.0] — unreleased
 
 > **b6p 1.0 and git-only scripts.** The web release that makes BSJS scripts git-only refuses every
-> WebDAV write to a script's source (HTTP 403), so b6p 0.8.x can no longer push. This release needs
-> b6p 1.0.0, and users should update only once their namespace has the release (it reaches
-> namespaces one at a time). A push is a git commit with an author, the platform builds every push,
-> commands live under `b6p script`, and moving a script from WebDAV to git is one-way, so no skill
-> does it without the user's yes. **Two hooks changed** (`block-generated-files`, `change-log`), so
+> WebDAV write to a script's source (HTTP 403), so b6p 0.8.x can no longer push there. The release
+> reaches namespaces one at a time, so this plugin installs both b6p 1.0.0 (`b6p`) and b6p 0.8.2 (as
+> `b6p-legacy`) and picks one per org from the org's release. On b6p 1.0 a push is a git commit with an author, the platform builds every push,
+> commands live under `b6p script`, and a script still on WebDAV is moved to git by its first write
+> (the skills pass `--enable-git`; on an org with the release every write path does that). **Two hooks changed** (`block-generated-files`, `change-log`), so
 > Codex users re-trust bluestep-tools' hooks once: open the plugin's page and **Review → trust**. The
 > machine bootstrap moves to 1.2.0.
 
 ### Changed
 
+- **b6p per org, temporary.** `/b6p-pull`, `/b6p-push` and `/b6p-audit` run
+  `skills/b6p-push/assets/pick-cli.sh` first: it reads the org's host (from the DAV URL, or b6p's own
+  store `~/.b6p/state.json`, `b6p:u_cache`) and its release from `/appinfo/version`, and picks `b6p`
+  for 26.11.17.00 or later (and for any folder whose `draft/` is a git clone), `b6p-legacy` for an
+  earlier release, or asks. The 0.8.2 commands and result table are in
+  `skills/b6p-push/references/legacy-082.md`; b6p 0.8.2's printed commands start with `b6p`, so the
+  skill changes that word to `b6p-legacy`. A read-only pull of a script still on WebDAV uses
+  `b6p-legacy`, which switches nothing. `tool-versions.json` gains `b6p-legacy` (0.8.2, Windows x64
+  and macOS arm64), and the bootstrap installs it beside `b6p`. All of it goes once every namespace
+  has the release.
 - **b6p 1.0.0 is the minimum and the pinned version** (`tool-versions.json`): Windows x64 and both
   macOS binaries with their SHA-256, and npm `@bluestep-systems/b6p-cli@1.0.0` (an npm install needs
   Node.js 24 or newer; the binaries bundle their own). There is no Linux binary; Linux and WSL
@@ -49,12 +59,12 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   deleted on the platform with no question, so the skill names it before the push; kept
   platform-only files are copied into the local draft, and deleting them takes one more push. The
   VS Code extension is no longer a fallback; the platform's BSJS editor is a supported path.
-- **`/b6p-pull`**: a pull clones the draft. A script still on WebDAV is never switched without the
-  user's yes, and never on a pull that is only for reading; a declined switch exits `1` with nothing
-  written, and the skill names the read-only route (the gateway's `read_script_draft`).
+- **`/b6p-pull`**: a pull clones the draft and passes `--enable-git`, so a script still on WebDAV
+  moves to git without a question. A pull that only reads leaves the flag out and, for a script still
+  on WebDAV, uses `b6p-legacy`, so nothing changes on that org.
 - **`/b6p-audit`**: needs a pulled git working copy and compares with the platform's `draft` branch.
-- **`/b6p-propagate`**: pulls never pass `--enable-git` on their own; a target's switch to git is its
-  own yes. The backup and the mirror leave out `draft/.git/` and `.b6p-build.json`. A folder last
+- **`/b6p-propagate`**: a script the move writes to is pulled and pushed with `--enable-git`; a
+  script it only reads is pulled without it (with `b6p-legacy` while it is on WebDAV). The backup and the mirror leave out `draft/.git/` and `.b6p-build.json`. A folder last
   pulled with b6p 0.8 is copied aside before its pull, since `b6p script audit` cannot compare it.
   Restore points are commits (`publishedSha`).
 - **`/bluestep-vite-report` and the deploy-lib reference**: deploy-lib's WebDAV upload is refused,
@@ -68,8 +78,9 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   `/b6p-push` references, `platform-token.md`, `build-sourcemap-embeds-source.md` (pushed commits stay
   in the platform's history). The hand-written `static/script.ts` model is now called
   "platform-compiled".
-- **`change-log` hook**: a b6p push is logged as `publish` only when its result names
-  `publishedSha` (a refused build or publish is a `draft`), and the entry records `commitSha`,
+- **`change-log` hook**: a b6p 1.0 push is logged as `publish` only when its result names
+  `publishedSha` (a refused build or publish is a `draft`); a `b6p-legacy` (0.8) result, which has
+  no `publishedSha`, is a publish when the command asked for one, and the entry records `commitSha`,
   `buildCommitSha` and `publishedSha`.
 - **`block-generated-files` hook**: also blocks hand edits to `.b6p-build.json` and to files under a
   component's `draft/.git/`.

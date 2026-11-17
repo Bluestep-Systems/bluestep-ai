@@ -10,9 +10,11 @@
 # What it logs (in an org listed in project.json):
 #   - a gateway invoke_org_tool call whose inner tool is not a read (PostToolUse only: an MCP error
 #     result goes to PostToolUseFailure and wrote nothing);
-#   - a `b6p ... push` (`b6p script push`, or the deprecated top-level `b6p push`) run through Bash
-#     or PowerShell whose --json result says pushed:true. It is a publish only when the result
-#     names the published commit (publishedSha); a push whose build or publish was refused or failed
+#   - a `b6p ... push` (`b6p script push`, the deprecated top-level `b6p push`, or `b6p-legacy push`,
+#     b6p 0.8.2 for orgs without the git-only release) run through Bash or PowerShell whose --json
+#     result says pushed:true. A b6p 0.8 result (no publishedSha and no error field) is a publish
+#     when the command asked for one (--snapshot or --message). Otherwise it is a publish only when
+#     the result names the published commit (publishedSha); a push whose build or publish was refused or failed
 #     still committed the draft, so it is logged as a draft. Also on PostToolUseFailure: b6p 1.0
 #     exits 1 when the draft was pushed but not built or not published, and Claude Code reports any
 #     non-zero exit there, with the output inside `error` after an `Exit code N` line. A failed
@@ -195,7 +197,10 @@ function run(d) {
     // b6p 0.9+: only a non-null publishedSha means something went live (a refused publish still
     // reports pushed:true, and --message alone implies a snapshot).
     const sha = (v) => (typeof v === "string" && v ? v : null);
-    e = { org: m[1], source: "b6p", tool: "b6p push", op: sha(out.publishedSha) ? "publish" : "draft",
+    // b6p 0.8 (b6p-legacy) prints historyRecorded and none of the git fields.
+    const legacy = !("publishedSha" in out) && !("error" in out);
+    const published = legacy ? /--(snapshot|message)\b/.test(cmd) : !!sha(out.publishedSha);
+    e = { org: m[1], source: "b6p", tool: "b6p push", op: published ? "publish" : "draft",
       type: "script", objId: null, name: m[2], fid: null,
       commitSha: sha(out.commitSha), buildCommitSha: sha(out.buildCommitSha), publishedSha: sha(out.publishedSha) };
   } else if (/__(javascript_tool|browser_batch)$/.test(tool)) {

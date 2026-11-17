@@ -118,7 +118,7 @@ Print these as a clear checklist the **human** executes — this skill does not 
 8. Publish with `/b6p-push` on the report (a plain publish; the platform builds `scripts/` and leaves the Vite output as it is):
 
    ```bash
-   b6p --yes --json script push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>"
+   b6p --yes --json script push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>" --enable-git
    ```
 
    Full mechanics are in the deploy workflow file linked in step 5.

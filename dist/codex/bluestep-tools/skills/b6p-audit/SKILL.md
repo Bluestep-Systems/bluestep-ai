@@ -42,7 +42,9 @@ b6p --json auth status
 
 If `$ARGUMENTS` contains a component path (e.g. `U######/Combined Scheduler`), use it. If empty, ask the user which component to audit.
 
-Confirm the component was pulled as a git clone: `U######/<ComponentName>/draft/.git` must exist. Without it the audit prints `The draft of "<name>" is not a git working copy yet, so there is nothing to compare it against. Pull the script first.`, compares nothing and exits `1`. Then suggest `/b6p-pull` — which may have to ask about moving the script to git first — and do not run it unasked.
+**Pick the CLI for this org** (temporary, while the git-only web release reaches namespaces one at a time): `bash "../b6p-push/assets/pick-cli.sh" (relative to this file) --folder "U######/<ComponentName>"`. `b6p …` → this file as written. `b6p-legacy <host> <version>` → the org does not have the release: run step 2 as `b6p-legacy --yes --json audit --file …` (0.8.2 compares over WebDAV; same JSON shape) and skip the git-clone check below. `ask …` → say what it prints and ask the user.
+
+With `b6p`, confirm the component was pulled as a git clone: `U######/<ComponentName>/draft/.git` must exist. Without it the audit prints `The draft of "<name>" is not a git working copy yet, so there is nothing to compare it against. Pull the script first.`, compares nothing and exits `1`. Then suggest `/b6p-pull` — which may have to ask about moving the script to git first — and do not run it unasked.
 
 ### 2. Run the audit
 
@@ -84,7 +86,7 @@ Never auto-pull or auto-push from inside this skill. The user drives the next st
 
 - Do NOT pass `--pull` to `b6p script audit` (that flag would auto-sync; we want read-only).
 - Do NOT chain into `/b6p-pull` or `/b6p-push` without the user asking.
-- Do NOT invoke `b6p` any way other than the bare `b6p` binary, and never without `--yes`; use `b6p script audit`, not the deprecated top-level `b6p audit`.
+- Do NOT invoke `b6p` any way other than the bare `b6p` binary, or the bare `b6p-legacy` binary when the pick in step 1 says so, and never without `--yes`; with `b6p`, use `b6p script audit`, not the deprecated top-level `b6p audit`.
 
 ## If the CLI fails
 

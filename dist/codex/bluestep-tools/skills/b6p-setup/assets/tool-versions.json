@@ -42,6 +42,14 @@
         "integrity": "sha512-1Gdw6sGpd/CVmSR2Q+Thfc5pkPczCPHJPXyIzeGxC3KcErCZZwMZ9HYvPzUyhTAe5LLJxBlFx4ZYRIq4bxQttg=="
       }
     },
+    "b6p-legacy": {
+      "min": "0.8.2",
+      "pinned": "0.8.2",
+      "assets": {
+        "windows-x64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.8.2/b6p-windows-x64.exe", "sha256": "2169bcc7c7fc75a9d341c7f0d1d9381a6147ea7e7374ced9232caeb1e8adf573" },
+        "macos-arm64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.8.2/b6p-macos-arm64", "sha256": "7b0fb12539d1b0d35ada7708cad8d7ec5c8b65697d77fa19feacc4b269fae19d" }
+      }
+    },
     "claude": {
       "min": "2.1.316",
       "pinned": "2.1.318",

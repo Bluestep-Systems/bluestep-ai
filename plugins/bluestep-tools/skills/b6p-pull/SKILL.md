@@ -1,7 +1,7 @@
 ---
 name: b6p-pull
 description: Pull a B6P component from the BlueStep platform into the local workspace using its DAV URL, and scaffold draft/README.md if missing. Use when the user wants to bring a component down for the first time or re-sync after platform edits.
-allowed-tools: Bash(b6p:*) Bash(git:*)
+allowed-tools: Bash(b6p:*) Bash(b6p-legacy:*) Bash(git:*)
 compatibility: Needs the b6p CLI 1.0.0 or later on PATH and a b6p access token stored with b6p auth set.
 ---
 
@@ -19,9 +19,9 @@ The user copies the DAV URL from the component's page in the BlueStep platform U
 
 A first pull creates the `U######/<ComponentName>/` folder (creating the U-folder if it does not exist), populates `declarations/`, and records the component's sync metadata. A script's draft is a git repository on the platform: the pull **clones** it into `draft/` (which gets its own `draft/.git`), or fetches and fast-forwards an existing clone. Only `declarations/` and the root `.gitignore` still come over WebDAV. The local `snapshot/` folder is no longer refreshed: the published code is the `master` branch inside `draft/.git`.
 
-**A script that has not moved to git yet cannot be pulled without moving it.** If the script still publishes over WebDAV, the pull first asks to switch it to git. The switch is **one-way**: its draft and live version then refuse the old upload route, so anyone on b6p 0.8.x or the VS Code extension can no longer push it. `--yes` answers Cancel, and then the pull writes **nothing** (step 2). b6p has no read-only pull of such a script.
+**A script still on WebDAV is moved to git by the pull** (`--enable-git`, step 2). On an org with the git-only release that is where every script ends up — every remaining write path moves it — so it is not a question for the user.
 
-**Only on a namespace that has the git-only web release** (it reaches namespaces one at a time).
+**Two b6p binaries, picked per org (temporary).** The git-only web release reaches namespaces one at a time. An org that has it (from web release 26.11.17.00 on) takes `b6p` (1.0) and everything above; an org that does not takes `b6p-legacy` (b6p 0.8.2, installed beside it by `/b6p-setup`), which pulls over WebDAV as before: no `draft/.git`. Step 1b picks one. `b6p-legacy` goes away once every namespace has the release.
 
 Three re-pull behaviors to know:
 
@@ -62,25 +62,33 @@ b6p --json auth status
   > I need the **DAV URL** of the component, not its name. Copy it from the component's page in the BlueStep platform UI and paste it here.
 - Do NOT guess the URL. Do NOT try to derive it from another component's recorded metadata.
 
+### 1b. Pick the CLI for this org
+
+```
+bash "${CLAUDE_PLUGIN_ROOT}/skills/b6p-push/assets/pick-cli.sh" --url "<DAV URL>"
+```
+
+It reads the org's release from `https://<host>/appinfo/version` (the host is in the DAV URL; no sign-in) and prints one line:
+
+- `b6p <host> <version>` → use `b6p` (1.0): step 2 as written.
+- `b6p-legacy <host> <version>` → the org does not have the git-only release: run step 2 with `b6p-legacy --yes pull "<DAV URL>"` (0.8.2 has no `script` namespace). The folder gets no `draft/.git`; a re-pull keeps a local edit only when this machine's sync record says it was made here.
+- `ask …` → the release could not be read, or is not a release tag. Say what the line says and ask the user; do not guess.
+
+A folder already in the project that has `draft/.git` was pulled by b6p 1.0 and always takes `b6p`.
+
 ### 2. Run the pull
 
 ```
-b6p --yes script pull "<DAV URL>"
+b6p --yes script pull "<DAV URL>" --enable-git
 ```
 
-The `--yes` is **required** — without it, b6p may ask a question you cannot answer, and the call fails with exit `1` naming that question. Always include it. It prints each question it answered, with the answer, on stderr — those lines are not errors. **Never add `--enable-git` on the first run.**
+The `--yes` is **required** — without it, b6p may ask a question you cannot answer, and the call fails with exit `1` naming that question. Always include it. It prints each question it answered, with the answer, on stderr — those lines are not errors. If the result says the script was switched to git (`switchedToGit: true`), say so in one line: "This script now publishes through git."
+
+**A pull that only reads** (a reference, a template, another team's component, the source of a move): leave out `--enable-git`, so nothing on the platform changes. If b6p then prints `Pull aborted: … not confirmed` (exit `1`), the script is still on WebDAV: pull it with `b6p-legacy --yes pull "<DAV URL>"`, which reads over WebDAV and changes nothing (seen live on an org with the release, 2026-11-17). The gateway's `read_script_draft` also reads a draft without changing anything (the `bluestep-reference` skill's `conventions/mcp-platform-authoring.md`).
 
 Capture the output — it prints the local path where the component landed. A fresh pull also prints `[ERROR] Error reading .gitignore … creating a new one`: harmless, it creates the file.
 
-**`Pull aborted: … switching it to git was not confirmed`** (exit `1`) means the script still publishes over WebDAV and `--yes` declined to move it. **Nothing was written.** Then:
-
-1. If the user only wants to **read** the script (a reference, a template, another team's component, a source org you must not change, a production target), never switch it. Say that b6p cannot pull it without moving it, and offer the read-only route: the gateway's `read_script_draft` reads the draft without changing anything (the `bluestep-reference` skill's `conventions/mcp-platform-authoring.md`).
-2. If the user owns the script and wants to work on it, ask one structured question — **"This script has not moved to the new git-based publishing yet. Move it now?"**:
-   - `Not now (Recommended)` — "Nothing changes. The script cannot be pulled with this b6p until it moves."
-   - `Move it to git and pull` — "Moves the script to git publishing for good, then pulls it. Anyone still on an older b6p (0.8) or the VS Code extension can no longer push it."
-3. Only on *Move it*: re-run `b6p --yes script pull "<DAV URL>" --enable-git`. An earlier yes for another script does not carry over.
-
-**`Could not switch the script to git publishing: HTTP <code>`** — b6p puts this prefix on any failed call about the script's git mode: the read it makes before a pull, and, with `--enable-git`, the switch itself. Without `--enable-git` nothing was switched. The cause is not in the message: the server may not have git publishing yet, or the token may lack a scope (`/b6p-setup`'s `references/platform-token.md`). Tell the user both; do not retry in a loop, and do not add `--enable-git`.
+**`Could not switch the script to git publishing: HTTP <code>`** — b6p puts this prefix on any failed call about the script's git mode: the read it makes before a pull, and, with `--enable-git`, the switch itself. The cause is not in the message: the org may not have git publishing (step 1b should then have picked `b6p-legacy`; run it again), or the token may lack a right (`/b6p-setup`'s `references/platform-token.md`). Tell the user; do not retry in a loop.
 
 **Refusals that change nothing and exit `1`**: staged-only changes in `draft/` that the pull would discard, and a symbolic link that would let the pull write outside the draft folder. The message says how to fix it; show it to the user.
 
@@ -168,9 +176,9 @@ Next: read draft/README.md, then start editing. For a new feature use /spec-crea
 
 ## What this skill must NOT do
 
-- Do NOT invoke `b6p` any way other than the bare `b6p` binary, and use `b6p script pull`, not the deprecated top-level `b6p pull`.
+- Do NOT invoke `b6p` any way other than the bare `b6p` binary, or the bare `b6p-legacy` binary when step 1b picks it or for a pull that only reads (step 2); with `b6p`, use `b6p script pull`, not the deprecated top-level `b6p pull`.
 - Do NOT accept a display name as a substitute for the DAV URL.
-- Do NOT pass `--enable-git` without the user's yes for *this* script (step 2), and never on a pull that is only for reading. The switch is one-way.
+- Do NOT pass `--enable-git` on a pull that only reads (step 2): that pull must change nothing on the platform.
 - Do NOT commit, reset or change branches inside `draft/.git`, and do NOT hand-edit `.b6p-build.json`.
 - Do NOT overwrite a substantive `draft/README.md`.
 - Do NOT speculate beyond what the code shows when filling Overview/Behavior — if uncertain, ask.
@@ -178,7 +186,7 @@ Next: read draft/README.md, then start editing. For a new feature use /spec-crea
 
 ## If the CLI fails
 
-Three distinct failure modes — handle them differently (a declined switch to git is not one of them: step 2):
+Three distinct failure modes — handle them differently:
 
 - **`command not found` / `b6p` cannot be resolved** — the b6p-cli standalone binary is not installed (or not on `PATH`). Do NOT retry, do NOT try alternative invocations. Tell the user:
   > `b6p` could not be resolved. Install the b6p-cli standalone binary and make sure it is on your `PATH` (see its release/install instructions), then retry `/b6p-pull <DAV URL>`.
