@@ -10,12 +10,15 @@
        %USERPROFILE%\.bluestep\bootstrap\.
     2. Loads tool-versions.json (pinned versions, download URLs, SHA-256) from this script's own
        release tag, or from -Ref / -VersionsFile.
-    3. For node, git, gh, b6p and the Claude Code CLI: a copy that works and is at or above the
+    3. For node, git, gh, b6p, b6p-legacy and the Claude Code CLI: a copy that works and is at or above the
        minimum is left alone (never downgraded). A missing, old or broken one is downloaded at the
        pinned version, its SHA-256 is checked against tool-versions.json BEFORE it is unpacked or
        run, and it is installed per user under %LOCALAPPDATA%\BlueStep\tools\ (Git and the Claude
        CLI use their own per-user installers). The user PATH and this session's PATH are updated.
        If another copy still wins in a new shell, the item is reported as "needs you".
+   3b. Git author: b6p 1.0 saves every push as a git commit under a name and email. When
+       "git config --global" has no user.name or user.email, asks for your name and work email
+       once and sets them there. Enter on an empty line skips it; nothing is ever guessed.
     4. GitHub login: when gh is not signed in, runs "gh auth login --web" in this console (you
        sign in in the browser), then "gh auth setup-git", so git can read private repos. When
        your git config has no GitHub credential helper yet, gh is set as that helper first, so
@@ -77,6 +80,10 @@
 .PARAMETER SkipToken
   Skip the GitHub login and platform token steps (steps 4-5). Both are reported as skipped.
 
+.PARAMETER SkipGitAuthor
+  Skip the git author step (step 3b): your name and work email are not asked for. Reported as
+  skipped. The step also skips itself when no one can answer (input is redirected).
+
 .PARAMETER SkipPlugins
   Skip the plugin step (step 6). Also skips installing the Claude Code CLI, which only that step
   needs.
@@ -121,6 +128,7 @@ param(
     [string]$VersionsFile,
     [string]$Ref,
     [switch]$SkipToken,
+    [switch]$SkipGitAuthor,
     [switch]$SkipPlugins,
     [switch]$PhiGuard,
     [switch]$OneTools,
@@ -134,6 +142,7 @@ function Invoke-BlueStepBootstrap {
         [string]$VersionsFile,
         [string]$Ref,
         [switch]$SkipToken,
+        [switch]$SkipGitAuthor,
         [switch]$SkipPlugins,
         [switch]$PhiGuard,
         [switch]$OneTools,
@@ -142,7 +151,7 @@ function Invoke-BlueStepBootstrap {
     )
 
     # Keep in step with bootstrap/version.json (the script cannot read that file under iex).
-    $ScriptVersion = '1.2.0'
+    $ScriptVersion = '1.3.0'
     $RepoSlug = 'Bluestep-Systems/bluestep-ai'
     $VersionsPathInRepo = 'plugins/bluestep-tools/skills/b6p-setup/assets/tool-versions.json'
     $GatewayUrl = 'https://gateway.bluestep.net/mcp'
@@ -1290,6 +1299,103 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         }
     }
 
+    # ---------------------------------------------------------------- git author (step 3b)
+
+    function Test-ConsoleInteractive {
+        # A person can answer Read-Host: input is not redirected (CI, a pipe, a scheduled task).
+        try { return (-not [Console]::IsInputRedirected) } catch { return $false }
+    }
+
+    function Get-GitGlobal([string]$Git, [string]$Key) {
+        # One git config --global value, trimmed; '' when it is not set ("git config" exits 1).
+        $r = Invoke-Captured $Git @('config', '--global', $Key) 30
+        if ($r.ExitCode -ne 0) { return '' }
+        return ([string]$r.Output).Trim()
+    }
+
+    function Test-GitEmail([string]$Text) {
+        return ($Text -match '^[^\s@]+@[^\s@]+\.[^\s@]+$')
+    }
+
+    function Invoke-GitAuthorStep {
+        # b6p 1.0 commits every push and needs an author. It takes git's user.name and
+        # user.email when nothing else is set (b6p-core GitIdentity runs the git executable), so
+        # this sets them for the user, once, from what the user types. Never guessed: an empty
+        # answer skips. Not "b6p config set author": b6p 1.0 cannot read that value back.
+        $item = 'git author'
+        Say '[git author]' 'step'
+        $gitCmd = Get-Command git -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $gitCmd) { Add-Result $item 'skipped' 'git is not installed (see the git item)'; return }
+        $git = $gitCmd.Source
+        $name = Get-GitGlobal $git 'user.name'
+        $email = Get-GitGlobal $git 'user.email'
+        if ($name -and $email) {
+            Add-Result $item 'ok' "pushes will carry $name <$email> (git config --global)"
+            return
+        }
+        $missing = @()
+        if (-not $name) { $missing += 'user.name' }
+        if (-not $email) { $missing += 'user.email' }
+        $missingText = $missing -join ' and '
+        if ($DryRun) { Add-Result $item 'would install' "git config --global has no $missingText; would ask for it"; return }
+        if ($SkipGitAuthor) { Add-Result $item 'skipped' "-SkipGitAuthor; git config --global has no $missingText; /b6p-push will ask for it later"; return }
+        if (-not (Test-ConsoleInteractive)) { Add-Result $item 'skipped' "no one to ask (input is redirected); git config --global has no $missingText; /b6p-push will ask for it later"; return }
+
+        $lines = @(
+            'Every change you push to a BlueStep script is saved under your name and work email,',
+            'so your team can see who made it. They are saved once, for your user only.'
+        )
+        if ($name) { $lines += "Your name is already set: $name" }
+        if ($email) { $lines += "Your work email is already set: $email" }
+        $lines += 'Press Enter on an empty line to skip this; /b6p-push will ask for it later.'
+        Show-TurnBlock 'git-author' 'Your name on script changes' $lines
+
+        try {
+            if (-not $name) {
+                $name = ([string](Read-TurnAnswer 'Your name on script changes' 'Your full name (for example Jane Doe)')).Trim()
+                if (-not $name) {
+                    Write-TurnEcho 'git author: skipped'
+                    Add-Result $item 'skipped' 'no name entered; /b6p-push will ask for it later'
+                    return
+                }
+            }
+            if (-not $email) {
+                for ($try = 1; $try -le 2; $try++) {
+                    $email = ([string](Read-TurnAnswer 'Your name on script changes' 'Your work email')).Trim()
+                    if (-not $email) { break }
+                    if (Test-GitEmail $email) { break }
+                    Say "    That does not look like an email address (try $try of 2)." 'warn'
+                    $email = ''
+                }
+                if (-not $email) {
+                    Write-TurnEcho 'git author: skipped'
+                    Add-Result $item 'skipped' 'no email entered; /b6p-push will ask for it later'
+                    return
+                }
+            }
+        } catch {
+            Add-Result $item 'skipped' "this terminal cannot read input ($($_.Exception.Message)); /b6p-push will ask for it later"
+            return
+        }
+
+        foreach ($pair in @(@('user.name', $name), @('user.email', $email))) {
+            if ((Get-GitGlobal $git $pair[0]) -eq $pair[1]) { continue }
+            $r = Invoke-Captured $git @('config', '--global', $pair[0], $pair[1]) 30
+            if ($r.ExitCode -ne 0) {
+                Add-Result $item 'failed' "git config --global $($pair[0]) exit $($r.ExitCode): $(([string]$r.Error).Trim())"
+                return
+            }
+        }
+        $backName = Get-GitGlobal $git 'user.name'
+        $backEmail = Get-GitGlobal $git 'user.email'
+        if ($backName -ne $name -or $backEmail -ne $email) {
+            Add-Result $item 'failed' "git config --global reads back '$backName' <$backEmail>, not what was entered"
+            return
+        }
+        Write-TurnEcho "git author: $name <$email>"
+        Add-Result $item 'installed' "pushes will carry $name <$email> (git config --global)"
+    }
+
     # ---------------------------------------------------------------- plugins (step 6)
 
     function Get-JsonProp($Obj, [string]$Name) {
@@ -2088,6 +2194,10 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         # Skip-Turn when one is not needed after all, or add one (a refused token).
         $plan = New-Object System.Collections.Generic.List[string]
         if ($DryRun) { return ,$plan }
+        if (-not $SkipGitAuthor -and (Test-ConsoleInteractive)) {
+            $g = Get-Command git -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($g -and (-not (Get-GitGlobal $g.Source 'user.name') -or -not (Get-GitGlobal $g.Source 'user.email'))) { $plan.Add('git-author') }
+        }
         if (-not $SkipToken) {
             $gh = Get-Command gh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($gh -and -not (Get-GhStatus $gh.Source).LoggedIn) { $plan.Add('github') }
@@ -2253,6 +2363,8 @@ public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wP
         # Steps 4-6. First count the questions ahead, so each YOUR TURN block says "n of N".
         try { $turnState.Planned = Get-PlannedTurns } catch { Write-Log "could not plan the questions: $($_.Exception.Message)" 'warn' }
         if ($turnState.Planned.Count) { Write-Log ('questions planned: ' + ($turnState.Planned -join ', ')) }
+        try { Invoke-GitAuthorStep } catch { Add-Result 'git author' 'failed' $_.Exception.Message }
+        Skip-Turn 'git-author'
         if ($SkipToken) {
             Say '[github login, platform token] skipped (-SkipToken)' 'step'
             Add-Result 'github login' 'skipped' '-SkipToken'

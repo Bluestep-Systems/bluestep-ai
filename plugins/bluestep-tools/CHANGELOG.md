@@ -11,6 +11,15 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.51.1] — 2026-11-17
+
+### Changed
+
+- **`/b6p-setup` points at `bootstrap-v1.3.0`.** The Windows bootstrap now asks once for your name
+  and work email when Git has neither, and sets them with `git config --global`: b6p 1.0 saves
+  every push as a git commit under them. An empty answer skips it; a run nobody can answer (CI)
+  skips it too. CI tags `bootstrap-v1.3.0` when this merges.
+
 ## [plugin 0.51.0] — 2026-11-17
 
 > **b6p 1.0 and git-only scripts.** The web release that makes BSJS scripts git-only refuses every

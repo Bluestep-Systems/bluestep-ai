@@ -14,21 +14,24 @@ It does not need admin rights, and it never asks for an admin password.
    release yet; removed once they all do), and the Claude Code CLI when you use Claude. Each one is a version we
    tested, and the script checks every download against a known fingerprint (SHA-256) before it
    uses it. A tool you already have that works and is new enough is left alone.
-3. **Signs you in to GitHub** in your browser, so your computer can download the plugins.
-4. **Saves your BlueStep platform token**, which you paste once. It is checked with BlueStep first,
+3. **Asks for your name and work email**, once, if Git does not have them yet. Every change you
+   push to a BlueStep script is saved under them, so your team can see who made it. Press Enter on
+   an empty line to skip it; `/b6p-push` asks for them later. Nothing is ever guessed.
+4. **Signs you in to GitHub** in your browser, so your computer can download the plugins.
+5. **Saves your BlueStep platform token**, which you paste once. It is checked with BlueStep first,
    and it never shows on screen or in any log.
-5. **Installs the plugins** for each AI app it found: `bluestep-tools` and `core-tools`, and, if you
+6. **Installs the plugins** for each AI app it found: `bluestep-tools` and `core-tools`, and, if you
    say yes, `phi-guard`, `one-tools` and `bluestep-one`. `one-tools` needs `bluestep-one`, so a yes
    to `one-tools` brings it too; without `one-tools`, you are asked about `bluestep-one` on its own
    (it is for building BlueStep One components). `one-tools` and `bluestep-one` are for Claude only.
-6. **Brings the Claude plugins up to date:** a plugin you already have that is older than the
+7. **Brings the Claude plugins up to date:** a plugin you already have that is older than the
    version BlueStep needs now is updated, along with anything the new version needs. A plugin you
    turned off stays off. A plugin that needs another one (`bluestep-one` needs `bluestep-tools`)
    is installed only once that one is new enough.
-7. **Turns on auto-update** for the BlueStep plugin marketplaces in Claude, so your plugins keep up
+8. **Turns on auto-update** for the BlueStep plugin marketplaces in Claude, so your plugins keep up
    after this run. If you turned auto-update off yourself, it stays off; the summary says where to
    turn it on.
-8. **Shows a summary:** one line per item, and what to do next.
+9. **Shows a summary:** one line per item, and what to do next.
 
 On a test computer the first run took under ten minutes. Most of the waiting is downloads and the
 GitHub sign-in.
@@ -54,7 +57,7 @@ Supported now: **Windows (64-bit Intel or AMD).** macOS and Linux are coming.
 2. Copy this line, paste it into the window (right-click pastes), and press Enter:
 
    ```powershell
-   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.2.0/bootstrap/bootstrap.ps1 | iex
+   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.3.0/bootstrap/bootstrap.ps1 | iex
    ```
 
 3. When it is your turn, the window beeps and shows a **YOUR TURN** block that says what to do.
@@ -71,13 +74,13 @@ Supported now: **Windows (64-bit Intel or AMD).** macOS and Linux are coming.
 If you would rather see the script before it runs:
 
 1. Open the release page,
-   [`bootstrap-v1.2.0`](https://github.com/Bluestep-Systems/bluestep-ai/releases/tag/bootstrap-v1.2.0).
+   [`bootstrap-v1.3.0`](https://github.com/Bluestep-Systems/bluestep-ai/releases/tag/bootstrap-v1.3.0).
    Its notes list the script's SHA-256.
 2. In PowerShell, download it and compare the hash (put the hash from the release notes where it
    says `<hash>`):
 
    ```powershell
-   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.2.0/bootstrap/bootstrap.ps1 -OutFile bootstrap.ps1
+   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.3.0/bootstrap/bootstrap.ps1 -OutFile bootstrap.ps1
    if ((Get-FileHash .\bootstrap.ps1 -Algorithm SHA256).Hash -eq '<hash>') { 'hash ok' } else { 'HASH MISMATCH - do not run it' }
    ```
 
@@ -97,13 +100,14 @@ Add an option after the file name when you run the downloaded file, for example
 form, use this shape instead (a plain `| iex` cannot take options):
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.2.0/bootstrap/bootstrap.ps1))) -DryRun
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.3.0/bootstrap/bootstrap.ps1))) -DryRun
 ```
 
 | Option | What it does |
 | --- | --- |
 | `-DryRun` | Only looks and tells you what it would do. Downloads nothing, asks nothing, changes nothing (it writes only its log file). |
 | `-SkipToken` | Skips the GitHub sign-in and the platform token. |
+| `-SkipGitAuthor` | Does not ask for your name and work email. The script also skips that question by itself when no one can answer it (for example in an automated run). |
 | `-SkipPlugins` | Skips the plugins (and the Claude Code CLI, which only that step needs). |
 | `-PhiGuard` | Installs `phi-guard` without asking. It stops the AI agent when it is about to write what looks like real client data into a BlueStep project. |
 | `-OneTools` | Installs `one-tools` without asking, and `bluestep-one` with it (Claude only; your GitHub account needs access to its private repo). |
@@ -161,7 +165,8 @@ There is no automatic undo. To remove what the script added:
    To turn auto-update off again: `/plugin` → Marketplaces → the marketplace → Disable
    auto-update, or put back the `settings.json` backup the summary named.
 2. **The `b6p` login:** `b6p auth clear`.
-3. **The GitHub sign-in** (optional): `gh auth logout`.
+3. **The GitHub sign-in** (optional): `gh auth logout`. Your name and email in Git stay; to
+   remove them: `git config --global --unset user.name` and `git config --global --unset user.email`.
 4. **The platform token** in your user environment:
 
    ```powershell

@@ -1,7 +1,8 @@
 # ADR: A machine bootstrap script the user runs, with pinned and hashed tools
 
 **Status:** Accepted (2026-11-05). The Windows script (`bootstrap/bootstrap.ps1`) is bootstrap
-1.1.0 (2026-11-09: decisions 10 and 11 and the `requires` / `min` part of 3). The macOS and Linux script (`bootstrap/bootstrap.sh`) is planned and not written yet; the
+1.3.0 (1.1.0, 2026-11-09: decisions 10 and 11 and the `requires` / `min` part of 3; 1.2.0,
+2026-11-17: b6p 1.0 and `b6p-legacy`; 1.3.0: decision 12). The macOS and Linux script (`bootstrap/bootstrap.sh`) is planned and not written yet; the
 macOS and Linux parts below are the plan for it.
 
 **Date:** 2026-11-05
@@ -168,6 +169,17 @@ GUI that has no command (Cursor), and quit and reopen the app.
 
 Exit code (when run as a file): 0 when no item failed, also when some say "needs you" or "needs
 IT"; 1 when an item failed or the run stopped early.
+12. **Set the git commit author when it is missing (1.3.0).** b6p 1.0 saves every push as a git
+    commit and stops with "No commit author found" when it has none; after `--author` and
+    `b6p config set author` it reads `git config user.name` / `user.email` by running git
+    (b6p-core `GitIdentity`). The script installs Git but set no identity, so a new user failed
+    their first push. After the tools, when `git config --global` lacks either value and a person
+    can answer (input not redirected, no `-SkipGitAuthor`, not a dry run), the script asks once
+    for the name and work email with the usual YOUR TURN block and sets them with
+    `git config --global`, then reads them back. An empty answer skips it (`/b6p-push` asks
+    later); nothing is ever guessed. Git config rather than `b6p config set author`, because
+    b6p 1.0 has no command that reads its own value back, so no check could confirm it. A run
+    with redirected input (CI) reports the step as skipped and never waits.
 
 ## Consequences
 

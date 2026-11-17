@@ -39,7 +39,7 @@ Everything the user reads is plain: name the file, say what happens to it, say w
 **Windows: the bootstrap first.** Check every item below first, read-only. On Windows x64, when one or more of them is missing or below its minimum (the `b6p` CLI, its login, the platform token), hand over the bootstrap **first**, as one line the user runs in their own PowerShell window (opened normally, not as administrator), never in this session:
 
 ```powershell
-irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.2.0/bootstrap/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.3.0/bootstrap/bootstrap.ps1 | iex
 ```
 
 Say in one line what it does: it installs what is missing for their user only (Git, Node.js, gh, `b6p`, and the Claude Code CLI on a machine with Claude) at tested versions, asks in that window for the GitHub sign-in and the platform token, installs the plugins still missing, updates the Claude plugins that are below the version this setup needs and turns on their auto-update, and ends with a summary; then they quit the app fully, reopen it and run `/b6p-setup` again. Its page is `https://github.com/Bluestep-Systems/bluestep-ai/tree/main/bootstrap` (how to check the script before running it, how to undo it). Give the per-item commands below **second**, for a user who would rather do it by hand. Never run the bootstrap yourself, through any shell, and never ask for, read or relay the token it asks for. On macOS, Linux or WSL there is no bootstrap yet: give the per-item commands only.
