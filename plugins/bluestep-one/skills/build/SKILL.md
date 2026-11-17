@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Build, publish and check a BlueStep One custom component, one gate at a time — fresh types, type check and tests, copies check, required-fields check, push to draft, build over /gql from a signed-in tab, publish only a new sha that built green, served-sha check after a full reload, a measured UX check of the served screen against the project's thresholds, live check on your own test record, and for a UI change the design check against an approved canvas export. Also clones and sets up a new component repo. Needs the Claude desktop app's built-in browser pane for the build, publish and checks. Use when a task changes a component. Usage: /bluestep-one:build <component name or id> [--clone | --no-publish]."
+description: "Build, publish and check a BlueStep One custom component, one gate at a time — fresh types, type check and tests, copies check, required-fields check, push to draft, build over /gql from a signed-in tab, publish only a new sha that built green, served-sha check after a full reload, a measured UX check of the served screen against the project's thresholds, live check on your own test record, and for a UI change the design check against an approved canvas export. With --clone, also looks up, creates or registers the component, then clones and sets up its repo. Needs the Claude desktop app's built-in browser pane for the build, publish and checks. Use when a task changes a component. Usage: /bluestep-one:build <component name or id> [--clone | --no-publish]."
 ---
 
 # /bluestep-one:build — one component, from commit to a checked screen
@@ -13,19 +13,33 @@ browser pane; without the desktop app, the run stops after gate 4.
 ## Before anything
 
 Read `.claude/bluestep-one.json` (missing: "run `/bluestep-one:setup` first", stop). Find the
-component in `components[]` by name or id; take its `id` and `repo`. A component not there has not
-been created or registered yet: stop, and give the user the first steps of `types.md` › *A new
-component repo* (create it in the *Build* panel, then add its id to `components`). A build or
-publish runs only on an id there. Work is done in the component repo, under the repo's own
-`AGENTS.md` where it has one. Never `b6p push`; never edit `types/`.
+component in `components[]` by name or id; take its `id` and `repo`. A build or publish runs only
+on an id there. Work is done in the component repo, under the repo's own `AGENTS.md` where it has
+one. Never `b6p push`; never edit `types/`.
+
+A component not in `components[]` is not registered yet. Without `--clone`, stop: name it, and say
+that `--clone` looks it up and creates or registers it. With `--clone`, follow `types.md` › *A new
+component repo*: look it up, register a match, provision a row with no repo, create only a true
+miss; clone, then register; set the checkout up. Never miss these:
+
+- No create or provision before the user's yes in chat, in the one sentence that file gives.
+- No create without a summary, a description and use cases: propose them from the task or ask.
+- A taken-name refusal goes back to the lookup, never to a second create under a new name.
+- The entry goes into `.claude/bluestep-one.json` only after the clone and `git checkout draft`
+  worked.
+
+No tab signed in to `one.host`, no yes, or another refusal: say why in one line and hand over that
+file's manual steps.
 
 ## The gates
 
 Each is a gate: a failure stops the run there, says which gate and why, and nothing after it runs.
 
 1. **Types.** `node "${CLAUDE_PLUGIN_ROOT}/tools/fetch-types.mjs" --out <shared types folder>`:
-   all seven, banner checked (`types.md`). With `--clone`, first set the repo up from the
-   platform's scaffold as `types.md` › *A new component repo* says, then go on.
+   all seven, banner checked (`types.md`). With `--clone`, the component is found or created,
+   cloned and registered first (*Before anything*), and its checkout set up as `types.md` › *A new
+   component repo* › *Set up the checkout* says: files are replaced only on the untouched platform
+   scaffold, every other file is kept. Then go on.
 2. **Type check and tests.** `node "${CLAUDE_PLUGIN_ROOT}/tools/typecheck.mjs" <repo>` exits 0,
    and `node --test` in the repo passes (`typecheck.md`).
 3. **Copies.** `node "${CLAUDE_PLUGIN_ROOT}/tools/copies.mjs" <repo>` exits 0, or every changed

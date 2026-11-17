@@ -1,6 +1,7 @@
 # Build and publish a custom component
 
-Load before building or publishing, and when a build fails.
+Load before building or publishing, when a build fails, and when setting a component's summary,
+description or use cases.
 
 A push to `draft` serves nobody. A commit is served only once it is **built** and **published**;
 publishing fast-forwards the protected `master` to the built commit, and that is what the tenant
@@ -48,6 +49,22 @@ works on both.
   from the same tab).
 - Publishing stays the user's choice for each push, unless the project's `AGENTS.md` says
   otherwise. A publish reaches every user of the tenant, and every publish breaks tabs left open.
+
+## The row's catalog fields
+
+The catalog and the Build assistant read `summary`, `description` and `useCases` from the
+component's row, not from `component.json`. A publish copies `component.json`'s `slots` to the row
+and sets `publishedSha`. It does not copy the summary, and it leaves `summary`, `description` and
+`useCases` as they were.
+
+To change them, read the row's version first
+(`remoteObjects(ids: ["<id>"]) { ... on CustomComponent { rowVersion summary description useCases } }`),
+then send one
+`updateCustomComponent(inputs: [{ topId: "<id>", expectedVersion: <rowVersion>, summary, description, useCases }])`
+with its own `X-Request-Id` (P-38). It is a write that is not a lone build or publish, so it needs
+the user's yes in chat first, and the tab guard asks again (`/bluestep-tools:bluestep-reference` ›
+`reference/gql-in-a-tab.md` › *Writes*). The answer carries the new values and the next
+`rowVersion`; `publishedSha` and `slots` stay as they were.
 
 ## Known failures
 
