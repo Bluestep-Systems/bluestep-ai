@@ -1,0 +1,12 @@
+{
+  "name": "{{repoName}}",
+  "displayName": "{{displayName}}",
+  "summary": "{{summary}}",
+  "slots": [
+    "dashboard"
+  ],
+  "props": [],
+  "modules": {
+    "component": "./src/Component"
+  }
+}

@@ -3,6 +3,40 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
+## [0.3.0] — 2026-11-17
+
+### Added
+
+- **`/bluestep-one:build <name> --clone` creates or registers a component that is not in
+  `components[]`.** It looks the name up first (`customComponents`, a read) and registers a match,
+  once the user confirms it, instead of making a twin. A lookup by a user who is not super is not
+  taken as proof of a miss. Only a true miss is created, with one `createCustomComponent` from a
+  signed-in tab, after the user's yes in chat. The create carries the catalog fields (summary,
+  description and use cases, all required by the skill), `provisionRepo: true`, the plugin's seed
+  files and an `X-Request-Id`, so a lost answer is resent, not re-applied. A taken repo name goes
+  back to the lookup, never to a second create under another name. The config entry is written only
+  after the clone and `git checkout draft` worked, checked against the schema, never twice for one
+  id. A component already listed is cloned and set up as before. Without `--clone` the skill still
+  stops and names the component. → `build/types.md` › *A new component repo*.
+- **Seed files** in `templates/component/`: a minimal `component.json`, `src/Component.tsx` and a
+  README with an empty *Copied from other repos* table, beside the existing `tsconfig.json` and
+  `.gitignore`. A seeded create commits exactly these five.
+- **`build/publish.md` › *The row's catalog fields*:** a publish copies `component.json`'s `slots`
+  to the row and sets `publishedSha`, but not the summary, description or use cases;
+  `updateCustomComponent` sets them.
+- **Pattern: the built-in entry screen plus something.** Where the *Build* panel forks a form's
+  entry view, that the fork is bound to the form at once (every publish is live there), what its
+  repo holds, `--clone` on it, and how to unbind it.
+
+### Changed
+
+- **Setting up an existing repo** replaces files only on the untouched platform scaffold, judged by
+  the files (the sample `title` prop), not the commit message, which a seeded create and a fork
+  share. Any other repo keeps every file, and a README without a *Copied* table gets an empty one so
+  the copies check runs.
+- The manual fallback names the *Build* panel's real path to a new custom component, which makes
+  the repo at once.
+
 ## [0.2.1] — 2026-11-16
 
 ### Changed
