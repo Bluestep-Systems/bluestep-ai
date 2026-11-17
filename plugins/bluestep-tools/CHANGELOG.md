@@ -11,7 +11,7 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
-## [plugin 0.51.0] — unreleased
+## [plugin 0.51.0] — 2026-11-17
 
 > **b6p 1.0 and git-only scripts.** The web release that makes BSJS scripts git-only refuses every
 > WebDAV write to a script's source (HTTP 403), so b6p 0.8.x can no longer push there. The release
