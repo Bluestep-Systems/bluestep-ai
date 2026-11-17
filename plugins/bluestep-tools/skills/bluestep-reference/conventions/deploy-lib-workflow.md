@@ -1,5 +1,5 @@
 ---
-description: "Deploying an off-platform Vite/Preact SPA merge report. Since the web release that makes scripts git-only, deploy-lib's WebDAV upload into draft/static/ and snapshot/static/ is refused (HTTP 403): build Vite into the pulled report's draft/static/ and publish with b6p push --snapshot --externally-built. Keeps the deploy-lib notes for a server without that release: install from git, the package.json config block (config.deployUrl is camelCase, config.deploypathsuffix/config.builddir are lowercase), npm run deploy -- --build --clean, the auth resolution order (--token-file → BLUESTEP_TOKEN → .env-local → interactive, Authorization: Bearer) and Node 20+. Owns the config-casing issue link (deploy-lib issue #30)."
+description: "Deploying an off-platform Vite/Preact SPA merge report. Since the web release that makes scripts git-only, deploy-lib's WebDAV upload into draft/static/ and snapshot/static/ is refused (HTTP 403): build Vite into the pulled report's draft/static/ and publish with b6p push --snapshot. Keeps the deploy-lib notes for a server without that release: install from git, the package.json config block (config.deployUrl is camelCase, config.deploypathsuffix/config.builddir are lowercase), npm run deploy -- --build --clean, the auth resolution order (--token-file → BLUESTEP_TOKEN → .env-local → interactive, Authorization: Bearer) and Node 20+. Owns the config-casing issue link (deploy-lib issue #30)."
 ---
 
 This is the deploy half of the off-platform Vite/Preact SPA merge-report pattern — see
@@ -23,17 +23,19 @@ Whether deploy-lib gets a git-based release is not known yet. Until it does, dep
 3. **Publish with b6p**, through `/b6p-push` (it asks before it publishes):
 
    ```bash
-   b6p --yes --json push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>" --externally-built
+   b6p --yes --json push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>"
    ```
 
-   `--externally-built` says a bundler outside b6p builds this script: b6p writes no build manifest and
-   the platform skips its stale-build check. The release marks scripts deployed this way as
-   `externallyBuilt` on the platform. The publish is one commit, so the report's history is its git
-   history, next to the Vite project's own repository.
+   b6p builds `scripts/app.ts` and writes the build manifest; the Vite output in `static/` holds no
+   TypeScript, so the platform's stale-build check has nothing in it to flag. Do not add
+   `--externally-built`: it only stops b6p from writing the manifest, and the platform skips its
+   check only for a script whose own `externallyBuilt` setting is on (set by the release's one-time
+   cutover for existing bundler-built scripts, otherwise over `/gql`). On a new report that setting is
+   off, so the flag gets the publish refused. The publish is one commit, so the report's history is
+   its git history, next to the Vite project's own repository.
 
-This route follows the b6p 0.9 and web release notes; it has not yet been run end to end on a live
-report. If the publish is refused with `BUILD_MANIFEST_MISSING`, check that `--externally-built` was
-passed.
+This route follows the b6p 0.9 code and the web release notes; it has not yet been run end to end on
+a live report.
 
 ## deploy-lib (servers without the git-only release)
 
@@ -118,7 +120,7 @@ works as the bearer token. **Never commit a token or echo its value.**
 
 ## Node 20+ required
 
-Vite, b6p and deploy-lib all need Node 20+. deploy-lib is ESM and uses Web Crypto, which is not a global until Node 20. On Node 18 the deploy fails with
+Vite 7 and deploy-lib need Node 20+ (b6p itself needs 18+). deploy-lib is ESM and uses Web Crypto, which is not a global until Node 20. On Node 18 the deploy fails with
 `crypto is not defined`. Run all `npm`/build/deploy steps under Node 20+ (e.g. via `nvm`). See
 [vite merge report gotchas](../gotchas/vite-merge-report-gotchas.md) for this and the other sharp edges.
 

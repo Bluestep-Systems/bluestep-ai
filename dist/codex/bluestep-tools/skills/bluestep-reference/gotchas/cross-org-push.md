@@ -1,5 +1,5 @@
 ---
-description: "b6p 0.8.x sent a push to the org named by the local U###### folder, not to the org in a target URL: a push or deploy aimed at another org wrote into the folder's own org (or into a different component there), and its cleanup deleted files in the URL's org. Since b6p 0.9 a push goes to the draft's git remote, so never copy a draft/.git between orgs. One org per folder, push with --file"
+description: "b6p 0.8.x sent a push to the org named by the local U###### folder, not to the org in a target URL: a push or deploy aimed at another org wrote into the folder's own org (or into a different component there), and its cleanup deleted files in the URL's org. b6p 0.9 still takes the destination from the folder's sync record, not from draft/.git. One org per folder, push with --file"
 ---
 
 # A push never crosses orgs
@@ -16,9 +16,11 @@ when targets failed.
 ## Cause
 
 The causes below were found with b6p 0.8.x, which pushed over WebDAV. b6p 0.9 pushes over git to
-the remote of `draft/.git`, set by the pull that cloned it; whether a URL from another org is still
-mapped the same way has not been checked, so the rule stands. What is new with git: a `draft/.git`
-copied from another org's folder points the push at **that** org.
+a repository address it builds from the folder's sync record (`<org host>/git/<script id>`), not to
+the `origin` of `draft/.git`; whether a URL from another org is still mapped the way 0.8.x did has
+not been checked, so the rule stands. A `draft/.git` copied from another folder does not move the
+push to another org: b6p sees a different repository and pushes through a scratch clone, asking
+about every file that differs.
 
 - **The host comes from the folder.** b6p resolves the org from the `U######` folder name and
   maps it to that org's host. From a URL it takes only the WebDAV id. The upload goes to
@@ -40,9 +42,8 @@ copied from another org's folder points the push at **that** org.
 - **Never** push a URL from another org, use `--root` with another org's URL, or use
   `b6p deploy` to roll a change out across orgs.
 - **Before a push to a specific org,** check that the folder's `U######` is that org's
-  U-number, not its host: one org can answer on several hosts. With b6p 0.9 also check that
-  `git -C "U######/<Component>/draft" remote get-url origin` names that org's host.
-- **Never copy, move or replace a `draft/.git/` folder** between components or orgs: it decides
-  where the push goes.
+  U-number, not its host: one org can answer on several hosts.
+- **Never copy, move or replace a `draft/.git/` folder** between components or orgs: the push then
+  loses its record of the last sync and asks about every file that differs.
 - **Ids are not a match key across orgs.** Match objects by FID or exact name in each org; see
   [field-ids-not-portable-across-propagation.md](field-ids-not-portable-across-propagation.md).

@@ -4,8 +4,7 @@ description: BlueStep merge report with a static/ bundle — B.out (server conte
 
 > This file describes the **CLI-compiled** `static/script.ts` path (`B.out` +
 > `static/index.html` + the autoloaded `.build/script.js`). For an **off-platform**
-> Vite/Preact SPA bundle deployed to `static/` via deploy-lib (the CLI's static build
-> bypassed), see [vite spa merge report](vite-spa-merge-report.md).
+> Vite/Preact SPA bundle deployed to `static/` (the CLI's static build bypassed), see [vite spa merge report](vite-spa-merge-report.md).
 
 In a BlueStep merge report that ships a `static/` bundle (`static/index.html` +
 `static/.build/script.js` + `static/styles.css`), **both entry points render into

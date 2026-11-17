@@ -24,8 +24,9 @@ decides what you see:
 
 Exempt from the manifest check, and never compiled on save or publish (as reported): a script with
 no `tsconfig.json`, a draft with no TypeScript source (a `.d.ts` does not count), and a script set
-`externallyBuilt` (its output is built somewhere else, such as a Vite bundle). b6p's
-`--externally-built` flag writes no manifest for such a script.
+`externallyBuilt` (its output is built somewhere else, such as a Vite bundle). That setting is the
+script's own, on the platform. b6p's `--externally-built` flag only stops b6p writing a manifest; it
+does not set the platform setting, so on a script without it the publish is refused.
 
 Type errors without `noEmitOnError` are warnings for both the server and b6p 0.9: the build still
 gets a manifest and publishes. An error in a `.d.ts` file never counts.
@@ -100,9 +101,9 @@ given (as reported, web #1994 and #1992):
 | Reason | Meaning | What to do |
 |---|---|---|
 | `BUILD_STALE` | a source changed after the build in the manifest; `extensions.publish.withheld` lists the stale files | rebuild and push again (a b6p publish rebuilds) |
-| `BUILD_MANIFEST_MISSING` | the draft has TypeScript sources but no `.b6p-build.json`, or the build was not clean enough to get one | fix the build errors and publish again; for a bundler-built script, `--externally-built` |
+| `BUILD_MANIFEST_MISSING` | the draft has TypeScript sources but no `.b6p-build.json`, or the build was not clean enough to get one | fix the build errors and publish again without `--externally-built` |
 | `BUILD_MANIFEST_INVALID` | the manifest cannot be read | rebuild and push again; never edit it by hand |
-| `DRAFT_MOVED` | someone pushed to `draft` between the commit and the publish (`expectedDraftSha`) | pull, then publish again |
+| `DRAFT_MOVED` | someone pushed to `draft` between the commit and the publish (`expectedDraftSha`) | run the same b6p publish again: it stops at its overwrite question if the other commit touched your files |
 
 **A WebDAV script** (only on a server without the git-only release) compiles first, against the
 published copies of the scripts it imports, and publishes only when that compile is clean. The

@@ -29,7 +29,7 @@ workaround (Option E). This ADR is now historical — kept for the rationale tra
 > `--yes` overwrites platform edits and deletes platform-only files without asking, so the
 > stop-and-ask flow `/b6p-push` teaches would be false there. 0.8.1 takes back 0.8.0's refusal of
 > `b6pt_` tokens in `b6p auth set`: that is the platform access token the CLI signs in with, so on
-> 0.8.0 a machine with no stored token cannot sign in. Where it is checked: `/b6p-push` step 0 runs
+> 0.8.0 a machine with no stored token cannot sign in. Where it was checked: `/b6p-push` step 0 ran
 > `b6p --version` and stopped before any push under 0.8.1; `/b6p-setup` step 1 checks the same and
 > hands over the update; README prompt 1 step 3 checks it on a new machine. `/b6p-pull` and
 > `/b6p-audit` do not gate; on 0.7.0 and older they work, but `--yes` does not print its answers.

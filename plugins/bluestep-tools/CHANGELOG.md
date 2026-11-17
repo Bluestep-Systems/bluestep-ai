@@ -31,26 +31,31 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   root `git status`; the result table follows the 0.9 `--json` (`commitSha`, `publishedSha`,
   `publishError`, `publishRefusal`, `switchedToGit`, `typeCheckErrors`; no `historyRecorded`), so a
   publish counts only when `publishedSha` is set. New rows for a missing author, a script still on
-  WebDAV, the wrong branch checked out, staged-only changes, a refused publish (`BUILD_STALE`,
-  `BUILD_MANIFEST_MISSING`, `BUILD_MANIFEST_INVALID`) and `DRAFT_MOVED`. Type errors are warnings.
-  `--externally-built` only for bundler-built scripts. The VS Code extension is no longer a fallback
-  (it is not updated for git-only scripts); the platform's BSJS editor is a supported path.
+  WebDAV, the wrong branch checked out, a refused publish (`BUILD_STALE`,
+  `BUILD_MANIFEST_MISSING`, `BUILD_MANIFEST_INVALID`) and `DRAFT_MOVED`. Type errors are warnings. A file deleted locally is
+  now deleted on the platform with no question, so the skill names it before the push; kept
+  platform-only files are copied into the local draft, and deleting them takes one more push.
+  `--externally-built` is never added by default (it only skips the local manifest; the platform
+  setting decides). The VS Code extension is no longer a fallback (it is not updated for git-only
+  scripts); the platform's BSJS editor is a supported path.
 - **`/b6p-pull`**: a pull clones the draft. A script still on WebDAV is never switched without the
   user's yes, and never on a pull that is only for reading. A declined switch exits `0` with
-  nothing written, so the skill reads stderr, and it names the read-only routes (the gateway's
-  `read_script_draft`, or a separate b6p 0.8.2 binary kept for reads).
+  nothing written, so the skill reads stderr, and it names the read-only route (the gateway's
+  `read_script_draft`).
 - **`/b6p-audit`**: needs a pulled git working copy and compares with the platform's `draft` branch.
 - **`/b6p-propagate`**: pulls never pass `--enable-git` on their own; a target's switch to git is its
-  own yes. The backup and the mirror leave out `draft/.git/` and `.b6p-build.json`, and the org guard
-  also checks the draft's git remote host. Restore points are commits (`publishedSha`).
+  own yes. The backup and the mirror leave out `draft/.git/` and `.b6p-build.json`. A folder pulled
+  before git is copied aside before its pull, since `b6p audit` cannot compare it. Restore points are
+  commits (`publishedSha`).
 - **`/bluestep-vite-report` and the deploy-lib reference**: deploy-lib's WebDAV upload is refused,
   so a Vite SPA report is built into the pulled report's `draft/static/` and published with
-  `b6p push --snapshot --externally-built`.
+  `b6p push --snapshot`.
 - **Reference**: `server-side-compile.md` (git commits, build manifest, publish refusals,
   `compileDraft` on git scripts), `mcp-platform-authoring.md` (`write_script_draft` moves a script
   to git, one-way, and commits), `b6p-platform.md`, `bsjs-development.md`, `cross-org-push.md`,
   `gql-in-a-tab.md`, `file-execution.md`, `third-party-lib-type-noise.md`, the `/b6p-push`
-  references, `platform-token.md` (the "b6p CLI" scope preset).
+  references, `platform-token.md` (the "b6p CLI" scope preset), `build-sourcemap-embeds-source.md`
+  (pushed commits stay in the platform's history).
 - **`change-log` hook**: a b6p push is logged as `publish` only when its result names
   `publishedSha` (a refused publish is a `draft`), and the entry records `commitSha` and
   `publishedSha`.

@@ -31,7 +31,7 @@ node -v
 
 Node **20 or newer is required**. If it prints a version below 20 (or `node` is not found), **STOP** — do **not** attempt to install Node, and do **not** run any `create-vite`/`npm`/deploy step. Tell the user:
 
-> This skill needs **Node 20+** (yours is `<version>`). `create-vite` / Vite 7 / the b6p-cli all require it (Web Crypto isn't a global until Node 20). Install Node 20 (e.g. via `nvm`: `nvm install 20 && nvm use 20`), then re-run `/bluestep-vite-report`.
+> This skill needs **Node 20+** (yours is `<version>`). `create-vite` and Vite 7 require it. Install Node 20 (e.g. via `nvm`: `nvm install 20 && nvm use 20`), then re-run `/bluestep-vite-report`.
 
 Only continue past this step once `node -v` reports 20+.
 
@@ -114,10 +114,10 @@ Print these as a clear checklist the **human** executes — this skill does not 
 5. Create the **GitHub repo (public)**, and set the `repository` `url` in `package.json` to it.
 6. Pull the report with `/b6p-pull <its DAV URL>` (copy the URL from the report's page in the platform UI), so `U######/<Report>/draft/` is a git clone of it.
 7. In `vite.config.ts`, set `build.outDir` to the report's `draft/static/` (a path relative to this project, e.g. `../U######/<Report>/draft/static`) and `build.emptyOutDir: true`, then `npm run build`.
-8. Publish with `/b6p-push` on the report, adding `--externally-built` (a bundler outside b6p builds it):
+8. Publish with `/b6p-push` on the report (a plain publish; no `--externally-built`, which would get it refused on a new report):
 
    ```bash
-   b6p --yes --json push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>" --externally-built
+   b6p --yes --json push --file "U######/<Report>/draft/scripts/app.ts" --snapshot --message "<description>"
    ```
 
    Full mechanics are in the deploy workflow file linked in step 5.
@@ -137,6 +137,6 @@ Note the relationship to `/b6p-setup`: that skill sets up the machine and bootst
 Summarize:
 
 - **What was scaffolded** (local, done by this skill): the `preact-ts` Vite project in `<target dir>`, `base: './'` set in `vite.config.ts`, and the `repository` placeholder in `package.json` — plus any files skipped because they already existed.
-- **What the human must still do** (printed in step 4, not run here): create the `[PLATFORM]` MergeReport (`language: mjs`, `main: ../scripts/app`, `sandbox: SMALL`, `propagationBehavior: REQUIRED`, no-op `app.ts`, individual/view flags, **snapshot before first deploy**); create the GitHub repo and fill in the real `repository` URL; pull the report, point `build.outDir` at its `draft/static/`, build, and publish with `/b6p-push` and `--externally-built`.
+- **What the human must still do** (printed in step 4, not run here): create the `[PLATFORM]` MergeReport (`language: mjs`, `main: ../scripts/app`, `sandbox: SMALL`, `propagationBehavior: REQUIRED`, no-op `app.ts`, individual/view flags, **snapshot before first deploy**); create the GitHub repo and fill in the real `repository` URL; pull the report, point `build.outDir` at its `draft/static/`, build, and publish with `/b6p-push`.
 
 If a new subfolder was created, tell the user the project is in `./<name>` and to open a session rooted there to work in it. Point them at the three reference files (step 5) for anything they hit along the way.

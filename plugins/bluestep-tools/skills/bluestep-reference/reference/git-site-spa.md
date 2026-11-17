@@ -1,5 +1,5 @@
 ---
-description: "Git sites serve a GitHub repo directly under /spa/ on the site's own domain — a separate SPA hosting model from the MergeReport static/ + deploy-lib path; two purposes with different Vite bases (mounted bundle vs standalone routed SPA), config fields, save-is-the-redeploy, same-origin data (the /gql GraphQL surface; /b/ endpoints for the four exceptions), reserved prefixes"
+description: "Git sites serve a GitHub repo directly under /spa/ on the site's own domain — a separate SPA hosting model from the MergeReport static/ bundle path; two purposes with different Vite bases (mounted bundle vs standalone routed SPA), config fields, save-is-the-redeploy, same-origin data (the /gql GraphQL surface; /b/ endpoints for the four exceptions), reserved prefixes"
 ---
 
 # Git-site SPA hosting (repo → `/spa/`)
@@ -7,7 +7,7 @@ description: "Git sites serve a GitHub repo directly under /spa/ on the site's o
 > **Two SPA hosting models — don't conflate them.** This file covers a **Git site**: a site record
 > that serves a GitHub repo directly under `/spa/` on the site's own domain — no MergeReport, no
 > deploy-lib, no CLI static build. For the other model (a Vite bundle deployed into a MergeReport's
-> `static/` via deploy-lib), see [vite spa merge report](vite-spa-merge-report.md) and
+> `static/`), see [vite spa merge report](vite-spa-merge-report.md) and
 > [deploy-lib workflow](../conventions/deploy-lib-workflow.md).
 
 ## What it is

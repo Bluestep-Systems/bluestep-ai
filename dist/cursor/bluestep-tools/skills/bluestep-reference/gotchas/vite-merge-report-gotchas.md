@@ -47,8 +47,8 @@ export default defineConfig({
 ## Node 20+ (`crypto is not defined` on 18)
 
 - **Symptom:** the deploy (or a `b6p` call in the same project) throws `crypto is not defined`.
-- **Cause:** deploy-lib / b6p-cli use Web Crypto, which is not a global until Node 20 (it is absent on
-  Node 18). `create-vite` and Vite 7 also expect Node 20+.
+- **Cause:** deploy-lib uses Web Crypto, which is not a global until Node 20 (it is absent on
+  Node 18). `create-vite` and Vite 7 also expect Node 20+. (b6p itself runs on Node 18+.)
 - **Fix:** run every build/deploy step under Node 20+ (e.g. via `nvm`). Confirm with `node -v` before
   deploying.
 

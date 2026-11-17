@@ -39,7 +39,7 @@ Copy this checklist and tick it off as you go:
   > `b6p` has no BlueStep platform access token on this machine yet. Run `b6p auth set` once in your own terminal, then retry `/b6p-push <component>`.
 - `OK` → continue. The file can exist without a token in it; then the push stops at `Enter your access token` (exit `1`) — relay it with the same `b6p auth set` instruction; do not retry.
 
-**Commit author.** Every push is a git commit, and b6p never commits as nobody: with no author it exits `1` before touching the platform. It takes the first of `--author "Name <email>"`, the stored default (`b6p config set author "Name <email>"`), `git config user.name` and `user.email` for the component folder, then `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`. Check: `git -C "U######/<ComponentName>" config user.name` and `git -C "U######/<ComponentName>" config user.email` (they fall back to the global values).
+**Commit author.** Every push is a git commit, and b6p never commits as nobody: with no author it exits `1` before touching the platform. It takes the first of `--author "Name <email>"`, the stored default (`b6p config set author "Name <email>"`), `git config user.name` and `user.email` for the component folder, then `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL`. Check: `git -C "U######/<ComponentName>/draft" config user.name` and `git -C "U######/<ComponentName>/draft" config user.email` (they fall back to the global values).
 
 - Both print something → continue; the push carries that name and e-mail.
 - Either is empty → the author may still be stored with `b6p config set author` (b6p has no command that prints it). Run the push; if it stops with `No commit author found`, step 5 says what to hand over. Never invent a name or e-mail, and never pass `--author` with a value the user did not give.
@@ -52,11 +52,12 @@ If `$ARGUMENTS` contains a component path (relative to the project root), use it
 
 ### 2. Pre-flight checks
 
-- Run `git -C "U######/<ComponentName>/draft" status` to surface what changed and flag anything unexpected. `draft/` is its own git repository, so a `git status` from the project root may not show what the push will commit. Its first line must say `On branch draft`: on any other branch the push refuses (step 5). Changes that are only staged (in the index but not in the working tree) can also make b6p refuse (step 5).
+- Run `git -C "U######/<ComponentName>/draft" status` to surface what changed and flag anything unexpected. `draft/` is its own git repository, so a `git status` from the project root may not show what the push will commit. Its first line must say `On branch draft`: on any other branch the push refuses (step 5).
 - Never edit, commit, reset or switch branches inside `draft/.git` yourself, and never hand-edit `.b6p-build.json` (the build manifest b6p writes into the build folder): the push makes the commit, and the platform checks that manifest before it publishes.
 - Summarise the diff scope in one line: "X files changed in `U######/<Component>/draft/`".
 - Do not look for the sync metadata yourself: the CLI keeps it outside the component folder. Always run the step-4 `--file` command first — it finds the destination on its own — and use the `--root` fallback only when it answers `Missing metadata`.
-- Know what the CLI checks, by content, never by date. Before pushing anything it asks **one question** listing every file whose platform copy changed since the last sync from here, or was never synced from this machine; new files and files equal to the platform copy never ask. A confirmed overwrite is a merge commit, so the platform's version stays in the history. It asks **one more** before deleting platform-only files under `draft/`. `--yes` (step 4) answers **Cancel** and **No**, so the push stops or keeps the files, and step 5 says what to do. When the platform may have moved since the pull (a days-old pull, a component others edit), suggest `/b6p-audit` first.
+- Know what the CLI checks, by content, never by date. Before pushing anything it asks **one question** listing every file whose platform copy changed since the last sync from here, or was never synced from this machine, or that the platform deleted while it still exists here; new files and files equal to the platform copy never ask. A confirmed overwrite is a merge commit, so the platform's version stays in the history. It asks **one more** when a file the platform added or changed since your last sync is missing locally. `--yes` (step 4) answers **Cancel** and **No**, so the push stops or keeps the files, and step 5 says what to do.
+- **A file deleted locally is deleted on the platform, with no question,** when the platform did not change it since your last sync: the push commits the working tree as it is. If `git -C … status` lists a `deleted:` file, name it to the user in the diff scope and get their yes for it as part of step 3 — or restore it with `git -C "U######/<ComponentName>/draft" checkout -- <file>` if the delete was not meant. When the platform may have moved since the pull (a days-old pull, a component others edit), suggest `/b6p-audit` first.
 
 ### 3. Choose how the change goes out (this also confirms the push)
 
@@ -94,7 +95,7 @@ Any existing file inside the component works for `--file`; `app.ts` is the usual
 `--yes` is **required**: without it b6p may ask a question you cannot answer and exit `1`. It takes the **safe answer of every question** — **Cancel** to overwriting, **No** to deleting, **Cancel** to switching a script to git — and prints each one on stderr (`[Cancel] / Overwrite all: Cancel  (answered by --yes: …)`); those lines are not errors. An overwrite, a delete or a switch to git happens only on the user's yes (step 5). `--json` puts the result on stdout as one object — step 5's success test.
 
 - **Never add `--enable-git` on the first run.** A script that still publishes over WebDAV must be switched to git before it can take a push, and the switch is **one-way**. Under `--yes` the push declines it and exits `1`; step 5 says how to ask.
-- **`--externally-built`** only when a bundler outside b6p builds the script (its `externallyBuilt` setting is on, or the user says so — the `bluestep-reference` skill's `conventions/deploy-lib-workflow.md`): b6p then writes no build manifest and the platform skips its stale-build check. Never add it to get past a `publishRefusal` on a script b6p builds.
+- **Do not add `--externally-built` by default.** All it does is stop b6p from writing the build manifest. The platform skips its manifest check only for a script whose own `externallyBuilt` setting is on (a platform setting, set over `/gql` — the `b6p-propagate` skill's `references/config-matrix.md`). On a script without that setting, a publish with the flag carries no fresh manifest and is refused (`BUILD_MANIFEST_MISSING`, or `BUILD_STALE` against an older one). A plain publish works either way.
 - Do not add `--fail-on-type-errors` unless the user asks for it; step 5 reads the type errors either way.
 - **`Missing metadata`** from `--file` means the component was never pulled with the CLI: read `${CLAUDE_PLUGIN_ROOT}/skills/b6p-push/references/root-fallback.md` for the `--root` push. The step-3 choice still applies.
 - **`Stale client bundle`** on a draft-only push: `draft/static/script.ts` is newer than its `.build/script.js`, and a plain push commits the old client JS. Tell the user; a publish ships fresh client JS (the `bluestep-reference` skill's `conventions/single-script.md`).
@@ -109,7 +110,7 @@ Any existing file inside the component works for `--file`; `app.ts` is the usual
 | `1` | stderr: `To switch it, run the same command with --enable-git` | The script still publishes over WebDAV; `--yes` declined the switch. Nothing changed | **Switch to git?**, below |
 | `1` | stderr: `No commit author found` | No author; nothing was pushed or touched | Hand over `b6p config set author "Your Name <you@example.com>"` for the user to run with their own name and e-mail, then re-run step 4 |
 | `1` | stderr: `git -C <script>/draft checkout draft` | `draft/` has another branch checked out | Tell the user. Do not switch branches yourself: commits on the other branch are not lost, and they may want them merged into `draft` first |
-| `1` | stderr names staged-only changes or a symbolic link outside the draft folder | Refused, nothing changed; the message says how to fix it | Show the message; let the user decide |
+| `1` | stderr names a symbolic link outside the draft folder | Refused, nothing changed; the message says how to fix it | Show the message; let the user decide |
 | `1` | `pushed: false`, `declinedOverwrites: []`, none of the above | Nothing pushed: the compiled entrypoint is missing or has no code (`Snapshot not published: …`), a syntax or emit error, a wrong `--root`, or an empty `draft/` | Fix the cause, re-run |
 | `1` | `pushed: true`, `publishRefusal.reason` is `BUILD_STALE`, `BUILD_MANIFEST_MISSING` or `BUILD_MANIFEST_INVALID` | The draft was pushed, but the platform refused to publish it: the build is missing, unreadable or older than its sources (`withheld` lists the files or the manifest). The live version did not change | **Publish refused**, below |
 | `1` | `DRAFT_MOVED` in `publishRefusal` or `publishError` | Someone pushed to the draft between this commit and its publish. The live version did not change | Run step 4 again, unchanged; it may stop at the overwrite question, which is then the right flow |
@@ -131,16 +132,18 @@ On a draft-only push `publishedSha` and `liveVerified` are `null` and nothing co
 ```
 ERROR: Push stopped before pushing anything: 2 file(s) were not overwritten, because each would overwrite a platform version nobody here has seen:
 
-README.md
-scripts/app.ts
+README.md (changed on the platform since this folder was last synced)
+scripts/old-helper.ts (deleted on the platform since this folder was last synced; pushing would bring it back)
 
 Pull or audit them to see the platform versions before overwriting them.
 After checking them, overwrite them with your local files with:
-  b6p --yes --json push --file U######/<ComponentName>/draft/scripts/app.ts --overwrite README.md --overwrite scripts/app.ts
+  b6p --yes --json push --file U######/<ComponentName>/draft/scripts/app.ts --overwrite README.md --overwrite scripts/old-helper.ts
 ```
 
 1. This is the push doing its job, not a failure: do not retry, do not switch tools.
-2. Show the user the files: the platform copy of each is not the one this machine last saw — usually someone edited it there, or this machine has no record to compare with (a fresh clone, a new machine). If a listed file has no local change (step 2's `git -C … status`), say so: overwriting it puts the old local copy back over the platform edit.
+2. Show the user the files with the reason the CLI gives for each:
+   - *changed on the platform* — the platform copy is not the one this machine last saw: usually someone edited it there. If the file has no local change (step 2's `git -C … status`), say so: overwriting it puts the old local copy back over the platform edit.
+   - *deleted on the platform … pushing would bring it back* — someone removed it there. Say plainly that overwriting **restores a file someone deleted**.
 3. Suggest `/b6p-audit` to see the differences, or `/b6p-pull` to take the platform copy. Do not run either unasked.
 4. Ask one structured question, as in step 3 — **"These files changed on the platform since your last pull. What should happen?"**:
    - `Check them first (Recommended)` — "Nothing is pushed. Look at the differences first, then push again."
@@ -156,12 +159,12 @@ Only on *Move it*: re-run the step-4 command with `--enable-git` added, nothing 
 
 **Publish refused** (exit `1`, `publishRefusal` set). The draft is pushed and the live version is unchanged. stderr says why and to rebuild and push.
 
-1. A publish builds and writes a fresh manifest only when the build is fully clean. If the same output listed syntax, emit or `tsconfig.json` errors, the build was not clean, so the manifest was left as it was: fix those first (`typeCheckErrors` and stderr), then publish again.
+1. A publish writes a fresh manifest only when the build is fully clean. If stderr says `No build manifest was written, because the build was not fully clean:`, fix the reasons it lists first, then publish again.
 2. Otherwise run the step-4 publish once more, unchanged. If it is refused again with the same reason, stop and show the user `publishRefusal.withheld`; do not loop.
-3. `BUILD_MANIFEST_MISSING` on a script a bundler outside b6p builds (stderr says to push with `--externally-built`): ask the user whether this script is bundler-built. Only on yes, re-run with `--externally-built`.
+3. A refusal after a push with `--externally-built`: the flag stopped b6p from writing the manifest, and the script's platform `externallyBuilt` setting is off. Publish again without the flag. The CLI's own hint to add `--externally-built` does not get past this refusal: only the platform setting does, and turning it on is the user's decision (step 4).
 4. Never edit `.b6p-build.json` by hand to get past a refusal.
 
-**Kept files** (exit `0`, `keptPlatformOnly` lists files). The push succeeded. stderr lists the kept files (`Their platform copies are included in this push`) and the command that deletes them:
+**Kept files** (exit `0`, `keptPlatformOnly` lists files). The push succeeded. b6p wrote the platform copy of each kept file into your local `draft/` and into this push's commit (`Their platform copies are included in this push`). stderr also prints a command to delete them — **do not run it**: the files are now in the local draft too, so that run finds nothing to delete.
 
 ```
 WARNING: Kept 1 platform-only file(s): they are on the platform but not in your local draft folder, and deleting them was not confirmed.
@@ -170,11 +173,11 @@ To delete it from the platform, run the push again without --yes and answer Yes 
   printf 'Yes\n' | b6p --json push --file U######/<ComponentName>/draft/scripts/app.ts
 ```
 
-1. Report the push as done, and list the kept files: on the platform but not in the local `draft/` before the push — added there, or deleted here. Their platform copies go into this push's commit, so they may now be in the local `draft/` too: say so if `git -C … status` shows them.
-2. Ask one structured question — **"These files are on the platform but were not in your copy. What should happen?"**:
-   - `Keep them (Recommended)` — "Leaves them on the platform. Nothing changes."
-   - `Delete them from the platform` — "Removes them from the platform. They stay in the history." On a publish, add: "This publishes once more, so the history gets a second entry with the same description."
-3. Only on *Delete*: run the printed command exactly as printed (under PowerShell it prints `'Yes' | b6p …`). If that run stops at an overwrite question (the platform moved in between), the piped `Yes` matches none of its answers, so nothing is pushed: go back to **Stop and ask** — but that run had no `--yes`, so the command it prints lacks it too. Do not run that one; run the step-4 push again, unchanged — no `--overwrite` added — and follow what it prints.
+1. Report the push as done, and list the kept files: files the platform added or changed since your last sync that were missing from the local `draft/`. They are now back in the local `draft/`.
+2. Ask one structured question — **"These files were added or changed on the platform and were missing from your copy. They are now in your copy too. What should happen?"**:
+   - `Keep them (Recommended)` — "They stay, on the platform and in your copy. Nothing else changes."
+   - `Delete them from the platform` — "Removes them from your copy and from the platform with one more push. They stay in the history." On a publish, add: "This publishes once more, so the history gets a second entry."
+3. Only on *Delete*: delete those files from the local `draft/` and run the step-4 push again with the same choice and description. With the platform unchanged since this push, b6p commits the deletions without a question. Read its result from the top of this step.
 
 **Report.**
 
@@ -199,7 +202,7 @@ To delete it from the platform, run the push again without --yes and answer Yes 
 - **`command not found`** — the b6p-cli binary is not installed or not on `PATH`. Do NOT retry; tell the user to install it (`/b6p-setup` hands over the command), then retry `/b6p-push <component>`.
 - **Exit `1` from the push itself** (a stop at the overwrite question, a declined switch, no author, a refused publish, a live copy at another commit) — **not** a CLI failure and **not** a reason to change tools: handle it by the step-5 table.
 - **Exit `1` naming a question it could not ask here** (`No input available for prompt: "…"`) — **not** a tool failure. Relay it. `Enter your access token` (possible even when the step-0 check printed `OK`) → tell the user to run `b6p auth set`, then retry. `Could not determine script URL` → the `--file` path is not inside a `U######/<ComponentName>/draft/` folder: fix the path, or use the `--root` push from step 4's `Missing metadata` bullet. Any other question → show it to the user and ask; `b6p auth set` is only for the token.
-- **`Could not switch the script to git publishing: HTTP 403`** — despite the wording, b6p only tried to *read* the script's mode and the platform refused it; nothing was switched. On a server without the git-only web release this is expected: b6p 0.9 needs that release. Tell the user; do not retry or add `--enable-git`.
+- **`Could not switch the script to git publishing: HTTP <code>`** — b6p puts this prefix on any failed call about the script's git mode: the read it makes before every pull and push, and, with `--enable-git`, the switch itself. Without `--enable-git` nothing was switched. The cause is not in the message: the server may not have git publishing yet, or the token may lack a scope (`/b6p-setup`'s `references/platform-token.md`). Tell the user both; do not retry in a loop, and do not add `--enable-git`.
 - **`outDir not specified`** (after `Build folder doesn't exist (this is fine)`) — a pulled `static/` sub-project with `"outDir": ""` in `draft/static/tsconfig.json`. Set it to `"."` (any non-empty value) and push again; it only satisfies the local build and does not change what deploys.
 - **Any other error** (network, a real auth *rejection* by the platform) — stop and show it. The other supported way to change a script is the platform's own BSJS editor, which works on the same git repository: after anyone saves there, run `/b6p-pull` before the next push. The VS Code b6p extension is **not** a fallback: it has not been updated for git-only scripts.
 

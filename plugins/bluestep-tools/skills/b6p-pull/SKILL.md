@@ -72,13 +72,13 @@ Capture the output — it prints the local path where the component landed.
 
 **`Pull aborted: … switching it to git was not confirmed`** on stderr means the script still publishes over WebDAV and `--yes` declined to move it. **Nothing was written.** b6p 0.9.0 exits `0` here (with `--json`, it prints `{"cancelled": true}`), so do not read the exit code as success: look for that line. Then:
 
-1. If the user only wants to **read** the script (a reference, a template, another team's component, a source org you must not change, a production target), never switch it. Say that b6p 0.9 cannot pull it without moving it, and offer the read-only routes: the gateway's `read_script_draft` reads the draft without changing anything (the `bluestep-reference` skill's `conventions/mcp-platform-authoring.md`), or a separate b6p 0.8.2 binary kept only for reads, since the platform still allows WebDAV reads.
+1. If the user only wants to **read** the script (a reference, a template, another team's component, a source org you must not change, a production target), never switch it. Say that b6p 0.9 cannot pull it without moving it, and offer the read-only route: the gateway's `read_script_draft` reads the draft without changing anything (the `bluestep-reference` skill's `conventions/mcp-platform-authoring.md`).
 2. If the user owns the script and wants to work on it, ask one structured question — **"This script has not moved to the new git-based publishing yet. Move it now?"**:
    - `Not now (Recommended)` — "Nothing changes. The script cannot be pulled with this b6p until it moves."
    - `Move it to git and pull` — "Moves the script to git publishing for good, then pulls it. Anyone still on an older b6p (0.8) or the VS Code extension can no longer push it."
 3. Only on *Move it*: re-run `b6p --yes pull "<DAV URL>" --enable-git`. An earlier yes for another script does not carry over.
 
-**`Could not switch the script to git publishing: HTTP 403`** — despite the wording, b6p only tried to *read* the script's mode and the platform refused; nothing was switched. On a server without the git-only web release this is expected: b6p 0.9 needs that release. Tell the user; do not retry or add `--enable-git`.
+**`Could not switch the script to git publishing: HTTP <code>`** — b6p puts this prefix on any failed call about the script's git mode: the read it makes before a pull, and, with `--enable-git`, the switch itself. Without `--enable-git` nothing was switched. The cause is not in the message: the server may not have git publishing yet, or the token may lack a scope (`/b6p-setup`'s `references/platform-token.md`). Tell the user both; do not retry in a loop, and do not add `--enable-git`.
 
 **Refusals that change nothing and exit `1`**: staged-only changes in `draft/` that the pull would discard, and a symbolic link that would let the pull write outside the draft folder. The message says how to fix it; show it to the user.
 

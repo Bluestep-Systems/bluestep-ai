@@ -1,5 +1,5 @@
 ---
-description: "Compiled draft/.build/*.js files embed the full TypeScript source as a base64 sourcemap, so text removed from the source stays in the repo until a publish rebuilds .build/ and a pull brings it down"
+description: "Compiled draft/.build/*.js files embed the full TypeScript source as a base64 sourcemap, so text removed from the source stays in the repo until a publish rebuilds .build/; with b6p 0.9 every pushed commit also stays in the script's git history on the platform"
 ---
 
 # Compiled output keeps text removed from source
@@ -23,9 +23,14 @@ cannot read base64 anyway.
 
 1. Fix the TypeScript source.
 2. Publish the component with `/b6p-push`, once the user has chosen to publish (a draft save
-   does not rebuild `.build/`). The publish builds fresh `.build/` output from the fixed source.
-3. `b6p pull` the component, so the rebuilt `.build/` files land in the project, and commit them.
+   does not rebuild `.build/`). With b6p 0.9 the publish builds fresh `.build/` output in your local
+   `draft/` and commits it.
+3. Commit the rebuilt `.build/` files in the project repo too.
 
 To confirm, decode the sourcemap of each compiled file and search the result. Older commits still
 hold the old `.build/` files; cleaning history is a separate decision (see
 [client data](../conventions/client-data.md)).
+
+**The platform keeps every pushed commit.** Since b6p 0.9 a script's draft is a git repository on
+the platform, and b6p never force-pushes, so text pushed once stays in the script's history there
+even after a fixed publish; no b6p command removes it.

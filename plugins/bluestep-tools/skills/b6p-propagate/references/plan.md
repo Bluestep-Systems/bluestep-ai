@@ -196,14 +196,11 @@ apart by comparing their hosts. A browser tab has no U-number, though: its host 
 only through a host that org returned in this move (`/gql` writes, below). That check fails safe:
 a valid alternate host stops the step and the user signs in on the host named.
 
-- **Every push.** All four must match the step's target org, or the target stops:
+- **Every push.** All three must match the step's target org, or the target stops:
   - the folder's `U######` is that org's U-number;
   - b6p's sync record for the folder comes from this move's pull of that org's URL;
-  - that URL is the `webDavUrl` that `get_script` returned with `org` set to that org, in this move;
-  - the draft's own git remote points at that org: the host in
-    `git -C "U<target>/<Component>/draft" remote get-url origin` is the host of that `webDavUrl`.
-    `draft/` is a git clone (b6p 0.9.0), and a push goes to that remote. Like the `/gql` check,
-    this fails safe: a valid alternate host stops the step.
+  - that URL is the `webDavUrl` that `get_script` returned with `org` set to that org, in this move.
+  b6p 0.9 takes the destination from the folder's sync record, not from `draft/.git`'s remote.
 - **Never** `b6p deploy`, a push with another org's URL, or `--root` with another org's URL (the
   `bluestep-reference` skill's `gotchas/cross-org-push.md`).
 - **Every gateway write** passes `org` set to the step's target. A write on an existing object also
@@ -239,9 +236,14 @@ exits `0`, so read that line, not the exit code (the `b6p-pull` skill, step 2):
    "not live in the source" in the plan. Never discard a local edit. Then read `get_script` with
    `org` set to the source for its `webDavUrl`, and `b6p --yes --json pull "<webDavUrl>"`. The copy
    lands in `U<source>/<Component>/`.
+   If the audit says the draft `is not a git working copy yet` (a folder last pulled before b6p
+   0.9), it compared nothing, and the pull may replace local edits: copy the folder's `draft/` aside
+   first, pull, compare the copy with the pulled `draft/`, name every file that differs as above, and
+   put back each one the user keeps.
 2. **Audit an existing target folder first.** When `U<target>/<Component>/` is already here, run
-   `/b6p-audit` on it. A local edit never pushed, or a platform change missing from the folder,
-   stops that target until the user settles it.
+   `/b6p-audit` on it; for a folder pulled before git, copy and compare the same way. A local edit
+   never pushed, or a platform change missing from the folder, stops that target until the user
+   settles it.
 3. **Pull the target fresh** the same way, with `org` set to the target. Only a component *created
    on the platform in this move* is pulled twice: the first pull of a just-created component can
    finish without its sync record (the `b6p-push` skill's `references/root-fallback.md`). An
@@ -252,12 +254,14 @@ exits `0`, so read that line, not the exit code (the `b6p-pull` skill, step 2):
    the files.
 5. **Mirror the source `draft/` into the target `draft/`.** Leave out the legacy `draft/info/`;
    never copy `declarations/`. **Never copy, replace or delete `draft/.git/`** in either folder,
-   and leave out every `.b6p-build.json`: `draft/` is a git clone of its own org's repository, so a
-   mirror that carried the source's `.git` would point the target folder at the source org, and the
-   push would write there. The target's publish builds and writes its own manifest.
+   and leave out every `.b6p-build.json`. The target's `draft/.git` is what lets its push compare
+   against the target's last sync: with another repository's `.git` in it, b6p 0.9 pushes through a
+   scratch clone and asks about every file that differs from the target. The target's publish builds
+   and writes its own manifest.
 6. **Show the diff:** files added, changed, and found only in the target. Target-only files are
-   removed only on a yes. Their platform copies then go through the push's own delete question
-   (`/b6p-push` step 5, "Kept files").
+   removed from the target folder only on a yes, and that yes is the only one: the push deletes a
+   file missing from the folder with no question of its own when the target did not change it since
+   the pull (`/b6p-push` step 2).
    Then search the mirrored files, the README included, for the source org's values: its U-number,
    its host, and every id read from the source in this move (topIds, WebDAV numbers), except the
    `__FID_` and `__SID_` forms, which name the same object in every org. List each hit

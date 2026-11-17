@@ -1,12 +1,12 @@
 ---
-description: "Off-platform Vite/Preact SPA merge report — build a full single-page app with Node + npm off-platform, deploy the minified dist/ into the report's static/ folder (with b6p push --externally-built since the git-only web release; deploy-lib before it — the CLI's static build is bypassed). Covers when to use this vs the CLI-compiled static/script.ts path, the architecture (SPA in static/, report serves index.html, app.ts is a no-op or a B.out window-bootstrap), the two data models (endpoint fetch carrying the session vs. server bootstrap needing an objects/imports.ts round-trip), history in GitHub via package.json repository, and Preact-default/React-alternative."
+description: "Off-platform Vite/Preact SPA merge report — build a full single-page app with Node + npm off-platform, deploy the minified dist/ into the report's static/ folder (with b6p push --snapshot since the git-only web release; deploy-lib before it — the CLI's static build is bypassed). Covers when to use this vs the CLI-compiled static/script.ts path, the architecture (SPA in static/, report serves index.html, app.ts is a no-op or a B.out window-bootstrap), the two data models (endpoint fetch carrying the session vs. server bootstrap needing an objects/imports.ts round-trip), history in GitHub via package.json repository, and Preact-default/React-alternative."
 ---
 
 A BlueStep merge report can ship its `static/` bundle two different ways. This file describes the
 **off-platform Vite/Preact SPA** model: you build a full single-page app off-platform (Node 20 + npm, any
 package), producing a minified `dist/`, and deploy that `dist/` into the report's `static/` folder — with
-`b6p push --snapshot --externally-built` since the web release that makes scripts git-only (it refuses
-**deploy-lib**'s WebDAV upload), with deploy-lib before it. The CLI's static build is bypassed entirely. See
+`b6p push --snapshot` since the web release that makes scripts git-only (it refuses **deploy-lib**'s
+WebDAV upload), with deploy-lib before it. The CLI's static build is bypassed entirely. See
 [`docs/decisions/off-platform-bundler-build-model.md`](../../../../docs/decisions/off-platform-bundler-build-model.md)
 for the "why two models" rationale.
 
