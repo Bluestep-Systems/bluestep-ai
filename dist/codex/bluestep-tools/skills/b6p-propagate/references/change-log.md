@@ -33,6 +33,8 @@ A reader skips a line that does not parse, or whose `v` it does not know, and sa
 | `role` | `source` or `target`, from the config. `null` while `org` is `null`. |
 | `target` | The target's name from the config when `role` is `target`; else `null`. |
 | `surface` | `claude-code`, `cursor`, or `codex`. |
+| `commitSha` | Only on `b6p` entries: the draft commit the push made (b6p 0.9), else `null`. |
+| `publishedSha` | Only on `b6p` entries: the commit a publish made live, else `null`. |
 
 A `role:"target"` entry is either a write a move made there (the move claims it as `move`) or a
 change made straight in a target (no claim lists it). The second is allowed and never open work;
@@ -76,8 +78,10 @@ org listed in the config:
   `lookup_`, `read_`, `find_`, `inspector`, `run_`, `trigger_`, `available_` and the older line's
   `graphql_query` are reads). `type` and `op` come from a table of both release lines' write tools; any other write is `unknown`.
 - A `b6p … push` through Bash or PowerShell whose `--json` result says `pushed:true`. The org and
-  component come from the `--file` or `--root` path (`/` and `\` read the same). `--snapshot` makes
-  it `publish`, else `draft`.
+  component come from the `--file` or `--root` path (`/` and `\` read the same). It is a `publish`
+  only when the result names the published commit (`publishedSha`); a push whose publish was
+  refused or failed still committed the draft, so it is a `draft`. b6p exits `1` in that case, and
+  the entry is still written (Claude Code's `PostToolUseFailure`).
 - A browser `javascript_tool` script holding a GraphQL `mutation`, with the tab's origin as `host`.
 
 It does **not** log:

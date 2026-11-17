@@ -1,15 +1,15 @@
 ---
 name: b6p-audit
 description: Compare a local component's state against what lives on the BlueStep platform, listing files that differ. Use when the user wants to know if they (or someone else) changed something on the platform side, or before a push, to see what changed there before the push stops to ask about it.
-allowed-tools: Bash(b6p:*) Bash(test -f *)
-compatibility: Needs the b6p CLI on PATH and a b6p access token stored with b6p auth set.
+allowed-tools: Bash(b6p:*) Bash(git:*) Bash(test -f *)
+compatibility: Needs the b6p CLI 0.9.0 or later on PATH and a b6p access token stored with b6p auth set.
 ---
 
 # /b6p-audit — Compare local vs. platform
 
 ## What this does
 
-Runs `b6p audit`, which fetches the component's current state from the BlueStep platform and lists files where local content differs from platform content. **Read-only** — it does not modify anything.
+Runs `b6p audit`, which fetches the component's current state from the BlueStep platform and lists files where local content differs from platform content. Since b6p 0.9.0 it compares the local `draft/` with the platform's `draft` branch (the draft, not the live version). **Read-only** — it does not modify anything.
 
 Use this **on demand**, not as a pre-flight before every push. The user decides when to run it; typical triggers are:
 
@@ -43,7 +43,7 @@ test -f ~/.b6p/secrets.enc && echo OK
 
 If `$ARGUMENTS` contains a component path (e.g. `U######/Combined Scheduler`), use it. If empty, ask the user which component to audit.
 
-Confirm the component was pulled with `b6p` (so its sync metadata is recorded) — without that, audit cannot determine the destination URL. If it was never pulled here, pull it first.
+Confirm the component was pulled with `b6p` 0.9.0 or later: `U######/<ComponentName>/draft/.git` must exist. Without it the audit only prints `The draft of "<name>" is not a git working copy yet, so there is nothing to compare it against. Pull the script first.` and compares nothing (its exit code may still be `0`, so read that line). Then suggest `/b6p-pull` — which may have to ask about moving the script to git first — and do not run it unasked.
 
 ### 2. Run the audit
 
@@ -57,7 +57,7 @@ The CLI walks up from `--file` to find the component root, then compares each fi
 
 ### 3. Parse and summarise
 
-Read the JSON output. The shape is:
+Read the JSON output. The shape below is the one 0.8.x printed; 0.9.0 is not yet checked against it, so if the object differs, read the file list from what it prints (the paths may start with the component name):
 
 ```json
 {
@@ -67,8 +67,8 @@ Read the JSON output. The shape is:
 ```
 
 - If `changedFiles` is empty: tell the user "Local is in sync with the platform."
-- If non-empty: list each path and note which side has the newer version when you can tell (a `(new)` suffix means the file exists on the platform but not locally; otherwise the file exists on both sides with different content).
-- Say what `/b6p-push` would do with each. A file that **changed on the platform** since the last push or pull from here (or was never synced from this machine) makes the push **stop before uploading anything** and ask whether to overwrite it. A file changed **only locally** uploads without a question. A `(new)` file is **kept** by the push: it is listed as a platform-only file, and deleting it takes the user's yes to a separate question. So deleting a file locally and pushing does not remove it from the platform.
+- If non-empty: list each path and note which side has the newer version when you can tell (a `(new)` suffix means the file exists on the platform but not locally; otherwise the file exists on both sides with different content). `git -C "U######/<ComponentName>/draft" status` shows which of them you changed locally.
+- Say what `/b6p-push` would do with each. A file that **changed on the platform** since the last push or pull from here (or was never synced from this machine) makes the push **stop before pushing anything** and ask whether to overwrite it. A file changed **only locally** is pushed without a question. A `(new)` file is **kept** by the push: it is listed as a platform-only file, and deleting it takes the user's yes to a separate question. So deleting a file locally and pushing does not remove it from the platform.
 
 ### 4. Suggest a next step (do not auto-execute)
 

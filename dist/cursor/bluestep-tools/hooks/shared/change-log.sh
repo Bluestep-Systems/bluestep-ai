@@ -10,9 +10,11 @@
 # What it logs (in an org listed in project.json):
 #   - a gateway invoke_org_tool call whose inner tool is not a read (PostToolUse only: an MCP error
 #     result goes to PostToolUseFailure and wrote nothing);
-#   - a `b6p ... push` run through Bash or PowerShell whose --json result says pushed:true. Also on
-#     PostToolUseFailure: b6p exits 1 on a publish that went live with type-check diagnostics or
-#     kept platform-only files, and Claude Code reports any non-zero exit there, with the output
+#   - a `b6p ... push` run through Bash or PowerShell whose --json result says pushed:true. It is a
+#     publish only when the result names the published commit (publishedSha); a push whose publish
+#     was refused or failed still committed the draft, so it is logged as a draft. Also on
+#     PostToolUseFailure: b6p 0.9 exits 1 when a snapshot was pushed but not published (or read
+#     back at another commit), and Claude Code reports any non-zero exit there, with the output
 #     inside `error` after an `Exit code N` line;
 #   - a browser javascript_tool script holding a GraphQL mutation (org mapped later by host).
 #
@@ -189,8 +191,12 @@ function run(d) {
     const filePath = full.split("\\").join("/");
     const m = filePath.match(/(?:^|\/)(U\d+)\/([^/]+)/);
     if (!m || !roles[m[1]]) return;
-    e = { org: m[1], source: "b6p", tool: "b6p push", op: /--snapshot\b/.test(cmd) ? "publish" : "draft",
-      type: "script", objId: null, name: m[2], fid: null };
+    // b6p 0.9: only a non-null publishedSha means something went live (a refused publish still
+    // reports pushed:true, and --message alone implies a snapshot).
+    const sha = (v) => (typeof v === "string" && v ? v : null);
+    e = { org: m[1], source: "b6p", tool: "b6p push", op: sha(out.publishedSha) ? "publish" : "draft",
+      type: "script", objId: null, name: m[2], fid: null,
+      commitSha: sha(out.commitSha), publishedSha: sha(out.publishedSha) };
   } else if (/__(javascript_tool|browser_batch)$/.test(tool)) {
     const js = String(input.text || "") + (Array.isArray(input.actions) ? input.actions
       .filter((a) => a && a.name === "javascript_tool").map((a) => String((a.input && a.input.text) || "")).join("\n") : "");

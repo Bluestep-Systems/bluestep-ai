@@ -11,6 +11,52 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.51.0] — unreleased (merge only once the git-only web release is in production)
+
+> **b6p 0.9 and git-only scripts.** The web release that makes BSJS scripts git-only refuses every
+> WebDAV write to a script's source (HTTP 403), so b6p 0.8.x can no longer push. This release needs
+> b6p 0.9.0: a push is a git commit with an author, a publish checks a build manifest, and moving a
+> script from WebDAV to git is one-way, so no skill does it without the user's yes. **Two hooks
+> changed** (`block-generated-files`, `change-log`), so Codex users re-trust bluestep-tools' hooks
+> once: open the plugin's page and **Review → trust**. The machine bootstrap moves to 1.2.0.
+
+### Changed
+
+- **b6p 0.9.0 is the minimum and the pinned version** (`tool-versions.json`): Windows x64 and both
+  macOS binaries with their SHA-256, and npm `@bluestep-systems/b6p-cli@0.9.0`. There is no Linux
+  binary in 0.9.0; Linux and WSL install through npm, as before. The bootstrap also brings
+  bluestep-tools up to 0.51.0. `/b6p-setup` points at `bootstrap-v1.2.0`, which CI tags when this
+  merges.
+- **`/b6p-push`**: a preflight checks the commit author; `git -C <component>/draft status` replaces a
+  root `git status`; the result table follows the 0.9 `--json` (`commitSha`, `publishedSha`,
+  `publishError`, `publishRefusal`, `switchedToGit`, `typeCheckErrors`; no `historyRecorded`), so a
+  publish counts only when `publishedSha` is set. New rows for a missing author, a script still on
+  WebDAV, the wrong branch checked out, staged-only changes, a refused publish (`BUILD_STALE`,
+  `BUILD_MANIFEST_MISSING`, `BUILD_MANIFEST_INVALID`) and `DRAFT_MOVED`. Type errors are warnings.
+  `--externally-built` only for bundler-built scripts. The VS Code extension is no longer a fallback
+  (it is not updated for git-only scripts); the platform's BSJS editor is a supported path.
+- **`/b6p-pull`**: a pull clones the draft. A script still on WebDAV is never switched without the
+  user's yes, and never on a pull that is only for reading. A declined switch exits `0` with
+  nothing written, so the skill reads stderr, and it names the read-only routes (the gateway's
+  `read_script_draft`, or a separate b6p 0.8.2 binary kept for reads).
+- **`/b6p-audit`**: needs a pulled git working copy and compares with the platform's `draft` branch.
+- **`/b6p-propagate`**: pulls never pass `--enable-git` on their own; a target's switch to git is its
+  own yes. The backup and the mirror leave out `draft/.git/` and `.b6p-build.json`, and the org guard
+  also checks the draft's git remote host. Restore points are commits (`publishedSha`).
+- **`/bluestep-vite-report` and the deploy-lib reference**: deploy-lib's WebDAV upload is refused,
+  so a Vite SPA report is built into the pulled report's `draft/static/` and published with
+  `b6p push --snapshot --externally-built`.
+- **Reference**: `server-side-compile.md` (git commits, build manifest, publish refusals,
+  `compileDraft` on git scripts), `mcp-platform-authoring.md` (`write_script_draft` moves a script
+  to git, one-way, and commits), `b6p-platform.md`, `bsjs-development.md`, `cross-org-push.md`,
+  `gql-in-a-tab.md`, `file-execution.md`, `third-party-lib-type-noise.md`, the `/b6p-push`
+  references, `platform-token.md` (the "b6p CLI" scope preset).
+- **`change-log` hook**: a b6p push is logged as `publish` only when its result names
+  `publishedSha` (a refused publish is a `draft`), and the entry records `commitSha` and
+  `publishedSha`.
+- **`block-generated-files` hook**: also blocks hand edits to `.b6p-build.json` and to files under a
+  component's `draft/.git/`.
+
 ## [plugin 0.50.0] — 2026-11-16
 
 > **The reference fills gaps reported from production, and `/b6p-setup` recognizes a one-tools

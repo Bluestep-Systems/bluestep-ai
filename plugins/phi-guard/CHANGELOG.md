@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 — unreleased (ships with bluestep-tools 0.51.0)
+
+**No change to phi-guard itself.** The shared generator that builds the Cursor and Codex copies of
+every plugin changed for bluestep-tools 0.51.0 (its b6p CLI minimum check moved to 0.9.0), and
+every cross-tool plugin is released with it. phi-guard's hook and its Cursor and Codex output are
+the same as in 0.1.2. Nothing to do but update.
+
 ## 0.1.2 — 2026-11-10
 
 **No change to phi-guard itself.** The shared generator that builds the Cursor and Codex copies of

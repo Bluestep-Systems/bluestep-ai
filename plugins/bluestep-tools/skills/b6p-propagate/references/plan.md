@@ -196,10 +196,14 @@ apart by comparing their hosts. A browser tab has no U-number, though: its host 
 only through a host that org returned in this move (`/gql` writes, below). That check fails safe:
 a valid alternate host stops the step and the user signs in on the host named.
 
-- **Every push.** All three must match the step's target org, or the target stops:
+- **Every push.** All four must match the step's target org, or the target stops:
   - the folder's `U######` is that org's U-number;
   - b6p's sync record for the folder comes from this move's pull of that org's URL;
-  - that URL is the `webDavUrl` that `get_script` returned with `org` set to that org, in this move.
+  - that URL is the `webDavUrl` that `get_script` returned with `org` set to that org, in this move;
+  - the draft's own git remote points at that org: the host in
+    `git -C "U<target>/<Component>/draft" remote get-url origin` is the host of that `webDavUrl`.
+    `draft/` is a git clone (b6p 0.9.0), and a push goes to that remote. Like the `/gql` check,
+    this fails safe: a valid alternate host stops the step.
 - **Never** `b6p deploy`, a push with another org's URL, or `--root` with another org's URL (the
   `bluestep-reference` skill's `gotchas/cross-org-push.md`).
 - **Every gateway write** passes `org` set to the step's target. A write on an existing object also
@@ -217,6 +221,17 @@ a valid alternate host stops the step and the user signs in on the host named.
 
 Code is the last step, after the wiring, so the target's `declarations/` show the new wiring.
 
+Every pull below runs **without** `--enable-git`. When b6p prints `Pull aborted: … switching it to
+git was not confirmed`, the script still publishes over WebDAV and the pull wrote nothing — it
+exits `0`, so read that line, not the exit code (the `b6p-pull` skill, step 2):
+
+- **A script this move only reads** (a move's source; a refresh's target, section 12): never
+  switch it. Stop that component and offer the read-only routes from `/b6p-pull` step 2.
+- **A script this move writes to** (a move's target; a refresh's source): b6p 0.9 cannot push it
+  until it moves to git, and the move is one-way. Ask as `/b6p-push` step 5 ("Switch to git?") says, for that script and that
+  org only; a yes is its own step in the plan, never covered by the plan's yes. Only then pull it
+  with `--enable-git`.
+
 1. **Audit the source folder, then pull it fresh.** When `U<source>/<Component>/` is already here,
    run `/b6p-audit` on it first: a pull keeps a local file that is newer than the platform's, so a
    local edit never published to the source would ride into the target. Name each such file to the
@@ -232,9 +247,14 @@ Code is the last step, after the wiring, so the target's `declarations/` show th
    finish without its sync record (the `b6p-push` skill's `references/root-fallback.md`). An
    existing component pulled into a new local folder needs one pull. If a push still answers `Missing metadata`, stop that target. Never use `--root` in a
    move.
-4. **Back up the target `draft/`** to `.bluestep/backups/<U>/<Component>/<stamp>/`.
+4. **Back up the target `draft/`** to `.bluestep/backups/<U>/<Component>/<stamp>/`, without
+   `draft/.git/` and `.b6p-build.json`. The platform keeps the target's git history; the backup is
+   the files.
 5. **Mirror the source `draft/` into the target `draft/`.** Leave out the legacy `draft/info/`;
-   never copy `declarations/`.
+   never copy `declarations/`. **Never copy, replace or delete `draft/.git/`** in either folder,
+   and leave out every `.b6p-build.json`: `draft/` is a git clone of its own org's repository, so a
+   mirror that carried the source's `.git` would point the target folder at the source org, and the
+   push would write there. The target's publish builds and writes its own manifest.
 6. **Show the diff:** files added, changed, and found only in the target. Target-only files are
    removed only on a yes. Their platform copies then go through the push's own delete question
    (`/b6p-push` step 5, "Kept files").
@@ -250,8 +270,8 @@ Code is the last step, after the wiring, so the target's `declarations/` show th
    `b6p --yes --json push --file "U<target>/<Component>/draft/scripts/app.ts" [--snapshot --message "<description>"]`.
    Read the result by its step-5 table.
 
-**Do not open the platform's web script editor during a move.** Opening it writes `draft/.build/`
-to the draft by itself, and the next pull or push sees a change nobody made.
+**Do not save in the platform's BSJS editor during a move.** A save there is a commit to the
+draft, and the next push stops at its overwrite question for a change this move did not make.
 
 ## 10. Scheduled formulas that run on save
 
@@ -286,7 +306,9 @@ For each target: match, overlap check, plan, approval, run the steps, read back 
 only one, when there is just one) to the source. The steps are the ones above with the roles
 swapped: the target is read, the source is written.
 
-- Pull both fresh, back up the source `draft/`, and mirror target to source.
+- Pull both fresh, back up the source `draft/`, and mirror target to source, with the same
+  exclusions as section 9 (`draft/.git/`, `.b6p-build.json`). The target is only read here: never
+  switch it to git (`--enable-git`) to pull it.
 - Objects the components need that the source lacks are created in the same order.
 - Config differences follow the refresh defaults in `config-matrix.md`. `schedule`, `disabled`,
   `runImmediate`, `formulaType` and `legacyPermissions` stay as they are in the source. Each changes only on its own yes,

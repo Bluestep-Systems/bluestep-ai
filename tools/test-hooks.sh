@@ -35,6 +35,11 @@ t "blocks declarations/ via relative_workspace_path (Cursor key)" block-generate
 t "allows app.ts (backslashes)" block-generated-files.sh file_path 'C:\x\U129161\Comp\draft\scripts\app.ts' 0
 t "allows README" block-generated-files.sh file_path '/x/draft/README.md' 0
 t "allows a path with 'declarations' as a filename part" block-generated-files.sh file_path '/x/draft/scripts/declarations-helper.ts' 0
+t "blocks the build manifest .b6p-build.json (backslashes)" block-generated-files.sh file_path 'C:\x\U129161\Comp\draft\.build\.b6p-build.json' 2
+t "blocks a file inside draft/.git (backslashes)" block-generated-files.sh file_path 'C:\x\U129161\Comp\draft\.git\config' 2
+t "blocks draft/.git relative to the component folder" block-generated-files.sh file_path 'draft/.git/info/exclude' 2
+t "allows the project's own .git (hooks)" block-generated-files.sh file_path 'C:\x\proj\.git\hooks\pre-commit' 0
+t "allows a .gitignore in draft/" block-generated-files.sh file_path '/x/U129161/Comp/draft/.gitignore' 0
 
 echo "=== fail closed ==="
 out=$(printf '%s' 'not json at all' | bash "$H/block-generated-files.sh" 2>&1); rc=$?
@@ -714,13 +719,20 @@ elif kind == "gw_error":
          "tool_response": text({"error": "refused"})}
 elif kind == "b6p":
     tool, cmd, pushed = a[0], a[1], a[2] == "true"
-    out = "[WARN] noise\n" + json.dumps({"pushed": pushed, "historyRecorded": pushed, "files": {"n": 1}}, indent=2)
+    # b6p 0.9 --json: publishedSha is set only when a snapshot (--snapshot, or --message alone) published.
+    snap = "--snapshot" in cmd or "--message" in cmd
+    out = "[WARN] noise\n" + json.dumps({"pushed": pushed, "commitSha": "c" * 40 if pushed else None,
+        "publishedSha": "p" * 40 if pushed and snap else None, "publishError": None, "publishRefusal": None,
+        "switchedToGit": False, "typeCheckDiagnostics": 0, "typeCheckErrors": []}, indent=2)
     if len(a) > 3: out += "\n" + a[3] + "\n"
     d = {"tool_name": tool, "tool_input": {"command": cmd}, "tool_response": {"stdout": out, "stderr": ""}}
 elif kind == "b6p_fail":
     # PostToolUseFailure: a non-zero exit; the output sits in `error` after an "Exit code N" line.
+    # b6p 0.9: a snapshot that pushed the draft but whose publish the platform refused.
     tool, cmd, pushed = a[0], a[1], a[2] == "true"
-    out = "Exit code 1\n[WARN] type check found 3 diagnostics\n" + json.dumps({"pushed": pushed, "typeCheckDiagnostics": 3})
+    out = "Exit code 1\nThe draft was pushed but not published: its compiled output is older than its sources.\n" + json.dumps({
+        "pushed": pushed, "commitSha": "c" * 40 if pushed else None, "publishedSha": None, "publishError": "refused",
+        "publishRefusal": {"reason": "BUILD_STALE", "withheld": ["scripts/app.ts"]}, "typeCheckDiagnostics": 0})
     d = {"tool_name": tool, "tool_input": {"command": cmd}, "error": out, "is_interrupt": False,
          "hook_event_name": "PostToolUseFailure"}
 elif kind == "gw_view_create":
@@ -812,7 +824,14 @@ cl "b6p draft push via PowerShell (backslashes) → one line" 1 "$(pl b6p "$W_CL
 cl "b6p publish with an EXIT= line after the JSON → one line" 1 "$(pl b6p "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts" --snapshot --message "x"; "EXIT=$LASTEXITCODE"' true 'EXIT=0')"
 cl "b6p push that says pushed:false → nothing" 0 "$(pl b6p "$W_CL" Bash 'b6p --yes --json push --file U111/Comp/draft/scripts/app.ts' false)"
 cl "a Bash call that is not a b6p push → nothing" 0 "$(pl b6p "$W_CL" Bash 'echo b6p is great' true)"
-cl "publish that exits 1 but went live (PostToolUseFailure) → one line" 1 "$(pl b6p_fail "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts" --snapshot --message "x"' true)"
+cl "publish refused after the draft was pushed (PostToolUseFailure) → one line" 1 "$(pl b6p_fail "$W_CL" PowerShell 'b6p --yes --json push --file "U111\Comp\draft\scripts\app.ts" --snapshot --message "x"' true)"
+if tail -n 1 "$LOG" | grep -q '"op":"draft"' && tail -n 1 "$LOG" | grep -q '"publishedSha":null' && tail -n 1 "$LOG" | grep -q '"commitSha":"cccc'; then
+  echo "  PASS  a refused publish is logged as a draft with its commit, not as a publish"; pass=$((pass+1))
+else echo "  FAIL  refused-publish line: $(tail -n 1 "$LOG" | cut -c1-220)"; fail=$((fail+1)); fi
+cl "--message without --snapshot publishes → one line" 1 "$(pl b6p "$W_CL" Bash 'b6p --yes --json push --file U111/Comp/draft/scripts/app.ts --message "x"' true)"
+if tail -n 1 "$LOG" | grep -q '"op":"publish"' && tail -n 1 "$LOG" | grep -q '"publishedSha":"pppp'; then
+  echo "  PASS  a publish is read from publishedSha, not from the --snapshot flag"; pass=$((pass+1))
+else echo "  FAIL  --message line: $(tail -n 1 "$LOG" | cut -c1-220)"; fail=$((fail+1)); fi
 cl "push that exits 1 and says pushed:false (PostToolUseFailure) → nothing" 0 "$(pl b6p_fail "$W_CL" Bash 'b6p --yes --json push --file U111/Comp/draft/scripts/app.ts' false)"
 cl "a failed gateway call (PostToolUseFailure) → nothing" 0 "$(pl gw_fail "$W_CL" U111)"
 cl "GraphQL mutation from a browser tab → one line" 1 "$(pl gql "$W_CL")"

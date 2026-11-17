@@ -53,7 +53,7 @@ Supported now: **Windows (64-bit Intel or AMD).** macOS and Linux are coming.
 2. Copy this line, paste it into the window (right-click pastes), and press Enter:
 
    ```powershell
-   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.1.0/bootstrap/bootstrap.ps1 | iex
+   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.2.0/bootstrap/bootstrap.ps1 | iex
    ```
 
 3. When it is your turn, the window beeps and shows a **YOUR TURN** block that says what to do.
@@ -70,13 +70,13 @@ Supported now: **Windows (64-bit Intel or AMD).** macOS and Linux are coming.
 If you would rather see the script before it runs:
 
 1. Open the release page,
-   [`bootstrap-v1.1.0`](https://github.com/Bluestep-Systems/bluestep-ai/releases/tag/bootstrap-v1.1.0).
+   [`bootstrap-v1.2.0`](https://github.com/Bluestep-Systems/bluestep-ai/releases/tag/bootstrap-v1.2.0).
    Its notes list the script's SHA-256.
 2. In PowerShell, download it and compare the hash (put the hash from the release notes where it
    says `<hash>`):
 
    ```powershell
-   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.1.0/bootstrap/bootstrap.ps1 -OutFile bootstrap.ps1
+   irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.2.0/bootstrap/bootstrap.ps1 -OutFile bootstrap.ps1
    if ((Get-FileHash .\bootstrap.ps1 -Algorithm SHA256).Hash -eq '<hash>') { 'hash ok' } else { 'HASH MISMATCH - do not run it' }
    ```
 
@@ -96,7 +96,7 @@ Add an option after the file name when you run the downloaded file, for example
 form, use this shape instead (a plain `| iex` cannot take options):
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.1.0/bootstrap/bootstrap.ps1))) -DryRun
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Bluestep-Systems/bluestep-ai/bootstrap-v1.2.0/bootstrap/bootstrap.ps1))) -DryRun
 ```
 
 | Option | What it does |

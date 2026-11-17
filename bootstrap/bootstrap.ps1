@@ -142,7 +142,7 @@ function Invoke-BlueStepBootstrap {
     )
 
     # Keep in step with bootstrap/version.json (the script cannot read that file under iex).
-    $ScriptVersion = '1.1.0'
+    $ScriptVersion = '1.2.0'
     $RepoSlug = 'Bluestep-Systems/bluestep-ai'
     $VersionsPathInRepo = 'plugins/bluestep-tools/skills/b6p-setup/assets/tool-versions.json'
     $GatewayUrl = 'https://gateway.bluestep.net/mcp'

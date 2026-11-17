@@ -1,5 +1,5 @@
 ---
-description: "b6p sends a push to the org named by the local U###### folder, not to the org in a target URL: a push or deploy aimed at another org writes into the folder's own org (or into a different component there), its cleanup deletes files in the URL's org, and `b6p deploy` reports success when every target failed — one org per folder, push with --file"
+description: "b6p 0.8.x sent a push to the org named by the local U###### folder, not to the org in a target URL: a push or deploy aimed at another org wrote into the folder's own org (or into a different component there), and its cleanup deleted files in the URL's org. Since b6p 0.9 a push goes to the draft's git remote, so never copy a draft/.git between orgs. One org per folder, push with --file"
 ---
 
 # A push never crosses orgs
@@ -10,10 +10,15 @@ A component is pulled from one org (`U<org-a>/<Component>/`) and pushed with the
 component in another org, to copy a change across. The push reports success, but the other org
 is unchanged. Instead, the folder's own org was written to, or a different component there that
 happens to own the same WebDAV id. Platform-only files may also have been deleted in the other
-org. A `b6p deploy` to several orgs prints "Deploy complete!" and exits 0 even when targets
-failed.
+org. With b6p 0.8.x, a `b6p deploy` to several orgs printed "Deploy complete!" and exited 0 even
+when targets failed.
 
 ## Cause
+
+The causes below were found with b6p 0.8.x, which pushed over WebDAV. b6p 0.9 pushes over git to
+the remote of `draft/.git`, set by the pull that cloned it; whether a URL from another org is still
+mapped the same way has not been checked, so the rule stands. What is new with git: a `draft/.git`
+copied from another org's folder points the push at **that** org.
 
 - **The host comes from the folder.** b6p resolves the org from the `U######` folder name and
   maps it to that org's host. From a URL it takes only the WebDAV id. The upload goes to
@@ -23,8 +28,9 @@ failed.
   With different ids, it lands on whatever component of the folder's org owns that WebDAV id.
 - **The cleanup step uses the URL.** After uploading, the push lists the target URL's files and,
   on a yes, deletes the platform-only ones there, in the other org.
-- **`deploy` swallows failures.** Each target's error is logged and the loop moves on; the
-  command still ends with "Deploy complete!" and exit 0.
+- **`deploy` swallowed failures** (b6p 0.8.x). Each target's error was logged and the loop moved on;
+  the command still ended with "Deploy complete!" and exit 0. b6p 0.9 prints one line per target
+  and exits 1 when any target failed.
 
 ## Rule
 
@@ -34,6 +40,9 @@ failed.
 - **Never** push a URL from another org, use `--root` with another org's URL, or use
   `b6p deploy` to roll a change out across orgs.
 - **Before a push to a specific org,** check that the folder's `U######` is that org's
-  U-number, not its host: one org can answer on several hosts.
+  U-number, not its host: one org can answer on several hosts. With b6p 0.9 also check that
+  `git -C "U######/<Component>/draft" remote get-url origin` names that org's host.
+- **Never copy, move or replace a `draft/.git/` folder** between components or orgs: it decides
+  where the push goes.
 - **Ids are not a match key across orgs.** Match objects by FID or exact name in each org; see
   [field-ids-not-portable-across-propagation.md](field-ids-not-portable-across-propagation.md).

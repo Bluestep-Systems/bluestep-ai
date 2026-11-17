@@ -33,9 +33,9 @@ actually wrong. They come from a **client-bundle** sub-project (`static/`, its o
 which `b6p push` deliberately **excludes from `typeCheckDiagnostics`** — so a wall of them never
 raises the count, never trips the "published without a passing type-check" warning, and never fails
 the push (exit stays `0`). That gating applies only to the platform code (`scripts/app.ts`), whose
-diagnostics — unlike these — now DO fail the push. (With b6p 0.8.x no later compile replaces it: the
-CLI's local transpile is the build that goes live, and the platform does not recompile what the
-CLI uploads. See the `/b6p-push` skill's `references/type-check-diagnostics.md` for the full
+diagnostics — unlike these — are counted (with b6p 0.8.x they failed the push; since 0.9.0 they are
+warnings unless `--fail-on-type-errors`). (A b6p publish ships the CLI's local transpile with a
+build manifest; the platform checks the manifest and does not recompile it. See the `/b6p-push` skill's `references/type-check-diagnostics.md` for the full
 picture, and `reference/server-side-compile.md` for the platform's own compile on other saves.)
 
 The real risk is masking: the noise repeats on every push of the affected component and can bury a

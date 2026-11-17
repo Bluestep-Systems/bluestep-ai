@@ -29,16 +29,17 @@
       }
     },
     "b6p": {
-      "min": "0.8.1",
-      "pinned": "0.8.2",
+      "min": "0.9.0",
+      "pinned": "0.9.0",
       "assets": {
-        "windows-x64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.8.2/b6p-windows-x64.exe", "sha256": "2169bcc7c7fc75a9d341c7f0d1d9381a6147ea7e7374ced9232caeb1e8adf573" },
-        "macos-arm64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.8.2/b6p-macos-arm64", "sha256": "7b0fb12539d1b0d35ada7708cad8d7ec5c8b65697d77fa19feacc4b269fae19d" }
+        "windows-x64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.9.0/b6p-windows-x64.exe", "sha256": "8d9d2b4517d47e045ef6a3985cf04381ba72755bf3f26ad79e5f2348276b6ff0" },
+        "macos-arm64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.9.0/b6p-macos-arm64", "sha256": "881247415f5fb038ac532dfebd40be1b417a077996ff0bd149153728d8d92db7" },
+        "macos-x64": { "url": "https://github.com/Bluestep-Systems/b6p-cli/releases/download/v0.9.0/b6p-macos-x64", "sha256": "ff1784a3a1bb910382265bf43cb615d0be0b07d6feb76f76607d998aaed6a50f" }
       },
       "npm": {
         "package": "@bluestep-systems/b6p-cli",
-        "version": "0.8.2",
-        "integrity": "sha512-c1sLCHP5xG1N8+KaQ8Er+hrf9uq86QheKXab8NZaaTPQiQwEAUDqxN+v6VzNyWVWHKrpGKOjoAurXM7PLhmkGA=="
+        "version": "0.9.0",
+        "integrity": "sha512-zsOBR+i/N5CmKaFeKpyoiSCf1qadX94lX0Rm13MO8Xw/R+LrY9mMu2fiRR1DJ1LGh1INVGLbEemt9KjOY1qQjg=="
       }
     },
     "claude": {
@@ -53,7 +54,7 @@
     }
   },
   "plugins": {
-    "bluestep-tools": { "id": "bluestep-tools@bluestep", "min": "0.46.0" },
+    "bluestep-tools": { "id": "bluestep-tools@bluestep", "min": "0.51.0" },
     "bluestep-one": { "id": "bluestep-one@bluestep", "requires": ["bluestep-tools"] },
     "one-tools": {
       "id": "one-tools@bluestep-internal",

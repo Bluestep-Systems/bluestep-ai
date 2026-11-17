@@ -1,7 +1,7 @@
 ---
 name: b6p-pull
 description: Pull a B6P component from the BlueStep platform into the local workspace using its DAV URL, and scaffold draft/README.md if missing. Use when the user wants to bring a component down for the first time or re-sync after platform edits.
-compatibility: Needs the b6p CLI on PATH and a b6p access token stored with b6p auth set.
+compatibility: Needs the b6p CLI 0.9.0 or later on PATH and a b6p access token stored with b6p auth set.
 ---
 
 # /b6p-pull — Pull a component from BlueStep
@@ -16,12 +16,15 @@ b6p pull [options] <formula-url>
 
 The user copies the DAV URL from the component's page in the BlueStep platform UI. You cannot discover or infer it. There is no fallback that takes a name.
 
-A first pull creates the `U######/<ComponentName>/` folder (creating the U-folder if it does not exist), populates `declarations/` and `draft/`, and records the component's sync metadata.
+A first pull creates the `U######/<ComponentName>/` folder (creating the U-folder if it does not exist), populates `declarations/`, and records the component's sync metadata. Since b6p 0.9.0 a script's draft is a git repository on the platform: the pull **clones** it into `draft/` (which gets its own `draft/.git`), or fetches and fast-forwards an existing clone. Only `declarations/` and the root `.gitignore` still come over WebDAV. The local `snapshot/` folder is no longer refreshed: the published code is the `master` branch inside `draft/.git`.
 
-Two re-pull behaviors to know:
+**A script that has not moved to git yet cannot be pulled without moving it.** If the script still publishes over WebDAV, the pull first asks to switch it to git. The switch is **one-way**: its draft and live version then refuse the old upload route, so anyone on b6p 0.8.x or the VS Code extension can no longer push it. `--yes` answers Cancel, and then the pull writes **nothing** (step 2). b6p 0.9.0 has no read-only pull of such a script.
+
+Three re-pull behaviors to know:
 
 - **A re-pull never renames the local folder.** If the component was renamed on the platform, the CLI keeps pulling into the folder it first created — don't read the folder name as the component's current display name; the platform (or a legacy `draft/info/metadata.json`, when the component still ships one) is authoritative.
-- **A re-pull keeps a file you edited locally rather than overwriting it.** A file whose content differs from *both* the platform copy and the last-synced hash is left on disk untouched, and every kept file is listed in one warning at the end of the pull — read it (step 3). The guard needs a recorded last-sync hash, and that record is **machine-local**: on a fresh clone, a new machine, or after cleared state there is no record, so that first pull writes the platform copy over whatever is there.
+- **A re-pull keeps a file you edited locally rather than overwriting it.** A local edit to a file the platform also changed is left on disk untouched, and every kept file is listed in one warning at the end of the pull — read it (step 3).
+- **A folder pulled before git** (files in `draft/`, no `draft/.git`) is bound to the platform's repository in place. A file that differs is replaced by the platform copy, unless its old sync record says it was edited here (then it is kept and listed). That record is **machine-local**: on a fresh clone of the project, a new machine, or after cleared state there is no record, so local edits in such a folder are replaced.
 
 ## How to invoke `b6p`
 
@@ -62,9 +65,21 @@ test -f ~/.b6p/secrets.enc && echo OK
 b6p --yes pull "<DAV URL>"
 ```
 
-The `--yes` is **required** — without it, b6p may ask a question you cannot answer, and the call fails with exit `1` naming that question. Always include it. It prints each question it answered, with the answer, on stderr — those lines are not errors.
+The `--yes` is **required** — without it, b6p may ask a question you cannot answer, and the call fails with exit `1` naming that question. Always include it. It prints each question it answered, with the answer, on stderr — those lines are not errors. **Never add `--enable-git` on the first run.**
 
 Capture the output — it prints the local path where the component landed.
+
+**`Pull aborted: … switching it to git was not confirmed`** on stderr means the script still publishes over WebDAV and `--yes` declined to move it. **Nothing was written.** b6p 0.9.0 exits `0` here (with `--json`, it prints `{"cancelled": true}`), so do not read the exit code as success: look for that line. Then:
+
+1. If the user only wants to **read** the script (a reference, a template, another team's component, a source org you must not change, a production target), never switch it. Say that b6p 0.9 cannot pull it without moving it, and offer the read-only routes: the gateway's `read_script_draft` reads the draft without changing anything (the `bluestep-reference` skill's `conventions/mcp-platform-authoring.md`), or a separate b6p 0.8.2 binary kept only for reads, since the platform still allows WebDAV reads.
+2. If the user owns the script and wants to work on it, ask one structured question — **"This script has not moved to the new git-based publishing yet. Move it now?"**:
+   - `Not now (Recommended)` — "Nothing changes. The script cannot be pulled with this b6p until it moves."
+   - `Move it to git and pull` — "Moves the script to git publishing for good, then pulls it. Anyone still on an older b6p (0.8) or the VS Code extension can no longer push it."
+3. Only on *Move it*: re-run `b6p --yes pull "<DAV URL>" --enable-git`. An earlier yes for another script does not carry over.
+
+**`Could not switch the script to git publishing: HTTP 403`** — despite the wording, b6p only tried to *read* the script's mode and the platform refused; nothing was switched. On a server without the git-only web release this is expected: b6p 0.9 needs that release. Tell the user; do not retry or add `--enable-git`.
+
+**Refusals that change nothing and exit `1`**: staged-only changes in `draft/` that the pull would discard, and a symbolic link that would let the pull write outside the draft folder. The message says how to fix it; show it to the user.
 
 ### 3. Locate the component folder, and read the kept-files warning
 
@@ -78,13 +93,14 @@ interrupted pull) — NOT synced:
 <path>
 ```
 
-The list is capped at 10 with a trailing `…and N more`; `b6p --json pull …` reports the same set as `{"keptLocalPaths": [...]}`. This is the divergence guard working as designed, so the pull still exits `0` — but **those files are NOT the platform version**, and a reader who assumes a clean pull will be working against stale content. Carry every kept path into the step-6 report.
+The list is capped at 10 with a trailing `…and N more`; `b6p --json pull …` reports the same set as `keptLocalPaths`. This is the divergence guard working as designed, so the pull still exits `0` — but **those files are NOT the platform version**, and a reader who assumes a clean pull will be working against stale content. Carry every kept path into the step-6 report.
 
 To actually take the platform copy for a kept file, **delete the file and pull again**. The CLI's own message also suggests an audit pull, but `b6p audit --pull` defaults to *Cancel*, so under `--yes` it declines — that route needs a person answering its question interactively.
 
 Then parse the CLI output, or scan for the most recently modified `U######/<Name>/` directory under the project root. Confirm:
 
 - `declarations/` is populated
+- `draft/.git` exists (a clone), and `git -C "U######/<Name>/draft" status` says `On branch draft`
 - `draft/scripts/app.ts` exists (or whatever `config.json:main` points at, on a component that still ships a legacy `draft/info/`)
 - **Do not check for `draft/info/`.** It is **deprecated** platform behavior: newly-created formulas never get one, and that configuration now lives on the component's setup page. Only older components still serve it. Its absence is normal and is never a broken pull (see the `bluestep-reference` skill's `b6p-platform.md`).
 
@@ -132,12 +148,7 @@ c. **If you cannot infer the Overview with reasonable confidence** (e.g., `app.t
 
 d. **Write** the rendered README to `<Component>/draft/README.md`.
 
-e. **Recommend pushing the scaffolded README, and know what protects it.** A later pull **keeps** the scaffolded README rather than reverting it to the platform stub — it differs from both the platform copy and the last-synced hash, so the divergence guard holds it and lists it in the kept-files warning (step 3). Two things that does *not* mean:
-
-   - **It is not protection on another machine.** The last-sync record is machine-local, so a colleague's fresh clone — or your own after cleared state — has no record and that first pull writes the platform copy straight over it.
-   - **Only a push puts the docs where others get them.** `draft/` ships to the platform, so until the README is pushed, nobody who pulls the component sees it.
-
-   So still recommend pushing it in the step-6 report — as the way to publish the docs, not as a race against the next pull. (The do-not-overwrite rule further down binds *this skill's* own writes; it is unrelated to the CLI's guard.)
+e. **Recommend pushing the scaffolded README.** A later pull keeps the local README if the platform changes its copy too (it is listed in the kept-files warning, step 3). But **only a push puts the docs where others get them.** `draft/` ships to the platform, so until the README is pushed, nobody who pulls the component sees it. Recommend pushing it in the step-6 report. (The do-not-overwrite rule further down binds *this skill's* own writes; it is unrelated to the CLI's guard.)
 
 ### 6. Report
 
@@ -156,15 +167,17 @@ Next: read draft/README.md, then start editing. For a new feature use /spec-crea
 
 - Do NOT invoke `b6p` any way other than the bare `b6p` binary.
 - Do NOT accept a display name as a substitute for the DAV URL.
+- Do NOT pass `--enable-git` without the user's yes for *this* script (step 2), and never on a pull that is only for reading. The switch is one-way.
+- Do NOT commit, reset or change branches inside `draft/.git`, and do NOT hand-edit `.b6p-build.json`.
 - Do NOT overwrite a substantive `draft/README.md`.
 - Do NOT speculate beyond what the code shows when filling Overview/Behavior — if uncertain, ask.
 - Do NOT scaffold a SPEC.md anywhere — the SPEC concept lives only under `.claude/specs/<feature>/` for new work, never per component.
 
 ## If the CLI fails
 
-Three distinct failure modes — handle them differently:
+Three distinct failure modes — handle them differently (a declined switch to git is not one of them: step 2):
 
 - **`command not found` / `b6p` cannot be resolved** — the b6p-cli standalone binary is not installed (or not on `PATH`). Do NOT retry, do NOT try alternative invocations. Tell the user:
   > `b6p` could not be resolved. Install the b6p-cli standalone binary and make sure it is on your `PATH` (see its release/install instructions), then retry `/b6p-pull <DAV URL>`.
-- **Exit `1` naming a question it could not answer** (`Enter your access token`, or any other) — **not** a tool failure and **not** a reason to switch tools. The CLI ran correctly and is telling you it needed an answer nobody could give. For the token it can happen even when the step-0 check printed `OK`: relay the CLI's message and tell the user to run `b6p auth set`, then retry. Any other question: relay it and ask the user — `b6p auth set` is only for the token. Do not send them to the VS Code extension for this.
-- **Any other error** (network, lock, a real auth *rejection* by the platform, etc.) — `b6p` ran but the call failed. The VS Code b6p extension (`bsjs-push-pull`) is the equivalent fallback. Tell the user to use it via the editor UI rather than retrying the CLI in a loop.
+- **Exit `1` naming a question it could not answer** (`Enter your access token`, or any other) — **not** a tool failure and **not** a reason to switch tools. The CLI ran correctly and is telling you it needed an answer nobody could give. For the token it can happen even when the step-0 check printed `OK`: relay the CLI's message and tell the user to run `b6p auth set`, then retry. Any other question: relay it and ask the user — `b6p auth set` is only for the token.
+- **Any other error** (network, lock, a real auth *rejection* by the platform, etc.) — `b6p` ran but the call failed. Show it to the user; do not retry the CLI in a loop. The VS Code b6p extension is **not** a fallback: it has not been updated for git-only scripts.
