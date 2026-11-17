@@ -3,6 +3,15 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
+## [0.2.2] — unreleased (ships with bluestep-tools 0.51.0)
+
+### Changed
+
+- **`/bluestep-one:setup`** denies the b6p 1.0 push form too: the project settings it writes deny
+  `b6p script push` (and the `--yes --json` forms of both commands) next to `b6p push`, which b6p
+  1.0 keeps only as a deprecated alias. A present settings file gets the missing entries added on
+  the next run. The build skill names both forms.
+
 ## [0.2.1] — 2026-11-16
 
 ### Changed

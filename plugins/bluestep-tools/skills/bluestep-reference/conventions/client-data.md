@@ -90,7 +90,7 @@ It checks every tracked file and prints a count per file. This is how a project 
 
 - **Fix the source.** Replace the data with placeholders and commit.
 - **Compiled output.** If the text was in a component's TypeScript, it is also inside
-  `draft/.build/*.js`, and stays there until the component is published and pulled again. See
+  `draft/.build/*.js`, and stays there until the next push, which the platform rebuilds (the local draft moves to that build). See
   [build sourcemap embeds source](../gotchas/build-sourcemap-embeds-source.md).
 - **History.** The old commits still hold the data, in every clone and on the remote. Rewriting
   history (`git filter-repo`, or a new repo started from one clean commit) is a decision for the

@@ -17,7 +17,7 @@ component in `components[]` by name or id; take its `id` and `repo`. A component
 been created or registered yet: stop, and give the user the first steps of `types.md` › *A new
 component repo* (create it in the *Build* panel, then add its id to `components`). A build or
 publish runs only on an id there. Work is done in the component repo, under the repo's own
-`AGENTS.md` where it has one. Never `b6p push`; never edit `types/`.
+`AGENTS.md` where it has one. Never `b6p script push` (or the older `b6p push`); never edit `types/`.
 
 ## The gates
 

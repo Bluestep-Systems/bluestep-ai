@@ -1,5 +1,5 @@
 ---
-description: "Only root static/script.ts → .build/script.js is ever loaded by a merge report page (the CLI snapshot build compiles subdirectory .ts files too, but nothing loads them); a server-side sibling under scripts/ runs only through an ES import from app.ts"
+description: "Only root static/script.ts → .build/script.js is ever loaded by a merge report page (the platform's build compiles subdirectory .ts files too, but nothing loads them); a server-side sibling under scripts/ runs only through an ES import from app.ts"
 ---
 
 > This rule is the **platform-compiled** path and does **not apply to a Vite bundle** — a Vite bundle is built by Vite, so the platform's `static/` build never runs (nothing here about "only root `static/script.ts` compiles" is in force). See [vite spa merge report](../reference/vite-spa-merge-report.md).

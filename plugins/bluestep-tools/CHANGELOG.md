@@ -30,8 +30,12 @@ This project follows [Semantic Versioning](https://semver.org/). While the major
   install through npm. The bootstrap also brings bluestep-tools up to 0.51.0. `/b6p-setup` points at
   `bootstrap-v1.2.0`, which CI tags when this merges.
 - **Commands** move to `b6p script push|pull|audit|deploy` in every skill and reference file (the old
-  top-level forms still work in 1.0.0 but print a deprecation warning). The shipped `AGENTS.md`
-  template still says `b6p push` / `b6p pull`; it changes with the next template marker.
+  top-level forms still work in 1.0.0 but print a deprecation warning).
+- **Shipped `AGENTS.md` (template marker 7):** rule 8 now says the platform builds every push (it said
+  the b6p CLI runs the only build), and the file names the `b6p script` commands. Every project on
+  marker 6 or below detects `rules-template` on its next `/b6p-setup` (or `/b6p-push` / `/b6p-pull`
+  preflight). The `b6p-task-implementer` subagent, `quick-task`, `client-data.md` and the
+  multi-file note in `bsjs-development.md` say the same.
 - **Login checks** use `b6p --json auth status`, which never prompts, instead of looking for the
   secrets file.
 - **`/b6p-push`**: a preflight checks the commit author; `git -C <component>/draft status` replaces a

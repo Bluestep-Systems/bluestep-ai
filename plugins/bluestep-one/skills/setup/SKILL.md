@@ -75,7 +75,7 @@ Each check is read-only. Report each as ok / missing, with the fix for each miss
    {
      "permissions": {
        "allow": ["Bash(node:*)", "Bash(git:*)", "mcp__Claude_Browser"],
-       "deny": ["Edit(types/**)", "Bash(b6p push:*)"]
+       "deny": ["Edit(types/**)", "Bash(b6p push:*)", "Bash(b6p script push:*)", "Bash(b6p --yes --json push:*)", "Bash(b6p --yes --json script push:*)"]
      },
      "extraKnownMarketplaces": {
        "bluestep": { "source": { "source": "github", "repo": "Bluestep-Systems/bluestep-ai" } }
