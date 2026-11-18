@@ -136,12 +136,18 @@ message in one line and move on.
 
 ### 5. The pre-push model review (a separate question, default no)
 
-Ask only when `git config --get bluestep.phiReview` prints nothing. One question, **No** first:
+Ask only when `git config --get bluestep.phiReview` prints nothing. The question is often shown on
+its own, in the middle of another task, so it carries its own context. Ask it word for word, **No**
+first:
 
-> Also check pushes with a model? On each push it sends only the lines your new commits add to
-> Claude Haiku, through the same login and provider this session already uses, to look for names
-> and addresses a pattern cannot see. When Claude is not installed or not logged in, it warns and
-> lets the push through.
+> This project now checks your work for client data before it is saved or shared (each git commit
+> and push): it stops phone numbers, email addresses and record titles. A pattern can't spot names
+> or street addresses. Optional extra: on each push, Claude Haiku also reads only the lines you
+> added, using the Claude login this session uses, and looks for those. If Claude isn't installed
+> or signed in, the push goes through with a warning. Turn it on?
+
+- **No** — "Only the pattern check."
+- **Yes** — "Haiku also reads the added lines on each push."
 
 Yes → `git config bluestep.phiReview true`. No, or no answer → `git config bluestep.phiReview
 false`, which records the choice so it is not asked again. Either way, say how to change it:

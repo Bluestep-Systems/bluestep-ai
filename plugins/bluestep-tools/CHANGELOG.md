@@ -11,6 +11,23 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.51.2] — 2026-11-18
+
+### Changed
+
+- **Questions make sense on their own.** People were getting question cards with no context:
+  one in the middle of `/spec-create` that started "Also check pushes with a model?", and one an
+  agent wrote about "b6p 1.0.0", "WebDAV" and "git publishing". The card shows without the chat
+  above it.
+  - **Shipped `AGENTS.md` (template marker 8):** `## Answering` gains one bullet. A question says
+    what the agent was doing, what each answer changes for the user and what can't be undone, in the
+    words they see on screen, with no tool, protocol or command names unless the user used them
+    first. Every project on marker 7 or below detects `rules-template` on its next `/b6p-setup` (or
+    `/b6p-push` / `/b6p-pull` preflight).
+  - **`/b6p-setup`, client-data check:** the optional Haiku push review question now says first what
+    the project just got (a check that stops phone numbers, email addresses and record titles before
+    a commit or push), then what the extra adds, and it is asked word for word.
+
 ## [plugin 0.51.1] — 2026-11-17
 
 ### Changed
