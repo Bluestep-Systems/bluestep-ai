@@ -564,3 +564,32 @@ rule or total the page computed where the save happens. Do not ship the form on 
 screen with that work missing.
 
 **Applies to:** any BlueStep One component
+
+### `formEntries.openEntry` takes only `{ replace }`: a new-entry screen cannot hand the entry screen what it knows about the row it made
+
+What looks right: the new-entry screen creates the row, then tells the entry screen "this session
+made it, at this version", so *Cancel* can remove a row nobody touched. What happens:
+`openEntry(entryId, opts?: { replace?: boolean })` has no way to pass anything, and the move to the
+new row remounts the surface, so props and component state are gone. `openNewEntry` carries
+nothing either (G-319).
+
+**How to tell.** Read the declaration (`types/component-host.d.ts`, `openEntry`). Then, on the
+published build of a component that keeps the row's origin as below, press *New entry* and
+*Cancel* with nothing changed: the list has the same row count as before.
+
+What to do: keep it in a module-level `Map` keyed by the entry and form ids, written before
+`openEntry`, read once when the entry screen mounts and dropped on unmount. The host keeps one copy
+of the federated module across that remount, so the entry screen finds it (seen with both screens
+drawn by one component; two components sharing it was not checked). Its limits: a full reload
+loses it, and the row is then kept, which is the safe side; a second tab never has it; an entry
+the entry screen never reads stays in the `Map` until a reload.
+
+Use the `Map` here and not `sessionStorage` (G-319's answer for `openNewEntry`): `sessionStorage`
+outlives a reload, and a mark left from before would let *Cancel* delete a row. G-319's hand-off
+deletes nothing, so it can outlive one.
+
+On *Cancel*, delete only when the row's version still equals the one stored, and delete with
+`deleteFormRow` wherever the form has delete formulas (G-332). Like any module-level state, the
+`Map` needs an exported reset that the tests call in `afterEach` (as P-59 does for caches).
+
+**Applies to:** any BlueStep One component that creates a row on its new-entry surface
