@@ -1,5 +1,5 @@
 ---
-description: "Reading multi-entry form data through a Relate query created via the MCP `view` tool has four traps — maxRows: 0 means literally zero rows (and is the default), recordTypes must be the record's BASE type, list_views(formId:) can't prove absence, and relateQuery can't execute an EntityList"
+description: "Reading multi-entry form data through a Relate query made with the MCP `view` tool has four traps — maxRows: 0 is a real zero-row cap (unlimited is -1), recordTypes must be the record's BASE type, only list_views(formId:) finds a form's views (the name search and the unfiltered listing miss List queries), and relateQuery reads an EntityList view (MEFR) only with `record`, a List view by unit"
 ---
 
 # Relate query over a multi-entry form — four traps
@@ -7,34 +7,37 @@ description: "Reading multi-entry form data through a Relate query created via t
 Creating a Relate query (DB view) over a multi-entry form via the MCP `view` tool and reading it
 with a GraphQL `relateQuery(...)` fails in ways that look like a platform limitation rather
 than a config mistake — a healthy-looking view (columns come back correctly) that returns
-`totalSize: 0` against a form holding hundreds of entries. All four traps observed live (2026-07,
-plugin 0.14.0); together they produced the wrong conclusion "a Relate query cannot read MEFR
-entries."
+`totalSize: 0` against a form holding hundreds of entries, or a bare server error. Together the
+four traps produce the wrong conclusion "a Relate query cannot read MEFR entries."
 
-1. **`maxRows: 0` means literally ZERO rows — and it is the default.** The `view` tool's own
-   inputSchema says "Maximum rows to return (0 = unlimited, default 0)" (still says so as of
-   2026-07-31); it behaves as a literal zero-row cap, so the naive create silently produces a query
-   that returns nothing. Working views use **`maxRows: -1`**. The schema text is served by the
-   platform, so this file is the only place the correction can reach the reader.
+1. **`maxRows: 0` is a real zero-row cap.** The view returns its columns and no data. Unlimited is
+   **`maxRows: -1`**, which is also what a new view gets when `maxRows` is left out on create. On
+   update, leaving it out keeps the existing cap; send `-1` to remove one.
 2. **`recordTypes` is required, and it must be the record's BASE type — not the category the form
    reports.** `relateForm { recordTypes }` can return a *category*; the query needs the base record
    type of the records holding the entries. Wrong value or omitted → zero rows.
-3. **`list_views(formId:)` cannot prove absence.** The formId filter misses views whose relationship
-   to the form is `primaryForm`, and (verified live 2026-07-31) it also **omits EntityList/MEFR
-   views** of the form while returning its `List` views. To check whether a view/MEFR already
-   exists, call `list_views` **without** the formId filter and match by name/type.
-4. **Use `List`, not `EntityList`, for data reads.** A `List` view over a multi-entry form yields
-   one row per entry (verified on a six-figure-row form, `count` honored). `relateQuery` **cannot
-   execute an EntityList view at all** — it throws a `Cannot cast AssociationSQLKey<Association> to
-   BaseKey<Entity>` error, with and without `unit`. Note the distinction: the **EntityList MEFR**
-   created by `create_mefr` is the vehicle for **wiring a script import** (the query-group recipe
-   in `conventions/mcp-platform-authoring.md`); a **`List` view** is the vehicle for **reading
-   entry data** via `relateQuery`. Different jobs — the two rules do not contradict.
+3. **Find a form's views with `list_views(formId:)`, not by name.** With the form's id it returns
+   every view over the form: its `List` queries, its custom MEFRs, and the built-in all-entries
+   view (`queryType: EntityList`, no `displayName` — see
+   [../reference/current-record-bindings.md](../reference/current-record-bindings.md)). The name
+   `search` and the listing with no `formId` find named MEFRs but **miss `List` queries that
+   exist**, so neither proves a view is absent. In a search answer `total` is the count of all
+   views and `hasMore` is `true` even when nothing matched. `list_views` returns at most 100 items
+   and has no offset. When you hold an id, `get_view` is the check.
+4. **A `List` view is read by unit, an `EntityList` view (a MEFR) by record.**
+   `relateQuery(id: "<MEFR topId>", record: "<record topId>", start:, count:)` returns that
+   record's entries, paged, each row with its `formEntry` and `data`. Called without `record`, or
+   with `unit` in its place, it answers a bare "An unexpected server error occurred." (`INTERNAL`):
+   read that as "this view needs `record`". For entries **across records**, use a `List` view,
+   which yields one row per entry and honors `count`. The MEFR is also the vehicle for **wiring a
+   script import** (the query-group recipe in `conventions/mcp-platform-authoring.md`).
 
 ## The working recipe
 
-Create with the `view` tool: `viewType: "List"`, `maxRows: -1`, `recordTypes: [<base record type
-topId>]`, plus display columns. Read with this GraphQL query, by the route in
+For one record's entries, the form's built-in all-entries view already works with `record:`;
+nothing has to be created. For a read across records, create a view with the `view` tool:
+`viewType: "List"`, `maxRows: -1`, `recordTypes: [<base record type topId>]`, plus display
+columns. Read with this GraphQL query, by the route in
 [../reference/gql-in-a-tab.md](../reference/gql-in-a-tab.md):
 
 ```graphql
@@ -46,6 +49,6 @@ topId>]`, plus display columns. Read with this GraphQL query, by the route in
 } }
 ```
 
-`relateQuery` over a `List` view is the **only paged, value-bearing read path** for multi-entry
-form entries: `formRows` ignores both `limit` and `offset` (always returns the full set) and
-exposes no field values on its rows.
+`relateQuery` is the read path with a runtime `filter` and `sort`. `formRows(id, recordId, limit,
+offset)` pages one record's entries too and returns `totalSize`; its rows carry values through
+`... on FormRow { data(fields: [<field topIds>]) { field { topId } valueAsString } }`.

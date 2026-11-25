@@ -237,13 +237,15 @@ next task. Conversationally there is no checkbox — just report what ran.
 ## Idempotency
 
 **Object already exists** (re-run, or added manually) → detect via the `list_*` / `get_*` readers and
-**skip with a report**. Do not error and do not duplicate. **Caution — `list_views(formId:)` gives
-false negatives**: the formId filter misses `primaryForm` relationships and omits EntityList/MEFR
-views entirely (verified 2026-07), so it cannot prove a view is absent — list **without**
-the filter and match by name/type before concluding an object doesn't exist (details:
-`gotchas/relate-query-over-mefr.md`). The `list_forms` / `list_views` name search can also miss a
-form or view by its own name (reported 2026-09 from production, not re-run here): when you have the
-id, read it with `get_form` / `get_view` before concluding it is absent.
+**skip with a report**. Do not error and do not duplicate. **To check for a view, call
+`list_views(formId:)`**: it returns every view over the form, the built-in all-entries view and
+custom MEFRs included (verified 2026-11 on both releases). **Caution — the `list_views` name
+`search` and the listing with no `formId` give false negatives**: both miss `List` queries that
+exist (verified 2026-11), a search answer's `total` and `hasMore` describe all views and not the
+matches, and the tool returns at most 100 items with no offset (details:
+`gotchas/relate-query-over-mefr.md`). The `list_forms` name search can also miss a form by its own
+name (reported 2026-09 from production, not re-run here). When you have the id, read it with
+`get_form` / `get_view` before concluding it is absent.
 
 ## Safety / destructive-tool discipline
 
@@ -325,10 +327,14 @@ and use that set's name. When an argument matters (a `mode`, an `action`), read 
 >
 > The working recipe:
 >
-> 1. **`create_mefr`** (`formId` = the base form's topId, plus `folderId` / `mefrName`) — first check
->    `list_views` **without a formId filter** for an existing MEFR of the form and reuse it (the
->    formId filter omits MEFRs — see Idempotency above). `create_mefr` is a **schema op with no
->    MCP inverse** (cleanup is UI-only), so it gets the raised approval-echo bar from Safety above.
+> 1. **Find the MEFR to wire.** Call `list_views(formId:)` with the base form's topId. Every
+>    multi-entry form has a built-in all-entries view (`queryType: EntityList`, no `displayName`):
+>    wire that one, or a custom MEFR the listing already shows
+>    ([current-record-bindings.md](../reference/current-record-bindings.md) says when a custom one
+>    is warranted). Call **`create_mefr`** (`formId` = the base form's topId, plus `folderId` /
+>    `mefrName`) only when the design needs a custom MEFR that does not exist yet. `create_mefr` is
+>    a **schema op with no MCP inverse** (cleanup is UI-only), so it gets the raised approval-echo
+>    bar from Safety above.
 > 2. **`script_queries`** ADD with the **MEFR's topId** as `queryId` plus a `groupId` variable name — the MEFR
 >    is the query group.
 > 3. **`script_forms`** ADD with the **MEFR's topId** as `formOrReportId`, a `formulaId`, and the **same

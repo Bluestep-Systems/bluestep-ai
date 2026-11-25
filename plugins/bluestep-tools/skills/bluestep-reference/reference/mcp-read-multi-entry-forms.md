@@ -1,5 +1,5 @@
 ---
-description: "Reading multi-entry form entries in-session — form_entry READ (older release only) is broken for multi-entry (NEW_MULTI); the working paths are GraphQL (gateway tool or signed-in tab): formRows ignores limit/offset and times out on huge forms, fieldData is one-field-one-entry (batch via aliases); prefer relateQuery over a stored List query, the only paged, filterable path"
+description: "Reading multi-entry form entries in-session — form_entry READ (older release only) is broken for multi-entry (NEW_MULTI); the working paths are GraphQL (gateway tool or signed-in tab): formRows pages one record's entries (limit/offset, values through data(fields:)) and takes no filter, fieldData is one-field-one-entry (batch via aliases); prefer relateQuery, the only filterable, sortable path — a stored List query across records, a MEFR with record: for one record"
 ---
 
 # Reading multi-entry form entries
@@ -15,20 +15,21 @@ signed-in tab otherwise).
    `form_entry` tool. Where it exists, on a multi-entry form it resolves to a `NEW_MULTI` empty
    template and cannot enumerate rows (a read of existing multi-entry rows throws server-side). Do not
    spend calls on it.
-2. **GraphQL `formRows(id, recordId)` — works for topIds, with three sharp edges:**
-   - it **ignores `limit` and `offset` entirely** — every call returns the full set;
-   - each row carries a heavy **XMLEncoder `xml` blob** (parseable: a `values` map keyed by the
-     column C-codes) rather than clean field values;
-   - it **times out on large forms** (observed on a form in the ~100k+ row range).
-   Usable for small forms when you only need topIds; wrong tool for values at scale.
+2. **GraphQL `formRows(id, recordId, limit, offset)` — one record's entries, paged.** It honors
+   `limit` and `offset` and returns `totalSize`. Always pass a `limit`: a read of every row timed
+   out on a form in the ~100k+ row range. Ask for values with
+   `rows { ... on FormRow { topId data(fields: [<field topIds>]) { field { topId } valueAsString } } }`;
+   the row's `xml` is a heavy XMLEncoder blob, so leave it out. It takes no filter and no sort.
 3. **`fieldData(field, formEntry)` — one field of one entry per call.** For more than a couple of
    reads, **batch via GraphQL query aliases** (one request, many `fieldData` selections).
-4. **`relateQuery` over a stored `List` query — PREFER THIS.** It is the **only** read path that
-   honors `start`/`count` and accepts runtime `filter`/`sort` (filters take **`fieldId`**, not
-   `field`). If no stored query covers the data, **create one** — for any form that needs
-   recurring triage, a platform query pays for itself immediately. Creating that view via the
-   `view` tool has four traps of its own (zero-row `maxRows` default, base-type `recordTypes`,
-   `list_views` false negatives, List-not-EntityList) — see
+4. **`relateQuery` — PREFER THIS for anything filtered, sorted or across records.** It honors
+   `start`/`count` and is the only path that accepts a runtime `filter`/`sort` (filters take
+   **`fieldId`**, not `field`). Over a stored `List` query it reads entries across records; over
+   a MEFR, the form's built-in all-entries view included, it reads one record's entries when
+   called with `record:`. If no stored query covers a cross-record read, **create one** — for any
+   form that needs recurring triage, a platform query pays for itself immediately. Creating and
+   finding that view has four traps of its own (`maxRows: 0` as a zero-row cap, base-type
+   `recordTypes`, `list_views` name-search misses, `record` for an EntityList view) — see
    [relate query over mefr](../gotchas/relate-query-over-mefr.md); this file deliberately does not
    restate them.
 
