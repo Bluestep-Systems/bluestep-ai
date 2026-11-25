@@ -3,6 +3,21 @@
 All notable changes to the `bluestep-one` plugin are documented here. The other plugins in this
 repo keep their own changelogs; the root `CHANGELOG.md` lists them.
 
+## [0.3.2] — 2026-11-25
+
+### Added
+
+Three reference entries, each as reported from a component build:
+
+- **Gotcha (`gotchas/host-components-kit.md`):** `formEntries.openEntry` takes only `{ replace }`,
+  so a new-entry screen cannot hand the entry screen what it knows about the row it made. Keep it
+  in a module-level `Map` written before the call; a full reload loses it, a second tab never has
+  it.
+- **Gotcha (`gotchas/forms-fields-options-time.md`):** a true/false radio field is stored `"false"`
+  from the moment its row is created, so "answered" cannot be told from "not touched".
+- **Pattern (`patterns.md`):** read the choices of many link fields in one `remoteObjects` request
+  (up to 40 ids), then fall back to one read per link.
+
 ## [0.3.1] — 2026-11-17
 
 ### Changed

@@ -215,3 +215,10 @@ To unbind it: the same *Placement* card › *Go back to the built-in…*. That d
 When not to use: a screen that shares little with the built-in (start a new component); a form where a live change is not wanted yet (fork on a test form first).
 **How to tell.** On a test org, fork a test form's entry view as above. Read `customComponentPlacements(anchorId: "<form id>")`: one placement, its `componentRef` the fork, its region `form-entry`. Read the row with `remoteObjects`: `publishedSha` is the seeded commit, `slots` is `["form-entry"]`. Clone it: `draft` and `master` at one commit.
 **Applies to:** a component that replaces a form's entry view
+
+### Read the choices of many link fields in one `remoteObjects` request, then fall back to one read per link
+
+First idea: each link field reads its own list of choices when its section opens. BlueStep One shape for a screen that opens many sections at once: read the first page of every link field's candidates in one `remoteObjects(ids: $fields)` request, up to 40 ids a request, and match each answer to its field by the wrapper's `topId`. A link the batch did not answer whole is read alone; when the batch fails, every link is read alone, a few at a time.
+When not to use: one section opened by a click. The single read is enough.
+**How to tell.** On a test org, as a staff user, open a form that draws every section open and count the `/gql` requests for link choices in the browser's network panel: a form with about 50 link fields made 2, where one read per link would be about 50.
+**Applies to:** any BlueStep One component with many link fields open at once

@@ -564,3 +564,23 @@ rule or total the page computed where the save happens. Do not ship the form on 
 screen with that work missing.
 
 **Applies to:** any BlueStep One component
+
+### `formEntries.openEntry` takes only `{ replace }`: a new-entry screen cannot hand the entry screen what it knows about the row it made
+
+What looks right: the new-entry screen creates the row, then tells the entry screen "this session
+made it, at this version", so *Cancel* can remove a row nobody touched. What happens:
+`openEntry(entryId, opts?: { replace?: boolean })` has no way to pass anything, and the move to the
+new row remounts the surface, so props and component state are gone. `openNewEntry` carries
+nothing either (G-319).
+
+**How to tell.** Read the declaration (`types/component-host.d.ts`, `openEntry`). Then, on the
+published build of a component that keeps the row's origin as below, press *New entry* and
+*Cancel* with nothing changed: the list has the same row count as before.
+
+What to do: keep it in a module-level `Map` keyed by the entry and form ids, written before
+`openEntry`, read once when the entry screen mounts and dropped on unmount. The host keeps one copy
+of the federated module across that remount, so the entry screen finds it. Its limits: a full
+reload loses it, and the row is then kept, which is the safe side; a second tab never has it.
+Export a reset for the tests (P-59).
+
+**Applies to:** any BlueStep One component that creates a row on its new-entry surface
