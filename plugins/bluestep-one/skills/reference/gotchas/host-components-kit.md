@@ -579,8 +579,17 @@ published build of a component that keeps the row's origin as below, press *New 
 
 What to do: keep it in a module-level `Map` keyed by the entry and form ids, written before
 `openEntry`, read once when the entry screen mounts and dropped on unmount. The host keeps one copy
-of the federated module across that remount, so the entry screen finds it. Its limits: a full
-reload loses it, and the row is then kept, which is the safe side; a second tab never has it.
-Export a reset for the tests (P-59).
+of the federated module across that remount, so the entry screen finds it (seen with both screens
+drawn by one component; two components sharing it was not checked). Its limits: a full reload
+loses it, and the row is then kept, which is the safe side; a second tab never has it; an entry
+the entry screen never reads stays in the `Map` until a reload.
+
+Use the `Map` here and not `sessionStorage` (G-319's answer for `openNewEntry`): `sessionStorage`
+outlives a reload, and a mark left from before would let *Cancel* delete a row. G-319's hand-off
+deletes nothing, so it can outlive one.
+
+On *Cancel*, delete only when the row's version still equals the one stored, and delete with
+`deleteFormRow` wherever the form has delete formulas (G-332). Like any module-level state, the
+`Map` needs an exported reset that the tests call in `afterEach` (as P-59 does for caches).
 
 **Applies to:** any BlueStep One component that creates a row on its new-entry surface
