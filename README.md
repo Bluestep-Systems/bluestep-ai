@@ -96,9 +96,10 @@ Code, Cursor or Codex) in any folder, paste this, press enter:
 >    `git config --global user.name` or `user.email` is empty, to run
 >    `b6p config set author "My Name <me@example.com>"` once (every push is a git commit).
 > 6. Check whether `B6PT_TOKEN` is set (`test -n "$B6PT_TOKEN" && echo OK`). The plugin's gateway MCP
->    needs it. If it is missing, tell me where to create my `b6pt_` token (BlueStep → Tools →
->    Organization Admin → Super tab → Global Users → my account → Access Tokens; if I have no Super
->    tab, I ask BlueStep for one) and how to set it for my OS (Windows: the one-step setup in this
+>    needs it. If it is missing, tell me where to create my `b6pt_` token (BlueStep → My Account →
+>    Access Tokens for my own; an administrator with the Super tab can create one for me under Tools →
+>    Organization Admin → Super tab → Global Users → my account → Access Tokens; if I see neither, I
+>    ask BlueStep for one) and how to set it for my OS (Windows: the one-step setup in this
 >    repo's README, which asks for it hidden and keeps it off the command line; macOS/Linux: my
 >    shell profile). The same token works for `b6p auth set`. Never ask me for it.
 > 7. Finish with one line: fully quit and reopen the app, start a **new** session in the folder

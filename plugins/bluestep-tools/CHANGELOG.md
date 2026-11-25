@@ -11,6 +11,21 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.51.4] — 2026-11-25
+
+### Fixed
+
+- **Where a platform token is created: both screens are named.** A `b6pt_` token is created under
+  **My Account → Access Tokens** for your own, or by an administrator with the Super tab under
+  **Global Users → the account → Access Tokens**. `b6p-setup/references/platform-token.md` and
+  `conventions/mcp-platform-authoring.md` named only the Super-tab screen and said a user without
+  it could not create a token.
+- **`reference/git-site-spa.md`: a Git Site also serves a BlueStep Git repository.** Repository URL
+  takes `forge:<name>` for a general repository on the site's own BlueStep Git as well as a
+  `github.com` URL; the page said GitHub only. A BlueStep Git repository starts on `master`, needs
+  no token, and never deploys on a push (press **Pull**). The size caps now include the 20,000-file
+  limit, and the reserved prefixes add `/api`, `/download` and `/preview`.
+
 ## [plugin 0.51.3] — 2026-11-25
 
 ### Fixed

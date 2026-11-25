@@ -41,17 +41,20 @@ never see the token. Then the user fully restarts the app and runs `/b6p-setup` 
 The project files do not depend on the token, so the rest of the setup still runs, but the setup is
 **not complete** until `available_tenants` answers.
 
-> **Access reality.** The `b6pt_` token requires super-user access (**Super tab → Global Users → Access
-> Tokens**). If Organization Admin shows **no "Super" tab**, you can't self-create a token — **request a
+> **Access reality.** A `b6pt_` token is created in one of two places: your own, under **My Account →
+> Access Tokens**; or by an administrator who has the **Super tab**, under **Super tab → Global Users →
+> the account → Access Tokens**. If you see neither screen, you can't self-create a token — **request a
 > token / MCP enablement from BlueStep** rather than hunting for the screen. The b6p CLI needs the same
 > token, so this also blocks `b6p auth set`. (A later 404 for a specific org
 > = that org doesn't expose `/mcp`; see `conventions/mcp-platform-authoring.md`, don't retry.)
 
-If you **do** have super-user access, the happy path is:
+If you **do** have one of those screens, the happy path is:
 
 **1. Create the token (once, in any org — it works globally):**
-BlueStep UI → **Tools → Organization Admin → Super tab → Global Users →** find yourself → edit (pencil) →
-**Access Tokens → Create New Token**. Copy the `b6pt_…` value.
+BlueStep UI → **My Account → Access Tokens**, or with the Super tab **Tools → Organization Admin →
+Super tab → Global Users →** find yourself → edit (pencil) → **Access Tokens → Create New Token**.
+Copy the `b6pt_…` value; it is shown once, and a token's name, scopes and expiry cannot be edited
+afterwards.
 
 **2. Put it in the environment your agent tool runs in** (this differs by OS):
 

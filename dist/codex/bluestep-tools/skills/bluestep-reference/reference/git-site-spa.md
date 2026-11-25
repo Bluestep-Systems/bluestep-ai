@@ -1,22 +1,26 @@
 ---
-description: "Git sites serve a GitHub repo directly under /spa/ on the site's own domain — a separate SPA hosting model from the MergeReport static/ bundle path; two purposes with different Vite bases (mounted bundle vs standalone routed SPA), config fields, save-is-the-redeploy, same-origin data (the /gql GraphQL surface; /b/ endpoints for the four exceptions), reserved prefixes"
+description: "Git sites serve a GitHub or BlueStep Git repo directly under /spa/ on the site's own domain — a separate SPA hosting model from the MergeReport static/ bundle path; two purposes with different Vite bases (mounted bundle vs standalone routed SPA), config fields, save-is-the-redeploy, same-origin data (the /gql GraphQL surface; /b/ endpoints for the four exceptions), reserved prefixes"
 ---
 
 # Git-site SPA hosting (repo → `/spa/`)
 
 > **Two SPA hosting models — don't conflate them.** This file covers a **Git site**: a site record
-> that serves a GitHub repo directly under `/spa/` on the site's own domain — no MergeReport, no
+> that serves a git repo (GitHub or BlueStep Git) directly under `/spa/` on the site's own domain — no MergeReport, no
 > deploy-lib, no platform `static/` build. For the other model (a Vite bundle deployed into a MergeReport's
 > `static/`), see [vite spa merge report](vite-spa-merge-report.md) and
 > [deploy-lib workflow](../conventions/deploy-lib-workflow.md).
 
 ## What it is
 
-A **Git Site** (Admin → Sites → New Git Site) points at a GitHub repo; the platform serves the
+A **Git Site** (Admin → Sites → New Git Site) points at a git repo, on GitHub or on BlueStep Git; the platform serves the
 repo's files as-is under `/spa/` on the site's bound domain. **The repo IS the deploy artifact** —
 there is no server-side build step, so pre-built output must be committed (a dedicated deploy
-branch, or built files at the repo root). `github.com` URLs only (validated at save *and* deploy
-time); a **private** repo needs a fine-grained GitHub token with read-only *Contents* on that repo.
+branch, or built files at the repo root). The repository is either a `github.com` URL or
+`forge:<name>`, a general repository on the site's own BlueStep Git (created with
+`POST /api/v1/git/general`, pushed at `https://<site>/git/general/<name>.git`, default branch
+`master`; needs the GIT_GENERAL endorsement). Any other host is rejected, at save *and* deploy
+time. A **private** GitHub repo needs a fine-grained GitHub token with read-only *Contents* on
+that repo; a `forge:` repo needs no token.
 As a full site object, domain binding, IP filters, and permissions apply as for any other site.
 
 ## Two mounts: files under `/spa/`, routes at the root
@@ -97,11 +101,11 @@ the build if any root-addressed asset appears.
 
 | Field | Notes |
 | --- | --- |
-| **Repository URL** | `https://github.com/<owner>/<repo>` only — other hosts are rejected |
-| **Git Ref** | branch / tag / full SHA; default `main`; resolved to a concrete SHA at deploy |
+| **Repository URL** | `https://github.com/<owner>/<repo>`, or `forge:<name>` for a BlueStep Git general repository — other hosts are rejected |
+| **Git Ref** | branch / tag / full SHA; default `main` (a BlueStep Git repository starts on `master`); resolved to a concrete SHA at deploy |
 | **Index Path** | entry file, default `index.html`; the deploy is **rejected** if the repo lacks it |
-| **GitHub token** | private repos only; **write-only** — never echoed back, blank-on-save keeps the stored value |
-| **Webhook Secret** | optional; without it the `/spa/webhook` endpoint 404s (no auto-deploy) |
+| **GitHub token** | private GitHub repos only (leave blank for `forge:`); **write-only** — never echoed back, blank-on-save keeps the stored value |
+| **Webhook Secret** | optional, GitHub only; without it the `/spa/webhook` endpoint 404s (no auto-deploy). A push to a `forge:` repo never deploys by itself: press **Pull** |
 
 These fields are **not exposed on the `site` MCP tool** — deliberately, since two of them are
 secrets — so creating/configuring a git site is a **platform-UI hand-back step**, not an MCP op.
@@ -121,7 +125,7 @@ plus the last deploy error.
   force-push the deploy branch; its history is your rollback path.
 - **Allow ~5 minutes:** assets are served with `Cache-Control: public, max-age=300`, so a fresh
   deploy can take up to that long to show in a browser that has the old bundle cached.
-- Size caps: repo zipball ≤ 64 MiB, unpacked ≤ 256 MiB — a deploy past either cap fails.
+- Size caps: repo zipball ≤ 64 MiB, unpacked ≤ 256 MiB, at most 20,000 files — a deploy past any cap fails.
 
 ## Connecting to data (the part most often gotten wrong)
 
@@ -173,7 +177,7 @@ The platform answers these path prefixes on the site's domain before any request
 a client-side route defined under one of them never loads:
 
 `/gql`, `/csrf-token`, `/shared`, `/oauth2`, `/b`, `/data`, `/files`, `/downloadFolder`,
-`/appinfo`, `/spa`
+`/appinfo`, `/api`, `/download`, `/preview`, `/spa`
 
 This is the known-reserved set, not necessarily an exhaustive one. If a route works everywhere
 except one prefix, suspect a server-side handler owning that prefix.

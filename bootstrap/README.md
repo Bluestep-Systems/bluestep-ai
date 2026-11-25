@@ -42,8 +42,9 @@ Anything slow prints what it is doing and a "still working" line every 10 second
 - **Install your AI app first** (Claude, Cursor or Codex). The script sets up plugins only for the
   apps it finds.
 - **Have your BlueStep platform token ready.** It starts with `b6pt_`. To create one, in BlueStep:
-  Tools → Organization Admin → Super → Global Users → your user → Access Tokens → Create New Token
-  (give it an expiry date). No Super tab? Then you cannot create one yourself: ask BlueStep for one.
+  My Account → Access Tokens → create a token (give it an expiry date). An administrator with the
+  Super tab can also create one for you: Tools → Organization Admin → Super → Global Users → your
+  user → Access Tokens → Create New Token. If you see neither, ask BlueStep for one.
   You can also skip it and run the script again later.
 - **Have a GitHub account.** For `one-tools` (BlueStep One work, staff only), your account needs
   access to its private repo; the script checks that before it tries.

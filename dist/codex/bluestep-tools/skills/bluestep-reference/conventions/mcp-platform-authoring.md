@@ -86,8 +86,9 @@ specifically `mcp__plugin_bluestep-tools_bluestep-gateway__available_tenants` an
   still works — but each org checks whether the **account behind the token** is still authorized, and
   it no longer is (typical cause: the account's global super access was removed). Do **not** request
   org enablement and do **not** try more orgs — a `401` from every org is never a per-org problem (a
-  `404` from one org is; see above). To confirm: open the screen the token was created on (Tools →
-  Organization Admin → Super tab → Global Users → your account → Access Tokens) and check the token's
+  `404` from one org is; see above). To confirm: open the screen the token was created on (My Account →
+  Access Tokens, or Tools → Organization Admin → Super tab → Global Users → your account → Access
+  Tokens) and check the token's
   Expires and Scopes. **If you can no longer reach that screen, that is itself the confirmation** —
   the access the token depends on is gone. The fix is restoring the account's access or issuing a
   token under an authorized account — not MCP enablement.

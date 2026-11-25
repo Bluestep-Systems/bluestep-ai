@@ -97,7 +97,7 @@ conversationally.
 
 ## Running / testing
 
-No automated suite. By hand: add the in-repo marketplace, install the plugins into a scratch
+`npm run test:hooks` runs the hook tests, and CI runs them with the cross-tool drift check. The rest is by hand: add the in-repo marketplace, install the plugins into a scratch
 project, and confirm the skills appear, the Edit/Write guardrail hooks fire, and
 `bluestep-reference` serves files on demand; then `/b6p-setup` in a scratch dir writes the root
 files and a plugin-enabling `.claude/settings.json` with no hooks block.
