@@ -11,6 +11,25 @@ Entries before 0.42.0 were written when this was the repo's only changelog and t
 
 This project follows [Semantic Versioning](https://semver.org/). While the major version is `0.x`, every minor bump (`0.1.x` → `0.2.0`) may contain breaking changes — that is the SemVer convention for pre-1.0 packages.
 
+## [plugin 0.51.3] — 2026-11-25
+
+### Fixed
+
+- **Reading and finding views over a multi-entry form: the reference called fixed things broken.**
+  Re-run on two test orgs, one per tool set, by gateway reads and GraphQL from a signed-in tab.
+  - **`gotchas/relate-query-over-mefr.md`:** the `view` tool's `maxRows` text is right now (`-1`
+    unlimited and the default on create, `0` a real zero-row cap). `list_views(formId:)` returns
+    every view over the form, the built-in all-entries view and custom MEFRs included; it is the
+    name `search` and the listing with no `formId` that miss `List` queries that exist, and the
+    tool returns at most 100 items with no offset. `relateQuery` reads an EntityList view (a MEFR)
+    when called with `record:`; without it the answer is a bare server error. `formRows` honors
+    `limit` and `offset`, returns `totalSize`, and its rows carry values through `data(fields:)`.
+  - **`conventions/mcp-platform-authoring.md`:** the Idempotency caution says the same, and it
+    contradicted `reference/current-record-bindings.md`. Step 1 of the MEFR import recipe now looks
+    for the form's built-in all-entries view first and calls `create_mefr` only for a custom MEFR
+    that does not exist yet.
+  - **`reference/mcp-read-multi-entry-forms.md`** and the reference manifest follow.
+
 ## [plugin 0.51.2] — 2026-11-18
 
 ### Changed
